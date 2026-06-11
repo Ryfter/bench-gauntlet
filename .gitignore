@@ -1,0 +1,7 @@
+# local endpoint roster (machine-specific; targets.example.yaml is the template)
+targets.yaml
+
+# python
+__pycache__/
+*.pyc
+.venv/

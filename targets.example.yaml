@@ -1,0 +1,26 @@
+# Gauntlet targets — copy to targets.yaml (gitignored) and adjust.
+# A target only needs an OpenAI-compatible endpoint; `enrich` adapters add
+# metadata (context, quant, reasoning flag) when the server exposes them.
+
+targets:
+  - name: firefly-lmstudio
+    base_url: http://localhost:1234
+    api: openai            # /v1/chat/completions, /v1/embeddings
+    enrich: lmstudio       # native /api/v1/models metadata
+    box: firefly           # joins the infra inventory (VRAM budget, usage classes)
+  - name: wraith2-ollama
+    base_url: http://203.0.113.10:11434
+    api: openai
+    enrich: ollama
+    box: wraith2
+
+# Optional explicit roster; default = discover from each target.
+# A LOAD PROFILE is model @ context — same model at 8k and 128k = two rows.
+models:
+  - { target: firefly-lmstudio, id: 'phi-4', context: 8192 }
+  - { target: firefly-lmstudio, id: 'qwen/qwen3-coder-30b', context: 32768 }
+
+# Glob patterns skipped unless explicitly named on the command line.
+keep_list:
+  - '*heretic*'
+  - '*swahili*'
