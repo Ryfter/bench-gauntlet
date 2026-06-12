@@ -1,6 +1,12 @@
 # local endpoint roster (machine-specific; targets.example.yaml is the template)
 targets.yaml
 
+# results are BOX-PRIVATE (which models live on which machine, endpoints,
+# scores) — never publish with the engine. Share only deliberately-sanitized
+# copies (no base_urls, no private model rosters).
+scorecards/*
+!scorecards/.gitkeep
+
 # python
 __pycache__/
 *.pyc

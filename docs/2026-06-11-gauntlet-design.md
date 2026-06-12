@@ -17,7 +17,7 @@ Empirically answer, while the boxes are idle: **which local model is best at whi
 ## Decisions made
 
 1. **Standalone app, own repo** — like Grimdex: engine public-ready, results data portable. Baton lists it in `tools.yaml` (a tool whose capability is rating tools) and imports its scorecards.
-2. **Server-agnostic via OpenAI-compatible HTTP** — the only hard requirement on a target is a `/v1/chat/completions` (and `/v1/embeddings` for embedders) endpoint: LM Studio, Ollama, wraith2 over Tailscale, llama.cpp server, anything. Optional enrichment adapters (LM Studio native `/api/v1/models` for capabilities/quant/context metadata; `ollama show`) when available.
+2. **Server-agnostic via OpenAI-compatible HTTP** — the only hard requirement on a target is a `/v1/chat/completions` (and `/v1/embeddings` for embedders) endpoint: LM Studio, Ollama, a remote box over Tailscale, llama.cpp server, anything. Optional enrichment adapters (LM Studio native `/api/v1/models` for capabilities/quant/context metadata; `ollama show`) when available.
 3. **Implementation language: Python** (proposed; revisit at build) — HTTP+JSON heavy, cross-platform, teaching-friendly, and Baton already carries a Python toolchain. Alternative considered: PowerShell (fleet libs exist, but the app must outlive Baton's stack choices).
 4. **Deterministic checks beat judges wherever possible.** Scoring methods per test, in preference order: exact/regex match → parse-and-validate (JSON schema, compilable code, conventional-commit format) → LLM judge with a per-battery rubric. Judges are pluggable, must be non-reasoning strict-JSON models, and judge verdicts record WHICH judge scored (a judge is itself a model under test elsewhere — never let it grade its own family blind).
 5. **Resumable, checkpointed runs** — one model × battery cell at a time, results appended immediately; a crashed overnight run resumes where it stopped. VRAM-aware sequencing: broad models load one at a time; tight tools may co-reside (per the two-class policy).
@@ -29,22 +29,27 @@ Empirically answer, while the boxes are idle: **which local model is best at whi
 
 ### G.1 Targets — `targets.yaml`
 
+**Privacy boundary:** targets and results are PRIVATE connections to the owner's
+boxes — which models live on which machine, endpoints, and scores never ship with
+the engine. `targets.yaml` and `scorecards/` are gitignored; only the engine,
+batteries, and sanitized examples are shareable. (Placeholder hosts below.)
+
 ```yaml
 targets:
-  - name: firefly-lmstudio
+  - name: desktop-lmstudio
     base_url: http://localhost:1234
     api: openai            # /v1/chat/completions, /v1/embeddings
     enrich: lmstudio       # optional: /api/v1/models metadata (context, quant, reasoning flag)
-    box: firefly           # joins the infra inventory (VRAM budget, usage classes)
-  - name: wraith2-ollama
-    base_url: http://203.0.113.10:11434
+    box: desktop           # joins the infra inventory (VRAM budget, usage classes)
+  - name: laptop-ollama
+    base_url: http://laptop-hostname:11434   # e.g. a Tailscale peer
     api: openai
     enrich: ollama
-    box: wraith2
+    box: laptop
 models:                    # optional explicit roster; default = discover from target
-  - { target: firefly-lmstudio, id: 'phi-4', context: 8192 }       # a LOAD PROFILE: model @ context
-  - { target: firefly-lmstudio, id: 'qwen/qwen3-coder-30b', context: 32768 }
-keep_list: [ 'gemma-*heretic*', '*swahili*' ]   # glob patterns; skipped unless named explicitly
+  - { target: desktop-lmstudio, id: 'phi-4', context: 8192 }       # a LOAD PROFILE: model @ context
+  - { target: desktop-lmstudio, id: 'qwen/qwen3-coder-30b', context: 32768 }
+keep_list: [ '*personal-*', '*uncensored*' ]   # glob patterns; skipped unless named explicitly
 ```
 
 A **load profile** (model @ context) is the unit under test — the same model at 8K and 128K is two rows, because VRAM = weights + KV(context) and quality can differ at depth.
@@ -80,9 +85,9 @@ weights: { quality: 1.0 }    # per-battery scoring knobs
 
 ```jsonc
 { "run": { "id": "...", "date": "...", "gauntlet_version": "..." },
-  "cells": [ { "model": "phi-4", "target": "firefly-lmstudio", "context": 8192,
+  "cells": [ { "model": "phi-4", "target": "desktop-lmstudio", "context": 8192,
                "capability": "extract-json", "quality": 0.91, "pass_rate": 0.86,
-               "latency_p50_s": 2.1, "tokens_per_s": 38, "judge": "phi-4@wraith2|null",
+               "latency_p50_s": 2.1, "tokens_per_s": 38, "judge": "phi-4@laptop|null",
                "cases": 14, "errors": 0 } ],
   "context_depth": [ { "model": "...", "advertised": 262144, "effective_90pct": 49152 } ],
   "baseline_gaps": [ { "capability": "commit-msg", "local_champion": "tavernari",

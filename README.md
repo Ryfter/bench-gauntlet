@@ -25,6 +25,14 @@ Read the design first: [docs/2026-06-11-gauntlet-design.md](docs/2026-06-11-gaun
 docs/        design spec
 batteries/   <capability>.yaml battery definitions
 cases/       per-battery prompt/schema/fixture files
-scorecards/  run outputs (JSON canonical + MD report)
-targets.example.yaml   endpoint roster template
+scorecards/  run outputs (JSON canonical + MD report) — gitignored, box-private
+targets.example.yaml   endpoint roster template (real roster = targets.yaml, gitignored)
 ```
+
+## Privacy boundary
+
+The **engine** (code, batteries, examples) is the shareable part. **Targets and
+results are private to the owner's boxes** — which models live on which machine,
+endpoints, and scores never ship with the engine. `targets.yaml` and
+`scorecards/` are gitignored; share results only as deliberately-sanitized
+copies (no base_urls, no private model rosters).
