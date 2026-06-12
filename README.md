@@ -8,8 +8,9 @@ routing decisions rest on measured data instead of reputation.
 > consumed by [Baton](https://github.com/Ryfter/baton), but standalone by design —
 > all it asks of a target is an OpenAI-compatible endpoint.
 
-**Status:** spec'd 2026-06-11, repo scaffolded — implementation not started.
-Read the design first: [docs/2026-06-11-gauntlet-design.md](docs/2026-06-11-gauntlet-design.md).
+**Status:** build started 2026-06-12 (full-spec implementation, phased).
+Read the build design: [docs/2026-06-12-gauntlet-build-design.md](docs/2026-06-12-gauntlet-build-design.md)
+(the original [2026-06-11 spec](docs/2026-06-11-gauntlet-design.md) remains canonical for purpose, non-goals, and the 8 decisions).
 
 ## The idea in five lines
 

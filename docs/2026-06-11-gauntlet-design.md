@@ -1,5 +1,7 @@
 # Gauntlet — local-model testing suite (design)
 
+> **Superseded for implementation by [`2026-06-12-gauntlet-build-design.md`](2026-06-12-gauntlet-build-design.md)** (build started 2026-06-12). This doc remains canonical for *purpose, non-goals, and the 8 decisions* — the "why". The build design carries the "how" (module decomposition, public/private split, runtime behavior, phase plan, test philosophy).
+
 **Status:** spec'd 2026-06-11; **build deferred** (Kevin: "spec out the testing interface. That will be built out at a later date.")
 **Working title:** *Gauntlet* (a gauntlet of trials — placeholder, Kevin renames at build time; precedent: his ASR-benchmark app)
 **Relationship to Baton:** standalone app, own repo (the Grimdex move). Baton CONSUMES its scorecards; Gauntlet never routes work. Sibling doc: the models-as-tools requirements list (memory `project_models_as_tools_vision`, 15 requirements, 2026-06-11 design spurt).
