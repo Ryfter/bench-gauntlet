@@ -1,0 +1,24 @@
+{
+  "models": [
+    {
+      "name": "dolphin3:8b",
+      "model": "dolphin3:8b",
+      "size": 4920757726,
+      "details": {
+        "family": "llama",
+        "parameter_size": "8.0B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "gemma3:1b",
+      "model": "gemma3:1b",
+      "size": 815319791,
+      "details": {
+        "family": "gemma3",
+        "parameter_size": "999.89M",
+        "quantization_level": "Q4_K_M"
+      }
+    }
+  ]
+}
