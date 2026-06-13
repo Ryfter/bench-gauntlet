@@ -19,6 +19,13 @@ targets:
     enrich: ollama
     box: laptop
 
+# Box inventory the `box:` field joins to. `hardware` is the ONLY box label
+# that appears in a shared scorecard (hostnames stay private). `busy: true`
+# defers that box's cells (e.g. while gaming). Placeholder hardware shown.
+boxes:
+  - { id: desktop, hardware: "high-VRAM desktop GPU", vram_gb: 32, usage_class: broad, busy: false }
+  - { id: laptop,  hardware: "laptop GPU",            vram_gb: 8,  usage_class: tight, busy: false }
+
 # Optional explicit roster; default = discover from each target.
 # A LOAD PROFILE is model @ context — same model at 8k and 128k = two rows.
 models:

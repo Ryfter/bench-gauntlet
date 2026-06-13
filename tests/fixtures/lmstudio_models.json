@@ -1,0 +1,30 @@
+{
+  "models": [
+    {
+      "type": "llm",
+      "key": "gemma-3-12b-it-heretic",
+      "display_name": "Gemma 3 12B Instruct Heretic",
+      "architecture": "gemma3",
+      "quantization": { "name": "Q8_0", "bits_per_weight": 8 },
+      "size_bytes": 14186554848,
+      "params_string": "12B",
+      "loaded_instances": [],
+      "max_context_length": 131072,
+      "format": "gguf",
+      "capabilities": { "vision": true, "trained_for_tool_use": false }
+    },
+    {
+      "type": "llm",
+      "key": "google/gemma-4-31b",
+      "display_name": "Gemma 4 31B",
+      "architecture": "gemma3",
+      "quantization": { "name": "Q4_K_M", "bits_per_weight": 4 },
+      "size_bytes": 18500000000,
+      "params_string": "31B",
+      "loaded_instances": [],
+      "max_context_length": 32768,
+      "format": "gguf",
+      "capabilities": { "vision": false, "trained_for_tool_use": true }
+    }
+  ]
+}

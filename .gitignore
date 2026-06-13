@@ -11,3 +11,16 @@ scorecards/*
 __pycache__/
 *.pyc
 .venv/
+.pytest_cache/
+
+# secrets — never committed; env vars are the real channel
+.env
+.env.*
+
+# editable-install / build artifacts
+*.egg-info/
+build/
+dist/
+
+# any local private config that strays into the tree
+targets.local.yaml
