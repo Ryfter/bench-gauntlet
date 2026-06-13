@@ -21,3 +21,12 @@ class Enricher(Protocol):
     Metadata-only — never loads a model, safe to call anytime."""
 
     def fetch(self, base_url: str) -> list[ModelMeta]: ...
+
+
+from gauntlet.enrich import lmstudio, ollama  # noqa: E402  (registry wiring; ModelMeta defined above)
+
+# name -> fetch(base_url, transport=None) -> list[ModelMeta]
+REGISTRY = {
+    "lmstudio": lmstudio.fetch,
+    "ollama": ollama.fetch,
+}
