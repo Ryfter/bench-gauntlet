@@ -4,7 +4,15 @@ whether the hostname label is dropped; neither mode ever carries a base_url/IP
 (the Cell has no such field), and `assert_no_leak` is a belt-and-braces guard."""
 from __future__ import annotations
 
-from gauntlet.models import CaseResult, Cell
+import json
+import re
+from pathlib import Path
+
+from gauntlet import errors
+from gauntlet.models import CaseResult, Cell, Scorecard
+
+# IPv4 (with optional :port) or any URL scheme — a scorecard must contain neither.
+_LEAK_RE = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b|[a-zA-Z][a-zA-Z0-9+.-]*://")
 
 
 def aggregate_cell(
@@ -26,3 +34,26 @@ def aggregate_cell(
         quality=quality, pass_rate=pass_rate, latency_p50_s=latency_p50_s,
         tokens_per_s=tokens_per_s, cases=len(results), errors=errors,
     )
+
+
+def to_dict(scorecard: Scorecard, share: bool = False) -> dict:
+    data = scorecard.model_dump()
+    if share:
+        for cell in data["cells"]:
+            cell.pop("target", None)
+    return data
+
+
+def assert_no_leak(text: str) -> None:
+    """Refuse to emit a scorecard that contains an IP address or URL."""
+    match = _LEAK_RE.search(text)
+    if match:
+        raise errors.GauntletError(
+            f"refusing to write scorecard: looks like a leaked endpoint ({match.group()!r})"
+        )
+
+
+def write_json(scorecard: Scorecard, path: str | Path, share: bool = False) -> None:
+    payload = json.dumps(to_dict(scorecard, share=share), indent=2)
+    assert_no_leak(payload)
+    Path(path).write_text(payload, encoding="utf-8")
