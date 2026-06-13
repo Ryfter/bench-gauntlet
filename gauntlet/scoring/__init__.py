@@ -37,3 +37,45 @@ def _extract_json(text: str) -> object:
 
 class Scorer(Protocol):
     def __call__(self, output: str, **params: object) -> CaseResult: ...
+
+
+import json as _json  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+from gauntlet.battery import Case  # noqa: E402
+
+# Sentinel: this case needs the live judge path (filled in by the runner, Plan 3).
+NEEDS_JUDGE = CaseResult(case_id="", method="judge", score=None, passed=False,
+                         detail="needs judge")
+
+
+def _result(case: Case, method: str, ok: bool, detail: str = "") -> CaseResult:
+    return CaseResult(case_id=case.id, method=method, score=1.0 if ok else 0.0,
+                      passed=ok, detail=detail)
+
+
+def score_case(case: Case, output: str, base_dir: Path | str | None = None) -> CaseResult:
+    from gauntlet.scoring import exact, schema
+
+    method = case.scoring
+    if method == "exact":
+        if case.expect is None:
+            raise ValueError(f"case {case.id}: exact scoring requires 'expect'")
+        return _result(case, method, exact.exact_match(output, case.expect))
+    if method == "regex":
+        if case.pattern is None:
+            raise ValueError(f"case {case.id}: regex scoring requires 'pattern'")
+        return _result(case, method, exact.regex_match(output, case.pattern))
+    if method == "json-schema":
+        if case.schema_file is None:
+            raise ValueError(f"case {case.id}: json-schema scoring requires 'schema_file'")
+        path = Path(base_dir or ".") / case.schema_file
+        schema_dict = _json.loads(path.read_text(encoding="utf-8"))
+        return _result(case, method, schema.json_schema_match(output, schema_dict))
+    if method == "conventional-commit":
+        return _result(case, method, schema.conventional_commit_match(output))
+    if method == "compilable-code":
+        return _result(case, method, schema.compilable_code_match(output))
+    if method == "judge":
+        return NEEDS_JUDGE
+    raise ValueError(f"case {case.id}: unknown scoring method {method!r}")
