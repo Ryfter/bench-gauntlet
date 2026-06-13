@@ -1,6 +1,11 @@
 from gauntlet.battery import Battery, Case
 from gauntlet.config import Box, GauntletConfig, ModelProfile, Target
-from gauntlet.sequencer import build_cells, model_family
+from gauntlet.sequencer import (
+    build_cells,
+    estimate_footprint_gb,
+    model_family,
+    plan_run,
+)
 
 
 def _cfg():
@@ -54,3 +59,71 @@ def test_build_cells_excludes_keep_list_unless_named():
     # named explicitly -> included
     cells = build_cells(cfg, _batteries(), only_models=["nomic-embed-text"])
     assert all(c.model == "nomic-embed-text" for c in cells)
+
+
+def test_estimate_footprint_unknown_size_is_none():
+    assert estimate_footprint_gb(None, 4096) is None
+
+
+def test_estimate_footprint_weights_plus_kv():
+    # 4 GB weights + 8192 tokens * 100_000 B/token KV ~= 4.82 GB
+    gb = estimate_footprint_gb(4_000_000_000, 8192)
+    assert abs(gb - 4.82) < 0.05
+
+
+def test_plan_run_broad_box_one_exclusive_group_per_profile():
+    cfg = GauntletConfig(
+        targets=[Target(name="t", base_url="http://t:1", box="b")],
+        boxes=[Box(id="b", hardware="RTX 5090 desktop", vram_gb=32, usage_class="broad")],
+        models=[ModelProfile(target="t", id="m1", context=4096),
+                ModelProfile(target="t", id="m2", context=4096)],
+    )
+    bats = [Battery(capability="cap", cases=[Case(id="c", scoring="exact", expect="x")])]
+    plan = plan_run(cfg, bats)
+    assert len(plan.groups) == 2
+    assert all(g.exclusive for g in plan.groups)
+    assert plan.deferred == []
+
+
+def test_plan_run_busy_box_defers_all_its_cells():
+    cfg = GauntletConfig(
+        targets=[Target(name="t", base_url="http://t:1", box="b")],
+        boxes=[Box(id="b", hardware="RTX 5090 desktop", vram_gb=32, busy=True)],
+        models=[ModelProfile(target="t", id="m1", context=4096)],
+    )
+    bats = [Battery(capability="cap", cases=[Case(id="c", scoring="exact", expect="x")])]
+    plan = plan_run(cfg, bats)
+    assert plan.groups == []
+    assert len(plan.deferred) == 1
+    assert plan.deferred[0].deferred is True
+    assert "busy" in plan.deferred[0].defer_reason
+
+
+def test_plan_run_tight_box_packs_to_vram_budget():
+    cfg = GauntletConfig(
+        targets=[Target(name="t", base_url="http://t:1", box="b")],
+        boxes=[Box(id="b", hardware="RTX 2070 Super laptop", vram_gb=24, usage_class="tight")],
+        models=[ModelProfile(target="t", id="a", context=2048),
+                ModelProfile(target="t", id="b", context=2048),
+                ModelProfile(target="t", id="c", context=2048)],
+    )
+    bats = [Battery(capability="cap", cases=[Case(id="c", scoring="exact", expect="x")])]
+    footprints = {"a": 3_000_000_000, "b": 4_000_000_000, "c": 20_000_000_000}
+    plan = plan_run(cfg, bats, footprints=footprints)
+    # a(~3.2) + b(~4.2) = ~7.4 <= 24 co-reside; c(~20.2) pushes a 2nd group
+    assert len(plan.groups) == 2
+    assert {p[1] for p in plan.groups[0].profiles} == {"a", "b"}
+    assert {p[1] for p in plan.groups[1].profiles} == {"c"}
+
+
+def test_plan_run_tight_unknown_footprint_is_exclusive():
+    cfg = GauntletConfig(
+        targets=[Target(name="t", base_url="http://t:1", box="b")],
+        boxes=[Box(id="b", hardware="laptop", vram_gb=8, usage_class="tight")],
+        models=[ModelProfile(target="t", id="a", context=2048),
+                ModelProfile(target="t", id="b", context=2048)],
+    )
+    bats = [Battery(capability="cap", cases=[Case(id="c", scoring="exact", expect="x")])]
+    plan = plan_run(cfg, bats)  # no footprints -> unknown -> exclusive
+    assert len(plan.groups) == 2
+    assert all(g.exclusive for g in plan.groups)
