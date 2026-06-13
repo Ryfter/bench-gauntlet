@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 import fnmatch
+import os
+import sys
+from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+import yaml
+from pydantic import BaseModel, Field, ValidationError
+
+from gauntlet import errors
 
 
 class Target(BaseModel):
@@ -51,3 +57,38 @@ class GauntletConfig(BaseModel):
         """True if a keep_list glob matches (case-insensitive)."""
         mid = model_id.lower()
         return any(fnmatch.fnmatch(mid, pat.lower()) for pat in self.keep_list)
+
+
+def _user_config_dir() -> Path:
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
+        return Path(base) / "gauntlet"
+    base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return Path(base) / "gauntlet"
+
+
+def config_path(explicit: str | None = None) -> Path:
+    """Resolution order: --config flag > $GAUNTLET_CONFIG > user-config dir > ./targets.yaml."""
+    if explicit:
+        return Path(explicit)
+    env = os.environ.get("GAUNTLET_CONFIG")
+    if env:
+        return Path(env)
+    user = _user_config_dir() / "targets.yaml"
+    if user.exists():
+        return user
+    return Path("targets.yaml")
+
+
+def load_config(explicit: str | None = None) -> GauntletConfig:
+    path = config_path(explicit)
+    if not path.exists():
+        raise errors.ConfigNotFound(str(path))
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        raise errors.ConfigInvalid(str(path), f"YAML parse error: {exc}") from exc
+    try:
+        return GauntletConfig.model_validate(data)
+    except ValidationError as exc:
+        raise errors.ConfigInvalid(str(path), str(exc)) from exc
