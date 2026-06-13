@@ -33,7 +33,7 @@ def test_conventional_commit_match():
 
 def test_compilable_code_match_python():
     assert compilable_code_match("def f(x):\n    return x + 1\n", lang="python") is True
-    assert compilable_code_match("def f(x): return", lang="python") is False
+    assert compilable_code_match("def f(x) return x", lang="python") is False  # missing colon
 
 
 def test_compilable_code_strips_fences():
