@@ -1,3 +1,5 @@
+import sys
+
 import typer
 
 app = typer.Typer(help="A gauntlet of trials for local models.")
@@ -6,6 +8,13 @@ app = typer.Typer(help="A gauntlet of trials for local models.")
 @app.callback()
 def main() -> None:
     """Gauntlet — empirically rate local models per job, at what resource cost."""
+    # Reports use Unicode (em-dash for unscored cells); keep console output from
+    # garbling on legacy Windows code pages. Guarded — no-op if unsupported.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
 
 
 @app.command()
