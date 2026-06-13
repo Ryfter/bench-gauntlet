@@ -1,3 +1,5 @@
+import sys
+
 import typer
 
 app = typer.Typer(help="A gauntlet of trials for local models.")
@@ -6,6 +8,13 @@ app = typer.Typer(help="A gauntlet of trials for local models.")
 @app.callback()
 def main() -> None:
     """Gauntlet — empirically rate local models per job, at what resource cost."""
+    # Reports use Unicode (em-dash for unscored cells); keep console output from
+    # garbling on legacy Windows code pages. Guarded — no-op if unsupported.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
 
 
 @app.command()
@@ -38,6 +47,26 @@ def targets(config: str = typer.Option(None, "--config", "-c", help="Path to tar
                 typer.echo(f"  - {m.id:40s} {m.quant or '?':8s} {size:8s} {ctx}")
         except Exception as exc:  # unreachable target must not crash the listing
             typer.echo(f"  ! unreachable: {exc}")
+
+
+@app.command()
+def report(
+    scorecard_json: str = typer.Argument(..., help="Path to a scorecard JSON file"),
+    share: bool = typer.Option(False, "--share", help="Drop hostname labels for sharing"),
+    json_out: str = typer.Option(None, "--json-out", help="Also write sanitized JSON here"),
+) -> None:
+    """Render a Markdown report from a scorecard JSON (optionally sanitized for sharing)."""
+    import json as _json
+    from pathlib import Path
+
+    from gauntlet.models import Scorecard
+    from gauntlet.scorecard import render_markdown, write_json
+
+    data = _json.loads(Path(scorecard_json).read_text(encoding="utf-8"))
+    sc = Scorecard.model_validate(data)
+    typer.echo(render_markdown(sc, share=share))
+    if json_out:
+        write_json(sc, json_out, share=share)
 
 
 if __name__ == "__main__":

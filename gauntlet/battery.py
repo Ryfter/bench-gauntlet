@@ -19,6 +19,8 @@ class Case(BaseModel):
     scoring: Scoring
     schema_file: str | None = None
     rubric: str | None = None
+    expect: str | None = None     # exact scoring: the expected output
+    pattern: str | None = None    # regex scoring: the pattern to find
 
 
 class Battery(BaseModel):
