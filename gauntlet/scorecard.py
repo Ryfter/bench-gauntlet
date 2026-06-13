@@ -57,3 +57,38 @@ def write_json(scorecard: Scorecard, path: str | Path, share: bool = False) -> N
     payload = json.dumps(to_dict(scorecard, share=share), indent=2)
     assert_no_leak(payload)
     Path(path).write_text(payload, encoding="utf-8")
+
+
+def _fmt(value: float | None, places: int = 2) -> str:
+    return "—" if value is None else f"{value:.{places}f}"
+
+
+def render_markdown(scorecard: Scorecard, share: bool = False) -> str:
+    run = scorecard.run
+    lines = [
+        "# Gauntlet scorecard",
+        "",
+        f"- **run:** {run.id}  **date:** {run.date}  **gauntlet:** {run.gauntlet_version}",
+        "",
+    ]
+    header = ["model", "box", "ctx", "capability", "quality", "pass", "tok/s", "cases", "err"]
+    if not share:
+        header.insert(2, "target")
+    lines.append("| " + " | ".join(header) + " |")
+    lines.append("|" + "|".join(["---"] * len(header)) + "|")
+    for c in scorecard.cells:
+        row = [c.model, c.box]
+        if not share:
+            row.append(c.target or "—")
+        row += [
+            str(c.context), c.capability, _fmt(c.quality), _fmt(c.pass_rate),
+            _fmt(c.tokens_per_s, 0), str(c.cases), str(c.errors),
+        ]
+        lines.append("| " + " | ".join(row) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def write_markdown(scorecard: Scorecard, path: str | Path, share: bool = False) -> None:
+    text = render_markdown(scorecard, share=share)
+    assert_no_leak(text)
+    Path(path).write_text(text, encoding="utf-8")
