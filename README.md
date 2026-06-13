@@ -37,3 +37,16 @@ results are private to the owner's boxes** — which models live on which machin
 endpoints, and scores never ship with the engine. `targets.yaml` and
 `scorecards/` are gitignored; share results only as deliberately-sanitized
 copies (no base_urls, no private model rosters).
+
+## Developing
+
+```bash
+python -m venv .venv
+.venv/Scripts/python -m pip install -e ".[dev]"
+.venv/Scripts/python -m pytest            # default suite (no network)
+.venv/Scripts/gauntlet targets            # list models per target (metadata only)
+```
+
+Live tests are opt-in and metadata-only against a real endpoint:
+`GAUNTLET_LIVE_OLLAMA=http://<host>:11434 .venv/Scripts/python -m pytest -m live`.
+Never point inference tests at a box someone is gaming on.
