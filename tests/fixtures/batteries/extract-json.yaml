@@ -1,0 +1,12 @@
+capability: extract-json
+context_floor: 4096
+cases:
+  - id: invoice-01
+    prompt_file: cases/extract-json/invoice-01.txt
+    scoring: json-schema
+    schema_file: cases/extract-json/invoice-01.schema.json
+  - id: messy-table-03
+    prompt_file: cases/extract-json/messy-table-03.txt
+    scoring: judge
+    rubric: "Score 0-1: completeness, correctness, no invented data."
+weights: { quality: 1.0 }
