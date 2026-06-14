@@ -1,0 +1,8 @@
+Write a single Conventional Commits subject line (type(scope): summary) for this diff. Output ONLY the line.
+
+diff --git a/auth.py b/auth.py
+@@
+-    return verify(token)
++    if token is None:
++        raise ValueError("missing token")
++    return verify(token)

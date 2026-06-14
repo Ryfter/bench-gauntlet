@@ -8,7 +8,9 @@ routing decisions rest on measured data instead of reputation.
 > consumed by [Baton](https://github.com/Ryfter/baton), but standalone by design —
 > all it asks of a target is an OpenAI-compatible endpoint.
 
-**Status:** build started 2026-06-12 (full-spec implementation, phased).
+**Status:** full-spec build complete (Plans 1–4, phases 0–10) — foundation,
+scoring, scorecard, resumable runner, special batteries (context-depth, embed),
+frontier baseline, and seeded starter batteries.
 Read the build design: [docs/2026-06-12-gauntlet-build-design.md](docs/2026-06-12-gauntlet-build-design.md)
 (the original [2026-06-11 spec](docs/2026-06-11-gauntlet-design.md) remains canonical for purpose, non-goals, and the 8 decisions).
 
@@ -19,6 +21,32 @@ Read the build design: [docs/2026-06-12-gauntlet-build-design.md](docs/2026-06-1
 3. **Resumable overnight runs**, sequenced to respect per-box VRAM budgets and tight/broad usage classes; keep-list models skipped.
 4. **The scorecard JSON is the contract** — consumers (Baton's claims/culling/champions, humans, students) depend only on it. Markdown reports double as teaching artifacts.
 5. **Frontier baseline is opt-in**: a small sampled comparison that detects when a local specialist has closed the gap — declaring that job a permanent $0 route.
+
+## Commands
+
+| command | what it does |
+|---|---|
+| `gauntlet targets` | list configured targets + models (metadata only, no model loads) |
+| `gauntlet run` | sequence the work matrix and run batteries against live targets; resumable (`--resume <run-id>`) |
+| `gauntlet depth` | measure effective context via needle-at-depth retrieval (special battery) |
+| `gauntlet embed` | evaluate an embedding model by retrieval recall@k |
+| `gauntlet baseline` | opt-in frontier comparison (gated by `GAUNTLET_FRONTIER_API_KEY`) |
+| `gauntlet report` | render a scorecard JSON to Markdown (`--share` to sanitize) |
+
+See [batteries/README.md](batteries/README.md) for how to author a battery.
+
+### Overnight run (example)
+
+```bash
+gauntlet run      --config <private targets.yaml> --out scorecards/2026-06-13.json
+gauntlet depth    --target wraith2 --model gemma3:1b --max-context 8192 --into scorecards/2026-06-13.json
+gauntlet embed    --target wraith2 --model nomic-embed --into scorecards/2026-06-13.json
+gauntlet report   scorecards/2026-06-13.json --share
+```
+
+**Resource safety:** real inference must target a headless box. Do not run
+inference against a box you are gaming on — mark it `busy: true` in config to defer
+its cells. The frontier baseline never runs without `GAUNTLET_FRONTIER_API_KEY` set.
 
 ## Layout
 

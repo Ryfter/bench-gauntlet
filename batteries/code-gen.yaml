@@ -1,0 +1,7 @@
+capability: code-gen
+context_floor: 0
+cases:
+  - id: fizzbuzz
+    prompt_file: cases/code-gen/fizzbuzz.txt
+    scoring: compilable-code
+weights: { quality: 1.0 }

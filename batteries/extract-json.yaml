@@ -1,0 +1,8 @@
+capability: extract-json
+context_floor: 0
+cases:
+  - id: invoice-01
+    prompt_file: cases/extract-json/invoice-01.txt
+    scoring: json-schema
+    schema_file: cases/extract-json/invoice-01.schema.json
+weights: { quality: 1.0 }

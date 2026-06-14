@@ -1,0 +1,7 @@
+capability: commit-msg
+context_floor: 0
+cases:
+  - id: diff-01
+    prompt_file: cases/commit-msg/diff-01.txt
+    scoring: conventional-commit
+weights: { quality: 1.0 }

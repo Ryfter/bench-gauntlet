@@ -1,0 +1,8 @@
+capability: summarize-short
+context_floor: 0
+cases:
+  - id: article-01
+    prompt_file: cases/summarize-short/article-01.txt
+    scoring: judge
+    rubric: "Score 0-1: is this a faithful one-sentence summary that names the main subject and the key fact, with no invented details?"
+weights: { quality: 1.0 }
