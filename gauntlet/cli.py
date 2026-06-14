@@ -172,5 +172,65 @@ def depth(
         typer.echo(f"Scorecard written to {out}")
 
 
+@app.command()
+def embed(
+    config: str = typer.Option(None, "--config", "-c", help="Path to targets.yaml"),
+    target: str = typer.Option(..., "--target", help="Target name from config"),
+    model: str = typer.Option(..., "--model", help="Embedding model id"),
+    corpus: str = typer.Option("cases/embed/corpus.yaml", "--corpus",
+                               help="YAML with keys: corpus[], queries[], relevant[]"),
+    k: int = typer.Option(1, "--k", help="recall@k"),
+    out: str = typer.Option(None, "--out", help="Write the scorecard JSON here"),
+    into: str = typer.Option(None, "--into", help="Merge the embed cell into an existing scorecard"),
+    share: bool = typer.Option(False, "--share", help="Drop hostname labels when writing"),
+) -> None:
+    """Evaluate an embedding model by retrieval recall@k over a small corpus."""
+    import os
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    import yaml
+
+    from gauntlet import __version__
+    from gauntlet.batteries.embed import run_embed_cell
+    from gauntlet.client import OpenAIClient
+    from gauntlet.config import load_config
+    from gauntlet.models import RunMeta, Scorecard
+    from gauntlet.scorecard import merge_into_scorecard, write_json
+
+    cpath = Path(corpus)
+    if not cpath.exists():
+        typer.echo(f"Embed corpus file not found: {corpus}")
+        raise typer.Exit(code=1)
+    spec = yaml.safe_load(cpath.read_text(encoding="utf-8"))
+
+    cfg = load_config(config)
+    tgt = cfg.target_by_name(target)
+    if tgt is None:
+        typer.echo(f"No target named {target!r} in config.")
+        raise typer.Exit(code=1)
+    box = cfg.box_for_target(target)
+
+    client = OpenAIClient(base_url=tgt.base_url, api_key=os.environ.get("GAUNTLET_API_KEY"))
+    try:
+        cell = run_embed_cell(client, model=model, target=target,
+                              box=box.hardware if box else "(no box)", context=0,
+                              corpus=spec["corpus"], queries=spec["queries"],
+                              relevant=spec["relevant"], k=k)
+    finally:
+        client.close()
+
+    typer.echo(f"{model}: embed recall@{k} = {cell.quality}")
+    if into:
+        merge_into_scorecard(into, cells=[cell], share=share)
+        typer.echo(f"Merged into {into}")
+    if out:
+        meta = RunMeta(id=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
+                       date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                       gauntlet_version=__version__)
+        write_json(Scorecard(run=meta, cells=[cell]), out, share=share)
+        typer.echo(f"Scorecard written to {out}")
+
+
 if __name__ == "__main__":
     app()
