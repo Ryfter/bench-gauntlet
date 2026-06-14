@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 from gauntlet import errors
-from gauntlet.models import CaseResult, Cell, Scorecard
+from gauntlet.models import BaselineGap, CaseResult, Cell, ContextDepth, Scorecard
 
 # IPv4 (with optional :port) or any URL scheme — a scorecard must contain neither.
 _LEAK_RE = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b|[a-zA-Z][a-zA-Z0-9+.-]*://")
@@ -92,3 +92,23 @@ def write_markdown(scorecard: Scorecard, path: str | Path, share: bool = False) 
     text = render_markdown(scorecard, share=share)
     assert_no_leak(text)
     Path(path).write_text(text, encoding="utf-8")
+
+
+def merge_into_scorecard(
+    path: str | Path,
+    *,
+    cells: list[Cell] | None = None,
+    context_depth: list[ContextDepth] | None = None,
+    baseline_gaps: list[BaselineGap] | None = None,
+    share: bool = False,
+) -> None:
+    """Load an existing scorecard JSON, append the given sections, and rewrite it
+    (through the same leak guard). Lets `depth`/`embed`/`baseline` enrich a prior run."""
+    sc = Scorecard.model_validate_json(Path(path).read_text(encoding="utf-8"))
+    if cells:
+        sc.cells.extend(cells)
+    if context_depth:
+        sc.context_depth.extend(context_depth)
+    if baseline_gaps:
+        sc.baseline_gaps.extend(baseline_gaps)
+    write_json(sc, path, share=share)

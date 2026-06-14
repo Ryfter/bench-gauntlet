@@ -39,3 +39,26 @@ def test_effective_context_largest_length_at_or_above_threshold():
 
 def test_effective_context_zero_when_never_meets_threshold():
     assert effective_context([(2048, 0.5), (4096, 0.2)], threshold=0.9) == 0
+
+
+def test_run_context_depth_finds_cutoff():
+    import httpx
+
+    from gauntlet.batteries.context_depth import run_context_depth
+    from gauntlet.client import OpenAIClient
+
+    # Simulate degradation: the model returns the needle only when the prompt is
+    # short (<= 6000 chars). Longer haystacks "lose" it -> accuracy collapses.
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = request.content.decode()
+        text = DEFAULT_ANSWER if len(body) <= 6000 else "I could not find it."
+        return httpx.Response(200, json={"choices": [{"message": {"content": text}}],
+                                         "usage": {"completion_tokens": 5}})
+    client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
+    cd = run_context_depth(client, model="gemma3:1b", advertised=8192,
+                           lengths=[500, 1000, 4000], depths=[0.0, 0.5, 1.0])
+    assert cd.model == "gemma3:1b"
+    assert cd.advertised == 8192
+    # 500 & 1000-token prompts stay under 6000 chars (100% retrieval); 4000 tokens
+    # (~16000 chars) collapses -> effective_90pct is the largest passing length.
+    assert cd.effective_90pct == 1000

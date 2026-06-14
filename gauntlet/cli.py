@@ -120,5 +120,57 @@ def run(
         typer.echo(f"Scorecard written to {out}")
 
 
+@app.command()
+def depth(
+    config: str = typer.Option(None, "--config", "-c", help="Path to targets.yaml"),
+    target: str = typer.Option(..., "--target", help="Target name from config"),
+    model: str = typer.Option(..., "--model", help="Model id to probe"),
+    max_context: int = typer.Option(8192, "--max-context", help="Largest context length to probe"),
+    out: str = typer.Option(None, "--out", help="Write/merge the scorecard JSON here"),
+    into: str = typer.Option(None, "--into", help="Merge the curve into an existing scorecard JSON"),
+    share: bool = typer.Option(False, "--share", help="Drop hostname labels when writing"),
+) -> None:
+    """Measure effective context via needle-at-depth retrieval (special battery)."""
+    import os
+    from datetime import datetime, timezone
+
+    from gauntlet import __version__
+    from gauntlet.batteries.context_depth import run_context_depth
+    from gauntlet.client import OpenAIClient
+    from gauntlet.config import load_config
+    from gauntlet.models import RunMeta, Scorecard
+    from gauntlet.scorecard import merge_into_scorecard, write_json
+
+    cfg = load_config(config)
+    tgt = cfg.target_by_name(target)
+    if tgt is None:
+        typer.echo(f"No target named {target!r} in config.")
+        raise typer.Exit(code=1)
+
+    # Geometric-ish sweep up to max_context: 512, 1024, ... <= max_context.
+    lengths, n = [], 512
+    while n <= max_context:
+        lengths.append(n)
+        n *= 2
+    lengths = lengths or [max_context]
+
+    client = OpenAIClient(base_url=tgt.base_url, api_key=os.environ.get("GAUNTLET_API_KEY"))
+    try:
+        cd = run_context_depth(client, model=model, advertised=max_context, lengths=lengths)
+    finally:
+        client.close()
+
+    typer.echo(f"{model}: advertised {max_context} -> effective_90pct {cd.effective_90pct}")
+    if into:
+        merge_into_scorecard(into, context_depth=[cd], share=share)
+        typer.echo(f"Merged into {into}")
+    if out:
+        meta = RunMeta(id=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
+                       date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                       gauntlet_version=__version__)
+        write_json(Scorecard(run=meta, context_depth=[cd]), out, share=share)
+        typer.echo(f"Scorecard written to {out}")
+
+
 if __name__ == "__main__":
     app()
