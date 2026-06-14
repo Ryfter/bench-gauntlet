@@ -118,7 +118,7 @@ appear. Scorecards stay gitignored by default; sharing is explicit and sanitized
 ```yaml
 targets:
   - { name: firefly-lmstudio, base_url: http://localhost:1234, api: openai, enrich: lmstudio, box: firefly }
-  - { name: wraith2-ollama,  base_url: http://203.0.113.10:11434, api: openai, enrich: ollama,  box: wraith2 }
+  - { name: wraith2-ollama,  base_url: http://<wraith2-tailscale-ip>:11434, api: openai, enrich: ollama,  box: wraith2 }
 boxes:                       # the infra inventory the spec's `box:` joins to
   - { id: firefly, hardware: "RTX 5090 desktop",      vram_gb: 32, usage_class: broad, busy: false }
   - { id: wraith2, hardware: "RTX 2070 Super laptop", vram_gb: 8,  usage_class: tight, busy: false }

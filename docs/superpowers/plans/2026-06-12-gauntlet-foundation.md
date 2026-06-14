@@ -1359,7 +1359,7 @@ def targets(config: str = typer.Option(None, "--config", "-c", help="Path to tar
 
 Run: `.venv/Scripts/python -m pytest tests/test_cli_targets.py -v`
 Expected: PASS
-Run (live, opt-in, against wraith2): `GAUNTLET_LIVE_OLLAMA=http://203.0.113.10:11434 .venv/Scripts/python -m pytest tests/live -m live -v`
+Run (live, opt-in, against wraith2): `GAUNTLET_LIVE_OLLAMA=http://<wraith2-host>:11434 .venv/Scripts/python -m pytest tests/live -m live -v`
 Expected: PASS (lists wraith2's real models — metadata only, no VRAM use).
 
 - [ ] **Step 5: Commit**
