@@ -232,5 +232,87 @@ def embed(
         typer.echo(f"Scorecard written to {out}")
 
 
+def _frontier_client(base_url: str, api_key: str | None = None):
+    """Frontier endpoint client. Separated so tests can patch it with a MockTransport."""
+    from gauntlet.client import OpenAIClient
+    return OpenAIClient(base_url=base_url, api_key=api_key)
+
+
+@app.command()
+def baseline(
+    capability: str = typer.Option(..., "--capability", help="Capability to baseline (battery capability)"),
+    sample: int = typer.Option(3, "--sample", help="Number of cases to sample from the battery"),
+    batteries: str = typer.Option("batteries", "--batteries", help="Directory of battery YAML files"),
+    prompts: str = typer.Option(".", "--prompts", help="Base dir for case prompt/schema files"),
+    frontier_url: str = typer.Option(..., "--frontier-url", help="Frontier OpenAI-compatible base URL"),
+    frontier_model: str = typer.Option(..., "--frontier-model", help="Frontier model id"),
+    local: str = typer.Option(None, "--local", help="Local scorecard JSON to compare against"),
+    into: str = typer.Option(None, "--into", help="Write baseline_gaps into this scorecard JSON"),
+    share: bool = typer.Option(False, "--share", help="Drop hostname labels when writing"),
+) -> None:
+    """Opt-in frontier comparison. Costs money — gated behind GAUNTLET_FRONTIER_API_KEY;
+    with no key set it prints guidance and exits without calling anything."""
+    import os
+    from pathlib import Path
+
+    from datetime import datetime, timezone
+
+    from gauntlet import __version__
+    from gauntlet.baseline import compute_gaps
+    from gauntlet.battery import load_batteries
+    from gauntlet.models import RunMeta, Scorecard
+    from gauntlet.runner import run_cell
+    from gauntlet.scorecard import write_json
+
+    key = os.environ.get("GAUNTLET_FRONTIER_API_KEY")
+    if not key:
+        typer.echo("Frontier baseline is opt-in and costs money. Set GAUNTLET_FRONTIER_API_KEY "
+                   "to enable it. Skipped.")
+        raise typer.Exit(code=0)
+
+    bats = {b.capability: b for b in load_batteries(batteries)}
+    battery = bats.get(capability)
+    if battery is None:
+        typer.echo(f"No battery for capability {capability!r} in {batteries}/.")
+        raise typer.Exit(code=1)
+
+    # Sample N cases into a sub-battery.
+    sampled = battery.model_copy(update={"cases": battery.cases[:max(1, sample)]})
+
+    client = _frontier_client(frontier_url, api_key=key)
+    try:
+        fcell = run_cell(client, model=frontier_model, target=None, box="frontier",
+                         context=0, battery=sampled, base_dir=prompts)
+    finally:
+        client.close()
+    typer.echo(f"frontier {frontier_model}: {capability} quality = {fcell.quality}")
+
+    local_sc = None
+    local_cells = []
+    if local:
+        local_sc = Scorecard.model_validate_json(Path(local).read_text(encoding="utf-8"))
+        local_cells = local_sc.cells
+    gaps = compute_gaps(local_cells, [fcell])
+    for g in gaps:
+        typer.echo(f"  gap[{g.capability}] champion={g.local_champion} vs {g.frontier}: {g.gap:+.3f}")
+
+    if into:
+        # Merge into an existing scorecard if present; otherwise seed from the local
+        # scorecard (so champions stay visible) or a fresh run.
+        if Path(into).exists():
+            out_sc = Scorecard.model_validate_json(Path(into).read_text(encoding="utf-8"))
+        elif local_sc is not None:
+            out_sc = local_sc
+        else:
+            out_sc = Scorecard(run=RunMeta(
+                id=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
+                date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                gauntlet_version=__version__))
+        out_sc.cells.append(fcell)
+        out_sc.baseline_gaps.extend(gaps)
+        write_json(out_sc, into, share=share)
+        typer.echo(f"Wrote baseline into {into}")
+
+
 if __name__ == "__main__":
     app()
