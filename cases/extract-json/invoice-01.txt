@@ -1,0 +1,5 @@
+Extract the invoice as JSON with keys invoice_no (string) and total (number). Output ONLY JSON.
+
+INVOICE A-1007
+Consulting services .... $ 4250.00
+Total due: $4250.00

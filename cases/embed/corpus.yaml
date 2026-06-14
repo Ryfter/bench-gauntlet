@@ -1,0 +1,8 @@
+corpus:
+  - "A cat is a small domesticated feline kept as a pet."
+  - "A dog is a loyal domesticated canine and common companion animal."
+  - "An automobile is a wheeled motor vehicle used for transportation."
+queries:
+  - "feline house pet"
+  - "car for getting around"
+relevant: [0, 2]
