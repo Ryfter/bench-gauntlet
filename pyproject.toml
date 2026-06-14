@@ -1,5 +1,5 @@
 [project]
-name = "gauntlet"
+name = "bench-gauntlet"
 version = "0.5.0"
 description = "A gauntlet of trials for local models"
 readme = "README.md"
