@@ -11,11 +11,11 @@ def _config(tmp_path, port=65000):
     cfg = tmp_path / "targets.yaml"
     cfg.write_text(
         "targets:\n"
-        f"  - {{name: wraith2, base_url: 'http://127.0.0.1:{port}', box: wraith2}}\n"
+        f"  - {{name: box-b, base_url: 'http://127.0.0.1:{port}', box: box-b}}\n"
         "boxes:\n"
-        "  - {id: wraith2, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: broad}\n"
+        "  - {id: box-b, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: broad}\n"
         "models:\n"
-        "  - {target: wraith2, id: 'gemma3:1b', context: 4096}\n",
+        "  - {target: box-b, id: 'gemma3:1b', context: 4096}\n",
         encoding="utf-8",
     )
     return cfg
@@ -25,7 +25,7 @@ def test_depth_command_unreachable_writes_zero_curve(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     cfg = _config(tmp_path)
     out = tmp_path / "depth.json"
-    result = runner.invoke(app, ["depth", "--config", str(cfg), "--target", "wraith2",
+    result = runner.invoke(app, ["depth", "--config", str(cfg), "--target", "box-b",
                                  "--model", "gemma3:1b", "--max-context", "2048",
                                  "--out", str(out)])
     assert result.exit_code == 0, result.output
@@ -37,7 +37,7 @@ def test_depth_command_unreachable_writes_zero_curve(tmp_path, monkeypatch):
 def test_embed_command_missing_corpus_exits_cleanly(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     cfg = _config(tmp_path)
-    result = runner.invoke(app, ["embed", "--config", str(cfg), "--target", "wraith2",
+    result = runner.invoke(app, ["embed", "--config", str(cfg), "--target", "box-b",
                                  "--model", "nomic-embed", "--corpus", str(tmp_path / "nope.yaml")])
     assert result.exit_code != 0
     assert "corpus" in result.output.lower()

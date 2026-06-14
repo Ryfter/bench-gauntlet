@@ -9,7 +9,7 @@ def _r(score, passed, method="exact"):
 def test_aggregate_quality_and_pass_rate():
     results = [_r(1.0, True), _r(0.0, False), _r(0.5, True)]
     cell = aggregate_cell(
-        model="gemma3:1b", target="wraith2-ollama", box="RTX 2070 Super laptop",
+        model="gemma3:1b", target="box-b-ollama", box="RTX 2070 Super laptop",
         context=8192, capability="extract-json", results=results,
         latency_p50_s=2.0, tokens_per_s=40.0,
     )

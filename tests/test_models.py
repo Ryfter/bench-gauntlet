@@ -17,7 +17,7 @@ def test_scorecard_round_trips():
     sc = Scorecard(
         run={"id": "r1", "date": "2026-06-12", "gauntlet_version": "0.1.0"},
         cells=[
-            Cell(model="gemma3:1b", target="wraith2-ollama", box="RTX 2070 Super laptop",
+            Cell(model="gemma3:1b", target="box-b-ollama", box="RTX 2070 Super laptop",
                  context=8192, capability="extract-json", quality=0.91, pass_rate=0.86,
                  latency_p50_s=2.1, tokens_per_s=38.0, judge=None, cases=14, errors=0),
         ],

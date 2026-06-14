@@ -24,7 +24,7 @@ to any external knowledge base.
   (private hostname vs public hardware label); `targets.yaml` and `scorecards/` are
   gitignored; `--share` drops hostnames; a pre-write leak guard rejects IP/URL in
   emitted scorecards. Never commit a real IP/host — use placeholders
-  (`<wraith2-host>`) in docs and TEST-NET (`203.0.113.0/24`) in test fixtures.
+  (`<box-b-host>`) in docs and TEST-NET (`203.0.113.0/24`) in test fixtures.
 - **HTTP boundary:** `gauntlet/client.py` (`OpenAIClient`) is the ONLY component that
   performs HTTP. Everything else stays pure-logic-testable.
 - **Resource safety:** real inference targets a headless box. Never run inference

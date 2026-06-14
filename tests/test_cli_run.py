@@ -11,11 +11,11 @@ def _write_config(tmp_path):
     cfg = tmp_path / "targets.yaml"
     cfg.write_text(
         "targets:\n"
-        "  - {name: wraith2, base_url: 'http://127.0.0.1:65000', box: wraith2}\n"
+        "  - {name: box-b, base_url: 'http://127.0.0.1:65000', box: box-b}\n"
         "boxes:\n"
-        "  - {id: wraith2, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: broad}\n"
+        "  - {id: box-b, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: broad}\n"
         "models:\n"
-        "  - {target: wraith2, id: 'gemma3:1b', context: 4096}\n",
+        "  - {target: box-b, id: 'gemma3:1b', context: 4096}\n",
         encoding="utf-8",
     )
     return cfg

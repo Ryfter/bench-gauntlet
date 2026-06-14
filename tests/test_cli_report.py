@@ -8,7 +8,7 @@ runner = CliRunner()
 
 CARD = {
     "run": {"id": "r1", "date": "2026-06-13", "gauntlet_version": "0.1.0"},
-    "cells": [{"model": "gemma3:1b", "target": "wraith2-ollama",
+    "cells": [{"model": "gemma3:1b", "target": "box-b-ollama",
                "box": "RTX 2070 Super laptop", "context": 8192,
                "capability": "extract-json", "quality": 0.9, "pass_rate": 0.9,
                "latency_p50_s": 2.0, "tokens_per_s": 38.0, "judge": None,

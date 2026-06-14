@@ -10,11 +10,11 @@ from gauntlet.sequencer import (
 
 def _cfg():
     return GauntletConfig(
-        targets=[Target(name="wraith2", base_url="http://w:1", enrich="ollama", box="wraith2")],
-        boxes=[Box(id="wraith2", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="tight")],
+        targets=[Target(name="box-b", base_url="http://w:1", enrich="ollama", box="box-b")],
+        boxes=[Box(id="box-b", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="tight")],
         models=[
-            ModelProfile(target="wraith2", id="gemma3:1b", context=4096),
-            ModelProfile(target="wraith2", id="qwen2.5:7b", context=8192),
+            ModelProfile(target="box-b", id="gemma3:1b", context=4096),
+            ModelProfile(target="box-b", id="qwen2.5:7b", context=8192),
         ],
         keep_list=["*embed*"],
     )
@@ -48,12 +48,12 @@ def test_build_cells_applies_context_floor():
 def test_build_cells_resolves_box_label():
     cells = build_cells(_cfg(), _batteries())
     assert all(c.box_hardware == "RTX 2070 Super laptop" for c in cells)
-    assert all(c.box_id == "wraith2" for c in cells)
+    assert all(c.box_id == "box-b" for c in cells)
 
 
 def test_build_cells_excludes_keep_list_unless_named():
     cfg = _cfg()
-    cfg.models.append(ModelProfile(target="wraith2", id="nomic-embed-text", context=2048))
+    cfg.models.append(ModelProfile(target="box-b", id="nomic-embed-text", context=2048))
     # keep_list glob *embed* matches -> excluded by default
     assert not any(c.model == "nomic-embed-text" for c in build_cells(cfg, _batteries()))
     # named explicitly -> included

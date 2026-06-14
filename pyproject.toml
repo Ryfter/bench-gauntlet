@@ -1,7 +1,11 @@
 [project]
 name = "gauntlet"
-version = "0.1.0"
+version = "0.5.0"
 description = "A gauntlet of trials for local models"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Kevin Rank" }]
 requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.27",

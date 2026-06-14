@@ -291,15 +291,15 @@ def _cfg() -> GauntletConfig:
     return GauntletConfig.model_validate(
         {
             "targets": [
-                {"name": "firefly-lmstudio", "base_url": "http://localhost:1234",
-                 "api": "openai", "enrich": "lmstudio", "box": "firefly"},
+                {"name": "box-a-lmstudio", "base_url": "http://localhost:1234",
+                 "api": "openai", "enrich": "lmstudio", "box": "box-a"},
             ],
             "boxes": [
-                {"id": "firefly", "hardware": "RTX 5090 desktop", "vram_gb": 32,
+                {"id": "box-a", "hardware": "RTX 5090 desktop", "vram_gb": 32,
                  "usage_class": "broad", "busy": False},
             ],
             "models": [
-                {"target": "firefly-lmstudio", "id": "google/gemma-4-31b", "context": 8192},
+                {"target": "box-a-lmstudio", "id": "google/gemma-4-31b", "context": 8192},
             ],
             "keep_list": ["*heretic*", "*swahili*"],
         }
@@ -308,7 +308,7 @@ def _cfg() -> GauntletConfig:
 
 def test_box_lookup_by_target_returns_hardware():
     cfg = _cfg()
-    box = cfg.box_for_target("firefly-lmstudio")
+    box = cfg.box_for_target("box-a-lmstudio")
     assert box is not None
     assert box.hardware == "RTX 5090 desktop"
     assert box.usage_class == "broad"
@@ -407,8 +407,8 @@ In `targets.example.yaml`, after the `targets:` block and before `models:`, inse
 # that appears in a shared scorecard (hostnames stay private). `busy: true`
 # defers that box's cells (e.g. while gaming).
 boxes:
-  - { id: firefly, hardware: "RTX 5090 desktop",      vram_gb: 32, usage_class: broad, busy: false }
-  - { id: wraith2, hardware: "RTX 2070 Super laptop", vram_gb: 8,  usage_class: tight, busy: false }
+  - { id: box-a, hardware: "RTX 5090 desktop",      vram_gb: 32, usage_class: broad, busy: false }
+  - { id: box-b, hardware: "RTX 2070 Super laptop", vram_gb: 8,  usage_class: tight, busy: false }
 ```
 
 - [ ] **Step 6: Commit**
@@ -723,7 +723,7 @@ def test_scorecard_round_trips():
     sc = Scorecard(
         run={"id": "r1", "date": "2026-06-12", "gauntlet_version": "0.1.0"},
         cells=[
-            Cell(model="gemma3:1b", target="wraith2-ollama", box="RTX 2070 Super laptop",
+            Cell(model="gemma3:1b", target="box-b-ollama", box="RTX 2070 Super laptop",
                  context=8192, capability="extract-json", quality=0.91, pass_rate=0.86,
                  latency_p50_s=2.1, tokens_per_s=38.0, judge=None, cases=14, errors=0),
         ],
@@ -1262,9 +1262,9 @@ def test_targets_lists_models(tmp_path, monkeypatch):
     cfg = tmp_path / "targets.yaml"
     cfg.write_text(
         "targets:\n"
-        "  - { name: wraith2-ollama, base_url: 'http://h:11434', enrich: ollama, box: wraith2 }\n"
+        "  - { name: box-b-ollama, base_url: 'http://h:11434', enrich: ollama, box: box-b }\n"
         "boxes:\n"
-        "  - { id: wraith2, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: tight }\n",
+        "  - { id: box-b, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: tight }\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("GAUNTLET_CONFIG", str(cfg))
@@ -1279,7 +1279,7 @@ def test_targets_lists_models(tmp_path, monkeypatch):
 
     result = runner.invoke(app, ["targets"])
     assert result.exit_code == 0
-    assert "wraith2-ollama" in result.stdout
+    assert "box-b-ollama" in result.stdout
     assert "gemma3:1b" in result.stdout
     assert "RTX 2070 Super laptop" in result.stdout
 ```
@@ -1359,8 +1359,8 @@ def targets(config: str = typer.Option(None, "--config", "-c", help="Path to tar
 
 Run: `.venv/Scripts/python -m pytest tests/test_cli_targets.py -v`
 Expected: PASS
-Run (live, opt-in, against wraith2): `GAUNTLET_LIVE_OLLAMA=http://<wraith2-host>:11434 .venv/Scripts/python -m pytest tests/live -m live -v`
-Expected: PASS (lists wraith2's real models — metadata only, no VRAM use).
+Run (live, opt-in, against box-b): `GAUNTLET_LIVE_OLLAMA=http://<box-b-host>:11434 .venv/Scripts/python -m pytest tests/live -m live -v`
+Expected: PASS (lists box-b's real models — metadata only, no VRAM use).
 
 - [ ] **Step 5: Commit**
 

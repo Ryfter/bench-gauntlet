@@ -9,9 +9,9 @@ def test_targets_lists_models(tmp_path, monkeypatch):
     cfg = tmp_path / "targets.yaml"
     cfg.write_text(
         "targets:\n"
-        "  - { name: wraith2-ollama, base_url: 'http://h:11434', enrich: ollama, box: wraith2 }\n"
+        "  - { name: box-b-ollama, base_url: 'http://h:11434', enrich: ollama, box: box-b }\n"
         "boxes:\n"
-        "  - { id: wraith2, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: tight }\n",
+        "  - { id: box-b, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: tight }\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("GAUNTLET_CONFIG", str(cfg))
@@ -26,6 +26,6 @@ def test_targets_lists_models(tmp_path, monkeypatch):
 
     result = runner.invoke(app, ["targets"])
     assert result.exit_code == 0
-    assert "wraith2-ollama" in result.stdout
+    assert "box-b-ollama" in result.stdout
     assert "gemma3:1b" in result.stdout
     assert "RTX 2070 Super laptop" in result.stdout

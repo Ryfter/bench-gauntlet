@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.0 — 2026-06-14 (first public release)
+
+First public release of Gauntlet. Delivers the complete pipeline (design phases
+0–10): typed contracts + config, the single-HTTP-boundary `OpenAIClient`, metadata
+enrichment, deterministic + judge scoring, the privacy-aware scorecard, the pure
+sequencer, the resumable runner, the three special evaluations (`depth`, `embed`,
+`baseline`), and a seeded starter set of batteries. 106 tests; MIT licensed.
+
+Pre-release housekeeping for going public: decoupled from any external knowledge
+base, scrubbed a committed Tailscale IP from history, and genericized example
+hostnames to `box-a` / `box-b`.
+
+---
+
 The full-spec build shipped as four sequential plans (design phases 0–10). Each
 plan was a feature branch → PR → merge to `master`, executed inline with TDD. This
 file preserves the per-plan delivery narrative (the PRs themselves were process

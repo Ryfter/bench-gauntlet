@@ -6,7 +6,7 @@
 
 **Architecture:** `sequencer.py` is pure (config + batteries + optional footprints → ordered load groups + deferred cells). `runner.py` orchestrates: per load group it drives the `OpenAIClient` (the sole HTTP boundary) through each cell's cases, scores them with the existing `scoring` package (deterministic + judge), aggregates via `scorecard.aggregate_cell`, and appends to an append-only `cells.jsonl`. `--resume` reads completed cells and skips them. The final scorecard is assembled from `cells.jsonl` using the Plan 2 emit path. The run *never aborts* — unreachable/OOM/busy become typed cell outcomes.
 
-**Tech Stack:** Python 3.12+, httpx (via existing `OpenAIClient`), pydantic v2, Typer. Pure-logic TDD for the sequencer and checkpoint I/O; live end-to-end smoke on wraith2 (`gemma3:1b`) only — **never firefly while gaming.**
+**Tech Stack:** Python 3.12+, httpx (via existing `OpenAIClient`), pydantic v2, Typer. Pure-logic TDD for the sequencer and checkpoint I/O; live end-to-end smoke on box-b (`gemma3:1b`) only — **never box-a while gaming.**
 
 ---
 
@@ -16,7 +16,7 @@
 - **Phase 6 (Tasks 3.4–3.7):** `gauntlet/runner.py` — checkpoint I/O (pure file ops) + cell execution (driven through `httpx.MockTransport` in tests) + scorecard assembly.
 - **Phase 7 (Task 3.8):** `gauntlet run` CLI command + a live smoke test marked `live`.
 
-**Invariants carried forward:** the `OpenAIClient` is the only thing that does HTTP; the live test suite never includes firefly; a busy box defers (skip, not error); a missing/ineligible judge marks cases `unscored`, never silently 0.
+**Invariants carried forward:** the `OpenAIClient` is the only thing that does HTTP; the live test suite never includes box-a; a busy box defers (skip, not error); a missing/ineligible judge marks cases `unscored`, never silently 0.
 
 ---
 
@@ -46,11 +46,11 @@ from gauntlet.sequencer import build_cells, model_family
 
 def _cfg():
     return GauntletConfig(
-        targets=[Target(name="wraith2", base_url="http://w:1", enrich="ollama", box="wraith2")],
-        boxes=[Box(id="wraith2", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="tight")],
+        targets=[Target(name="box-b", base_url="http://w:1", enrich="ollama", box="box-b")],
+        boxes=[Box(id="box-b", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="tight")],
         models=[
-            ModelProfile(target="wraith2", id="gemma3:1b", context=4096),
-            ModelProfile(target="wraith2", id="qwen2.5:7b", context=8192),
+            ModelProfile(target="box-b", id="gemma3:1b", context=4096),
+            ModelProfile(target="box-b", id="qwen2.5:7b", context=8192),
         ],
         keep_list=["*embed*"],
     )
@@ -84,12 +84,12 @@ def test_build_cells_applies_context_floor():
 def test_build_cells_resolves_box_label():
     cells = build_cells(_cfg(), _batteries())
     assert all(c.box_hardware == "RTX 2070 Super laptop" for c in cells)
-    assert all(c.box_id == "wraith2" for c in cells)
+    assert all(c.box_id == "box-b" for c in cells)
 
 
 def test_build_cells_excludes_keep_list_unless_named():
     cfg = _cfg()
-    cfg.models.append(ModelProfile(target="wraith2", id="nomic-embed-text", context=2048))
+    cfg.models.append(ModelProfile(target="box-b", id="nomic-embed-text", context=2048))
     # keep_list glob *embed* matches -> excluded by default
     assert not any(c.model == "nomic-embed-text" for c in build_cells(cfg, _batteries()))
     # named explicitly -> included
@@ -426,12 +426,12 @@ from gauntlet.runner import RunPaths, append_cell, cell_key, read_completed, wri
 
 
 def _cell(cap):
-    return Cell(model="gemma3:1b", target="wraith2", box="RTX 2070 Super laptop",
+    return Cell(model="gemma3:1b", target="box-b", box="RTX 2070 Super laptop",
                 context=4096, capability=cap, quality=1.0, pass_rate=1.0, cases=1)
 
 
 def test_cell_key_identity():
-    assert cell_key(_cell("commit-msg")) == ("wraith2", "gemma3:1b", 4096, "commit-msg")
+    assert cell_key(_cell("commit-msg")) == ("box-b", "gemma3:1b", 4096, "commit-msg")
 
 
 def test_append_and_read_completed_roundtrip(tmp_path):
@@ -441,8 +441,8 @@ def test_append_and_read_completed_roundtrip(tmp_path):
     append_cell(paths, _cell("extract-json"))
     done = read_completed(paths)
     assert done == {
-        ("wraith2", "gemma3:1b", 4096, "commit-msg"),
-        ("wraith2", "gemma3:1b", 4096, "extract-json"),
+        ("box-b", "gemma3:1b", 4096, "commit-msg"),
+        ("box-b", "gemma3:1b", 4096, "extract-json"),
     }
 
 
@@ -558,7 +558,7 @@ def test_run_cell_scores_deterministic_cases(tmp_path):
     (tmp_path / "p.txt").write_text("write a commit message", encoding="utf-8")
     battery = Battery(capability="commit-msg",
                       cases=[Case(id="c1", scoring="conventional-commit", prompt_file="p.txt")])
-    cell = run_cell(_client("feat: add the thing"), model="gemma3:1b", target="wraith2",
+    cell = run_cell(_client("feat: add the thing"), model="gemma3:1b", target="box-b",
                     box="RTX 2070 Super laptop", context=4096, battery=battery, base_dir=tmp_path)
     assert cell.capability == "commit-msg"
     assert cell.quality == 1.0
@@ -575,7 +575,7 @@ def test_run_cell_unreachable_marks_errored_cell(tmp_path):
     client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
     battery = Battery(capability="commit-msg",
                       cases=[Case(id="c1", scoring="exact", expect="x", prompt_file="p.txt")])
-    cell = run_cell(client, model="gemma3:1b", target="wraith2", box="laptop",
+    cell = run_cell(client, model="gemma3:1b", target="box-b", box="laptop",
                     context=4096, battery=battery, base_dir=tmp_path)
     assert cell.errors == 1
     assert cell.quality is None          # nothing scored
@@ -594,7 +594,7 @@ def test_run_cell_judge_uses_eligible_pool(tmp_path):
     client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
     battery = Battery(capability="summarize",
                       cases=[Case(id="c1", scoring="judge", rubric="grade it", prompt_file="p.txt")])
-    cell = run_cell(client, model="gemma3:1b", target="wraith2", box="laptop", context=4096,
+    cell = run_cell(client, model="gemma3:1b", target="box-b", box="laptop", context=4096,
                     battery=battery, base_dir=tmp_path, judge_pool=[("dolphin3:8b", "dolphin3")])
     assert cell.quality == 0.8
     assert cell.judge == "dolphin3:8b"
@@ -604,7 +604,7 @@ def test_run_cell_no_eligible_judge_marks_unscored(tmp_path):
     (tmp_path / "p.txt").write_text("summarize", encoding="utf-8")
     battery = Battery(capability="summarize",
                       cases=[Case(id="c1", scoring="judge", rubric="grade it", prompt_file="p.txt")])
-    cell = run_cell(_client("some summary"), model="gemma3:1b", target="wraith2", box="laptop",
+    cell = run_cell(_client("some summary"), model="gemma3:1b", target="box-b", box="laptop",
                     context=4096, battery=battery, base_dir=tmp_path,
                     judge_pool=[("gemma3:27b", "gemma3")])  # same family only
     assert cell.quality is None          # unscored, never silently 0
@@ -733,9 +733,9 @@ from gauntlet.runner import RunPaths, execute_plan, read_completed
 
 def _cfg():
     return GauntletConfig(
-        targets=[Target(name="wraith2", base_url="http://w:1", box="wraith2")],
-        boxes=[Box(id="wraith2", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="broad")],
-        models=[ModelProfile(target="wraith2", id="gemma3:1b", context=4096)],
+        targets=[Target(name="box-b", base_url="http://w:1", box="box-b")],
+        boxes=[Box(id="box-b", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="broad")],
+        models=[ModelProfile(target="box-b", id="gemma3:1b", context=4096)],
     )
 
 
@@ -762,7 +762,7 @@ def test_execute_plan_runs_all_cells_and_checkpoints(tmp_path):
     assert len(cells) == 1
     assert cells[0].quality == 1.0
     # checkpoint written
-    assert read_completed(paths) == {("wraith2", "gemma3:1b", 4096, "commit-msg")}
+    assert read_completed(paths) == {("box-b", "gemma3:1b", 4096, "commit-msg")}
 
 
 def test_execute_plan_resume_skips_completed(tmp_path):
@@ -889,7 +889,7 @@ from gauntlet.runner import RunPaths, append_cell, assemble_scorecard
 
 
 def _cell(cap):
-    return Cell(model="gemma3:1b", target="wraith2", box="RTX 2070 Super laptop",
+    return Cell(model="gemma3:1b", target="box-b", box="RTX 2070 Super laptop",
                 context=4096, capability=cap, quality=1.0, pass_rate=1.0, cases=1)
 
 
@@ -967,11 +967,11 @@ def _write_config(tmp_path):
     cfg = tmp_path / "targets.yaml"
     cfg.write_text(
         "targets:\n"
-        "  - {name: wraith2, base_url: 'http://127.0.0.1:65000', box: wraith2}\n"
+        "  - {name: box-b, base_url: 'http://127.0.0.1:65000', box: box-b}\n"
         "boxes:\n"
-        "  - {id: wraith2, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: broad}\n"
+        "  - {id: box-b, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: broad}\n"
         "models:\n"
-        "  - {target: wraith2, id: 'gemma3:1b', context: 4096}\n",
+        "  - {target: box-b, id: 'gemma3:1b', context: 4096}\n",
         encoding="utf-8",
     )
     return cfg
@@ -1018,18 +1018,18 @@ pytestmark = pytest.mark.live
 
 
 @pytest.mark.skipif(not os.environ.get("GAUNTLET_LIVE_BASE_URL"),
-                    reason="set GAUNTLET_LIVE_BASE_URL to a wraith2 endpoint (never firefly while gaming)")
+                    reason="set GAUNTLET_LIVE_BASE_URL to a box-b endpoint (never box-a while gaming)")
 def test_live_run_smoke(tmp_path):
-    """End-to-end on wraith2 with gemma3:1b. NEVER point this at firefly while gaming."""
+    """End-to-end on box-b with gemma3:1b. NEVER point this at box-a while gaming."""
     from gauntlet.battery import Battery, Case
     from gauntlet.config import Box, GauntletConfig, ModelProfile, Target
     from gauntlet.runner import RunPaths, execute_plan
 
     base = os.environ["GAUNTLET_LIVE_BASE_URL"]
     cfg = GauntletConfig(
-        targets=[Target(name="wraith2", base_url=base, box="wraith2")],
-        boxes=[Box(id="wraith2", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="broad")],
-        models=[ModelProfile(target="wraith2", id="gemma3:1b", context=4096)],
+        targets=[Target(name="box-b", base_url=base, box="box-b")],
+        boxes=[Box(id="box-b", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="broad")],
+        models=[ModelProfile(target="box-b", id="gemma3:1b", context=4096)],
     )
     (tmp_path / "p.txt").write_text("Write a one-line conventional commit for adding a runner.",
                                     encoding="utf-8")
@@ -1125,13 +1125,13 @@ git commit -m "feat: gauntlet run command (sequence + execute + assemble scoreca
 
 ---
 
-## Manual live verification (optional, wraith2 only)
+## Manual live verification (optional, box-b only)
 
-After the suite is green, optionally confirm a real run against **wraith2** (headless) — **never firefly while gaming:**
+After the suite is green, optionally confirm a real run against **box-b** (headless) — **never box-a while gaming:**
 
 ```bash
-# PowerShell — point at the wraith2 Ollama endpoint, then:
-$env:GAUNTLET_LIVE_BASE_URL = "http://<wraith2>:11434"
+# PowerShell — point at the box-b Ollama endpoint, then:
+$env:GAUNTLET_LIVE_BASE_URL = "http://<box-b>:11434"
 .venv/Scripts/python -m pytest tests/live/test_live_run.py -m live -v
 ```
 
@@ -1143,5 +1143,5 @@ Expected: one cell produced against `gemma3:1b`, `cases == 1`.
 
 - **Phase 5 (Sequencer):** load-profile-outer ordering (Task 3.1 preserves profile order, 3.3 groups by profile), busy guard (3.3), VRAM tight/broad with unknown→exclusive safe default (3.2 + 3.3). ✅
 - **Phase 6 (Runner + resume):** `cells.jsonl` checkpoint + `--resume` skip (3.4, 3.6), cell orchestration with deterministic + judge scoring (3.5), error taxonomy — unreachable/OOM→errored cell, no-eligible-judge→unscored, busy→deferred, run never aborts (3.5, 3.6), final assembly (3.7). ✅
-- **Phase 7 (CLI):** `gauntlet run` with `--config/--batteries/--prompts/--out/--model/--resume/--run-id/--share`; live smoke opt-in and firefly-excluded (3.8). ✅
-- **Privacy invariants:** scorecard emit reuses Plan 2's `write_json` (leak guard + `--share`); the Cell still has no base_url field; the live suite is `-m live` and never names firefly. ✅
+- **Phase 7 (CLI):** `gauntlet run` with `--config/--batteries/--prompts/--out/--model/--resume/--run-id/--share`; live smoke opt-in and box-a-excluded (3.8). ✅
+- **Privacy invariants:** scorecard emit reuses Plan 2's `write_json` (leak guard + `--share`); the Cell still has no base_url field; the live suite is `-m live` and never names box-a. ✅

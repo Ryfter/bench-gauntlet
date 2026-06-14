@@ -3,7 +3,7 @@ from gauntlet.runner import RunPaths, append_cell, assemble_scorecard
 
 
 def _cell(cap):
-    return Cell(model="gemma3:1b", target="wraith2", box="RTX 2070 Super laptop",
+    return Cell(model="gemma3:1b", target="box-b", box="RTX 2070 Super laptop",
                 context=4096, capability=cap, quality=1.0, pass_rate=1.0, cases=1)
 
 

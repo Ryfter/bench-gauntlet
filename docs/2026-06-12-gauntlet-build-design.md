@@ -38,8 +38,8 @@ being verified*:
   provoke for real (dead port, bad YAML) and are tested directly. True OOM is
   hard to force on demand; handled defensively, exercised in the wild.
 
-Live tests are opt-in (`pytest -m live`) and **never run firefly inference**
-(see "don't run while gaming" below); they target wraith2 with a tiny model.
+Live tests are opt-in (`pytest -m live`) and **never run box-a inference**
+(see "don't run while gaming" below); they target box-b with a tiny model.
 
 ## A. Module decomposition & package layout
 
@@ -100,7 +100,7 @@ public tree, not merely gitignored.** Three tiers:
    No secret in any YAML.
 
 **Box identity is dual:**
-- a **private id** (`firefly`, `wraith2`) — private config + private scorecards only;
+- a **private id** (`box-a`, `box-b`) — private config + private scorecards only;
 - a **public hardware descriptor** (`"RTX 5090 desktop"`, `"RTX 2070 Super laptop"`,
   incoming `"RTX 4090 desktop"`) — the *only* box label in a shared scorecard.
   Hardware class is the useful public quality-per-resource axis; the hostname is not.
@@ -117,13 +117,13 @@ appear. Scorecards stay gitignored by default; sharing is explicit and sanitized
 **Private config** (`targets.yaml`, out-of-tree):
 ```yaml
 targets:
-  - { name: firefly-lmstudio, base_url: http://localhost:1234, api: openai, enrich: lmstudio, box: firefly }
-  - { name: wraith2-ollama,  base_url: http://<wraith2-tailscale-ip>:11434, api: openai, enrich: ollama,  box: wraith2 }
+  - { name: box-a-lmstudio, base_url: http://localhost:1234, api: openai, enrich: lmstudio, box: box-a }
+  - { name: box-b-ollama,  base_url: http://<box-b-tailscale-ip>:11434, api: openai, enrich: ollama,  box: box-b }
 boxes:                       # the infra inventory the spec's `box:` joins to
-  - { id: firefly, hardware: "RTX 5090 desktop",      vram_gb: 32, usage_class: broad, busy: false }
-  - { id: wraith2, hardware: "RTX 2070 Super laptop", vram_gb: 8,  usage_class: tight, busy: false }
+  - { id: box-a, hardware: "RTX 5090 desktop",      vram_gb: 32, usage_class: broad, busy: false }
+  - { id: box-b, hardware: "RTX 2070 Super laptop", vram_gb: 8,  usage_class: tight, busy: false }
 models:                      # load profiles: model @ context
-  - { target: firefly-lmstudio, id: 'google/gemma-4-31b', context: 8192 }
+  - { target: box-a-lmstudio, id: 'google/gemma-4-31b', context: 8192 }
 keep_list: [ '*heretic*', '*swahili*' ]
 ```
 - `busy` is the per-box "don't run while gaming" guard.
@@ -196,14 +196,14 @@ fraction passed.
 | malformed battery file | named loudly at startup; that battery dropped, rest proceed |
 | box busy | cells deferred + counted (a skip, not an error) |
 
-## "Don't run while gaming" (firefly)
+## "Don't run while gaming" (box-a)
 
-`firefly` (localhost) is Kevin's gaming PC. Metadata-only probes
+`box-a` (localhost) is Kevin's gaming PC. Metadata-only probes
 (`/v1/models`, `/api/v1/models`, `/api/tags`) never load a model and are safe
-anytime. **No inference is run against firefly while gaming** — dev-loop inference
-targets wraith2 (headless), and firefly is exercised only when Kevin clears it.
+anytime. **No inference is run against box-a while gaming** — dev-loop inference
+targets box-b (headless), and box-a is exercised only when Kevin clears it.
 This is enforced in the design by the per-box `busy` guard, and in automated
-tests by never including firefly in the live suite.
+tests by never including box-a in the live suite.
 
 ## D. Phase plan
 
@@ -215,9 +215,9 @@ tests by never including firefly in the live suite.
 | 3 | Scoring | exact/regex, schema (json-schema, conventional-commit, compilable-code), judge | TDD: fixture outputs → expected scores |
 | 4 | Scorecard | assemble + JSON/MD emit, private vs `--share`, leak assertion | pure-logic tests |
 | 5 | Sequencer | load-profile-outer ordering, busy guard, VRAM/tight-broad classes | pure-logic tests |
-| 6 | Runner + resume | cell orchestration, `cells.jsonl` checkpoint, `--resume`, error taxonomy | live end-to-end on wraith2 (`gemma3:1b`) |
+| 6 | Runner + resume | cell orchestration, `cells.jsonl` checkpoint, `--resume`, error taxonomy | live end-to-end on box-b (`gemma3:1b`) |
 | 7 | CLI | `gauntlet run \| baseline \| targets \| report` + flags | live smoke |
-| 8 | Special batteries | `context-depth` (needle→effective-context curve), `embed` (retrieval eval) | wraith2 |
+| 8 | Special batteries | `context-depth` (needle→effective-context curve), `embed` (retrieval eval) | box-b |
 | 9 | Frontier baseline | `baseline --capability X --sample N`, env-key gated, `baseline_gaps` | mocked key path + 1 real sample |
 | 10 | Seed batteries/cases | author real `batteries/*.yaml` + `cases/*` (commit-msg, extract-json, summarize ×2, synthesize, writing registers ×3, code-gen/transform, ocr, embed, judge, context-depth) | first genuine overnight scorecard |
 

@@ -3,12 +3,12 @@ from gauntlet.runner import RunPaths, append_cell, cell_key, read_completed, wri
 
 
 def _cell(cap):
-    return Cell(model="gemma3:1b", target="wraith2", box="RTX 2070 Super laptop",
+    return Cell(model="gemma3:1b", target="box-b", box="RTX 2070 Super laptop",
                 context=4096, capability=cap, quality=1.0, pass_rate=1.0, cases=1)
 
 
 def test_cell_key_identity():
-    assert cell_key(_cell("commit-msg")) == ("wraith2", "gemma3:1b", 4096, "commit-msg")
+    assert cell_key(_cell("commit-msg")) == ("box-b", "gemma3:1b", 4096, "commit-msg")
 
 
 def test_append_and_read_completed_roundtrip(tmp_path):
@@ -18,8 +18,8 @@ def test_append_and_read_completed_roundtrip(tmp_path):
     append_cell(paths, _cell("extract-json"))
     done = read_completed(paths)
     assert done == {
-        ("wraith2", "gemma3:1b", 4096, "commit-msg"),
-        ("wraith2", "gemma3:1b", 4096, "extract-json"),
+        ("box-b", "gemma3:1b", 4096, "commit-msg"),
+        ("box-b", "gemma3:1b", 4096, "extract-json"),
     }
 
 

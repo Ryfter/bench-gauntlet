@@ -7,9 +7,9 @@ from gauntlet.runner import RunPaths, execute_plan, read_completed
 
 def _cfg():
     return GauntletConfig(
-        targets=[Target(name="wraith2", base_url="http://w:1", box="wraith2")],
-        boxes=[Box(id="wraith2", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="broad")],
-        models=[ModelProfile(target="wraith2", id="gemma3:1b", context=4096)],
+        targets=[Target(name="box-b", base_url="http://w:1", box="box-b")],
+        boxes=[Box(id="box-b", hardware="RTX 2070 Super laptop", vram_gb=8, usage_class="broad")],
+        models=[ModelProfile(target="box-b", id="gemma3:1b", context=4096)],
     )
 
 
@@ -36,7 +36,7 @@ def test_execute_plan_runs_all_cells_and_checkpoints(tmp_path):
     assert len(cells) == 1
     assert cells[0].quality == 1.0
     # checkpoint written
-    assert read_completed(paths) == {("wraith2", "gemma3:1b", 4096, "commit-msg")}
+    assert read_completed(paths) == {("box-b", "gemma3:1b", 4096, "commit-msg")}
 
 
 def test_execute_plan_resume_skips_completed(tmp_path):

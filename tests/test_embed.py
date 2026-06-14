@@ -47,7 +47,7 @@ def test_run_embed_cell_scores_recall():
     corpus = ["doc about cats", "doc about dogs", "doc about cars"]
     queries = ["feline pet", "automobile"]
     relevant = [0, 2]                      # cats=0, cars=2
-    cell = run_embed_cell(client, model="nomic-embed", target="wraith2",
+    cell = run_embed_cell(client, model="nomic-embed", target="box-b",
                           box="RTX 2070 Super laptop", context=2048,
                           corpus=corpus, queries=queries, relevant=relevant)
     assert cell.capability == "embed"

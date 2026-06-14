@@ -1,5 +1,5 @@
 """Opt-in live smoke for the special batteries. Run only against a headless box
-(wraith2) — NEVER firefly while gaming. Skipped unless the env vars are set."""
+(box-b) — NEVER box-a while gaming. Skipped unless the env vars are set."""
 import os
 
 import pytest
@@ -8,7 +8,7 @@ pytestmark = pytest.mark.live
 
 
 @pytest.mark.skipif(not os.environ.get("GAUNTLET_LIVE_BASE_URL"),
-                    reason="set GAUNTLET_LIVE_BASE_URL to a wraith2 chat endpoint")
+                    reason="set GAUNTLET_LIVE_BASE_URL to a box-b chat endpoint")
 def test_live_context_depth_smoke():
     from gauntlet.batteries.context_depth import run_context_depth
     from gauntlet.client import OpenAIClient
@@ -25,7 +25,7 @@ def test_live_context_depth_smoke():
 
 
 @pytest.mark.skipif(not os.environ.get("GAUNTLET_LIVE_EMBED_URL"),
-                    reason="set GAUNTLET_LIVE_EMBED_URL to a wraith2 embeddings endpoint")
+                    reason="set GAUNTLET_LIVE_EMBED_URL to a box-b embeddings endpoint")
 def test_live_embed_smoke():
     from gauntlet.batteries.embed import run_embed_cell
     from gauntlet.client import OpenAIClient
@@ -34,7 +34,7 @@ def test_live_embed_smoke():
     client = OpenAIClient(base_url=os.environ["GAUNTLET_LIVE_EMBED_URL"])
     try:
         cell = run_embed_cell(
-            client, model=model, target="wraith2", box="RTX 2070 Super laptop",
+            client, model=model, target="box-b", box="RTX 2070 Super laptop",
             context=0,
             corpus=["A cat is a feline pet.", "A car is a motor vehicle."],
             queries=["feline house pet"], relevant=[0],

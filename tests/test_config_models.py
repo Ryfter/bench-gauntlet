@@ -5,15 +5,15 @@ def _cfg() -> GauntletConfig:
     return GauntletConfig.model_validate(
         {
             "targets": [
-                {"name": "firefly-lmstudio", "base_url": "http://localhost:1234",
-                 "api": "openai", "enrich": "lmstudio", "box": "firefly"},
+                {"name": "box-a-lmstudio", "base_url": "http://localhost:1234",
+                 "api": "openai", "enrich": "lmstudio", "box": "box-a"},
             ],
             "boxes": [
-                {"id": "firefly", "hardware": "RTX 5090 desktop", "vram_gb": 32,
+                {"id": "box-a", "hardware": "RTX 5090 desktop", "vram_gb": 32,
                  "usage_class": "broad", "busy": False},
             ],
             "models": [
-                {"target": "firefly-lmstudio", "id": "google/gemma-4-31b", "context": 8192},
+                {"target": "box-a-lmstudio", "id": "google/gemma-4-31b", "context": 8192},
             ],
             "keep_list": ["*heretic*", "*swahili*"],
         }
@@ -22,7 +22,7 @@ def _cfg() -> GauntletConfig:
 
 def test_box_lookup_by_target_returns_hardware():
     cfg = _cfg()
-    box = cfg.box_for_target("firefly-lmstudio")
+    box = cfg.box_for_target("box-a-lmstudio")
     assert box is not None
     assert box.hardware == "RTX 5090 desktop"
     assert box.usage_class == "broad"

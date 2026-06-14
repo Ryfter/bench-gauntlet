@@ -104,7 +104,7 @@ Unreachable target → cells skipped + counted, run continues. Model fails to lo
 
 ## Requirements traceability (Kevin, 2026-06-11 spurt)
 
-Overnight/idle autonomous testing (req 4) → G.3 + OS scheduler. Rate models per task (4, 5) → G.2/G.4. Quality-per-resource, bars not maxima (6) → scorecard carries quality × latency × footprint; consumers apply bars. Champions protected, near-peer culling (7) → consumer-side, fed by G.4. Context as fitness axis + effective context (8) → context floors, load profiles, `context-depth` battery. Keep-list (9) → decision 7. BoB-local + frontier gap (10) → `baseline_gaps`. Load-profile VRAM (11) → G.1. Writing registers (12) → G.2 batteries. Separate app (13) → the whole document. Tight/broad classes (14) + wraith2 as tight host (15) → G.1 `box` join + sequencing.
+Overnight/idle autonomous testing (req 4) → G.3 + OS scheduler. Rate models per task (4, 5) → G.2/G.4. Quality-per-resource, bars not maxima (6) → scorecard carries quality × latency × footprint; consumers apply bars. Champions protected, near-peer culling (7) → consumer-side, fed by G.4. Context as fitness axis + effective context (8) → context floors, load profiles, `context-depth` battery. Keep-list (9) → decision 7. BoB-local + frontier gap (10) → `baseline_gaps`. Load-profile VRAM (11) → G.1. Writing registers (12) → G.2 batteries. Separate app (13) → the whole document. Tight/broad classes (14) + box-b as tight host (15) → G.1 `box` join + sequencing.
 
 ## Out of scope (this app, any version)
 

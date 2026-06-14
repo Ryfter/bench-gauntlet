@@ -6,7 +6,7 @@
 
 **Architecture:** Each special eval is split into a **pure core** (string/vector math, fully TDD'd with no network) and a thin **live runner** driven through the existing `OpenAIClient`. The special evals fill the scorecard contract fields the schema already reserves: `context_depth[]` and `baseline_gaps[]`, plus an `embed` capability `Cell`. New CLI subcommands — `gauntlet depth | embed | baseline` — each write a scorecard, with an optional `--into <existing.json>` to merge a section into a prior run's scorecard. The frontier baseline is **env-key gated**: with no key it prints guidance and exits 0 (never crashes, never runs by default — it costs money).
 
-**Tech Stack:** Python 3.12+, httpx (via `OpenAIClient`), pydantic v2, Typer, PyYAML, jsonschema. Pure-logic TDD for every core; live behavior driven through `httpx.MockTransport` in tests and exercised for real only on wraith2 (`-m live`) — **never firefly while gaming.**
+**Tech Stack:** Python 3.12+, httpx (via `OpenAIClient`), pydantic v2, Typer, PyYAML, jsonschema. Pure-logic TDD for every core; live behavior driven through `httpx.MockTransport` in tests and exercised for real only on box-b (`-m live`) — **never box-a while gaming.**
 
 ---
 
@@ -17,7 +17,7 @@
 - **Phase 10 (Task 4.7):** seed real `batteries/*.yaml` + `cases/*` (a representative starter set with a documented authoring pattern) + a validation test.
 - **Docs (Task 4.8):** README command reference, `batteries/README.md` authoring guide, design-doc status, memory/handoff.
 
-**Invariants carried forward:** `OpenAIClient` is the only thing that does HTTP; every scorecard write goes through `scorecard.write_json` (leak guard + `--share`); the Cell schema still has no base_url field; live tests are `-m live` and never name firefly; nothing aborts a run; unscored is never silently 0.
+**Invariants carried forward:** `OpenAIClient` is the only thing that does HTTP; every scorecard write goes through `scorecard.write_json` (leak guard + `--share`); the Cell schema still has no base_url field; live tests are `-m live` and never name box-a; nothing aborts a run; unscored is never silently 0.
 
 ---
 
@@ -245,11 +245,11 @@ def _config(tmp_path, port=65000):
     cfg = tmp_path / "targets.yaml"
     cfg.write_text(
         "targets:\n"
-        f"  - {{name: wraith2, base_url: 'http://127.0.0.1:{port}', box: wraith2}}\n"
+        f"  - {{name: box-b, base_url: 'http://127.0.0.1:{port}', box: box-b}}\n"
         "boxes:\n"
-        "  - {id: wraith2, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: broad}\n"
+        "  - {id: box-b, hardware: 'RTX 2070 Super laptop', vram_gb: 8, usage_class: broad}\n"
         "models:\n"
-        "  - {target: wraith2, id: 'gemma3:1b', context: 4096}\n",
+        "  - {target: box-b, id: 'gemma3:1b', context: 4096}\n",
         encoding="utf-8",
     )
     return cfg
@@ -259,7 +259,7 @@ def test_depth_command_unreachable_writes_zero_curve(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     cfg = _config(tmp_path)
     out = tmp_path / "depth.json"
-    result = runner.invoke(app, ["depth", "--config", str(cfg), "--target", "wraith2",
+    result = runner.invoke(app, ["depth", "--config", str(cfg), "--target", "box-b",
                                  "--model", "gemma3:1b", "--max-context", "2048",
                                  "--out", str(out)])
     assert result.exit_code == 0, result.output
@@ -534,7 +534,7 @@ def test_run_embed_cell_scores_recall():
     queries = ["feline pet", "automobile"]
     relevant = [0, 2]                      # cats=0, cars=2
     client = _embed_client(vectors)
-    cell = run_embed_cell(client, model="nomic-embed", target="wraith2",
+    cell = run_embed_cell(client, model="nomic-embed", target="box-b",
                           box="RTX 2070 Super laptop", context=2048,
                           corpus=corpus, queries=queries, relevant=relevant)
     assert cell.capability == "embed"
@@ -547,7 +547,7 @@ def test_run_embed_cell_scores_recall():
 def test_embed_command_missing_corpus_exits_cleanly(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     cfg = _config(tmp_path)
-    result = runner.invoke(app, ["embed", "--config", str(cfg), "--target", "wraith2",
+    result = runner.invoke(app, ["embed", "--config", str(cfg), "--target", "box-b",
                                  "--model", "nomic-embed", "--corpus", str(tmp_path / "nope.yaml")])
     assert result.exit_code != 0
     assert "corpus" in result.output.lower()
@@ -1179,8 +1179,8 @@ Add a `## Commands` section to `README.md` documenting:
 
 ```bash
 gauntlet run --config <private targets.yaml> --out scorecards/$(date +%F).json
-gauntlet depth  --target wraith2 --model gemma3:1b --max-context 8192 --into scorecards/$(date +%F).json
-gauntlet embed  --target wraith2 --model nomic-embed --into scorecards/$(date +%F).json
+gauntlet depth  --target box-b --model gemma3:1b --max-context 8192 --into scorecards/$(date +%F).json
+gauntlet embed  --target box-b --model nomic-embed --into scorecards/$(date +%F).json
 gauntlet report scorecards/$(date +%F).json --share
 ```
 
@@ -1212,14 +1212,14 @@ git commit -m "docs: command reference, battery authoring guide, build-status no
 
 ---
 
-## Manual live verification (optional, wraith2 only)
+## Manual live verification (optional, box-b only)
 
 ```bash
-# PowerShell — wraith2 endpoints only; NEVER firefly while gaming.
-$env:GAUNTLET_LIVE_BASE_URL = "http://<wraith2>:11434"
+# PowerShell — box-b endpoints only; NEVER box-a while gaming.
+$env:GAUNTLET_LIVE_BASE_URL = "http://<box-b>:11434"
 .venv/Scripts/python -m pytest tests/live -m live -v
 # and a real special-battery smoke:
-.venv/Scripts/python -m gauntlet.cli depth --config <private> --target wraith2 --model gemma3:1b --max-context 8192
+.venv/Scripts/python -m gauntlet.cli depth --config <private> --target box-b --model gemma3:1b --max-context 8192
 ```
 
 ---
@@ -1230,6 +1230,6 @@ $env:GAUNTLET_LIVE_BASE_URL = "http://<wraith2>:11434"
 - **Phase 9 (Frontier baseline):** `compute_gaps` local-champion-vs-frontier, skipping unscored (4.5); `gauntlet baseline --capability X --sample N`, env-key gated with a clean skip path + mocked-key run filling `baseline_gaps` (4.6). ✅
 - **Phase 10 (Seed batteries/cases):** representative starter set across every deterministic scorer + a judge case + embed corpus, with a documented authoring pattern for the rest (4.7). ✅
 - **Docs:** command reference, authoring guide, build-status note (4.8). ✅
-- **Invariants:** all scorecard writes go through `write_json`/`merge_into_scorecard` (leak guard + `--share`); special-eval live behavior is MockTransport-tested and the real path is `-m live`/wraith2-only; baseline never runs without an explicit key; unscored stays unscored (embed/baseline both honor it). ✅
+- **Invariants:** all scorecard writes go through `write_json`/`merge_into_scorecard` (leak guard + `--share`); special-eval live behavior is MockTransport-tested and the real path is `-m live`/box-b-only; baseline never runs without an explicit key; unscored stays unscored (embed/baseline both honor it). ✅
 ```
 

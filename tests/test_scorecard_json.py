@@ -10,7 +10,7 @@ from gauntlet.scorecard import assert_no_leak, to_dict, write_json
 def _sc() -> Scorecard:
     return Scorecard(
         run={"id": "r1", "date": "2026-06-13", "gauntlet_version": "0.1.0"},
-        cells=[Cell(model="gemma3:1b", target="wraith2-ollama", box="RTX 2070 Super laptop",
+        cells=[Cell(model="gemma3:1b", target="box-b-ollama", box="RTX 2070 Super laptop",
                     context=8192, capability="extract-json", quality=0.9, pass_rate=0.9,
                     cases=10, errors=0)],
     )
@@ -18,7 +18,7 @@ def _sc() -> Scorecard:
 
 def test_private_mode_keeps_target():
     d = to_dict(_sc(), share=False)
-    assert d["cells"][0]["target"] == "wraith2-ollama"
+    assert d["cells"][0]["target"] == "box-b-ollama"
     assert d["cells"][0]["box"] == "RTX 2070 Super laptop"
 
 
