@@ -1,0 +1,26 @@
+name: Publish to PyPI
+
+# Publishes the package to PyPI via Trusted Publishing (OIDC) — no API token is
+# stored in the repo. Fires when a GitHub Release is published, and can also be
+# run manually (e.g. to publish the current version of the existing release).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # required for OIDC Trusted Publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist + wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
