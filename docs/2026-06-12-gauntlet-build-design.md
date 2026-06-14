@@ -1,5 +1,10 @@
 # Gauntlet — build design (full-spec implementation)
 
+> **Build status (2026-06-13):** Plans 1–4 implemented — phases 0–10 complete.
+> Foundation, scoring, scorecard, runner+resume, special batteries (context-depth,
+> embed), frontier baseline, and seeded starter batteries all landed. See
+> `docs/superpowers/plans/` for the per-plan task breakdowns.
+
 **Status:** approved 2026-06-12, build starting. Supersedes the deferred spec
 [`2026-06-11-gauntlet-design.md`](2026-06-11-gauntlet-design.md) (still the
 canonical statement of *purpose, non-goals, and the 8 decisions* — read it for
