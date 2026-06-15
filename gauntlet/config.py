@@ -33,6 +33,7 @@ class ModelProfile(BaseModel):
     target: str
     id: str
     context: int
+    judge: bool = True  # set False for models that can't output valid JSON verdicts
 
 
 class GauntletConfig(BaseModel):

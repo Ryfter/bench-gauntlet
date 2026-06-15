@@ -127,7 +127,8 @@ def run_cell(
 def _judge_pool_for(config: "GauntletConfig", target_name: str) -> list[tuple[str, str]]:
     """Other models configured on the same target, as (model_id, family) — the
     candidate judges for a cell on that target (cross-target judging is future work)."""
-    return [(p.id, _model_family(p.id)) for p in config.models if p.target == target_name]
+    return [(p.id, _model_family(p.id)) for p in config.models
+            if p.target == target_name and p.judge]
 
 
 def execute_plan(
