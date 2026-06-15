@@ -232,6 +232,71 @@ def embed(
         typer.echo(f"Scorecard written to {out}")
 
 
+@app.command()
+def orchestrate(
+    config: str = typer.Option(None, "--config", "-c", help="Path to targets.yaml"),
+    batteries: str = typer.Option("batteries", "--batteries", help="Directory of battery YAML files"),
+    prompts: str = typer.Option(".", "--prompts", help="Base dir for prompt/schema files"),
+    run_id: str = typer.Option(None, "--run-id", help="Run id (default: timestamp)"),
+    out: str = typer.Option(None, "--out", help="Write merged scorecard JSON here"),
+    share: bool = typer.Option(False, "--share", help="Drop hostname labels in the scorecard"),
+) -> None:
+    """Fan out to ALL configured targets in parallel, then print a compact best-per-capability summary."""
+    import os
+    from datetime import datetime, timezone
+
+    from gauntlet import __version__
+    from gauntlet.battery import load_batteries
+    from gauntlet.config import load_config
+    from gauntlet.models import RunMeta, Scorecard
+    from gauntlet.orchestrate import compact_summary
+    from gauntlet.orchestrate import orchestrate as _orchestrate
+    from gauntlet.scorecard import write_json
+
+    cfg = load_config(config)
+    bats = load_batteries(batteries)
+    if not bats:
+        typer.echo(f"No batteries found in {batteries}/ — nothing to run.")
+        raise typer.Exit(code=0)
+
+    rid = run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    api_key = os.environ.get("GAUNTLET_API_KEY")
+
+    targets = list(dict.fromkeys(m.target for m in cfg.models))
+    n_models = len(cfg.models)
+    n_cells = n_models * len(bats)
+    typer.echo(
+        f"Orchestrating {n_models} model(s) × {len(bats)} battery/ies"
+        f" across {len(targets)} target(s)  [run: {rid}]"
+    )
+    typer.echo(f"Targets: {', '.join(targets)}\n")
+
+    def progress(target_name: str, n: int, exc) -> None:
+        if exc:
+            typer.echo(f"  ✗ {target_name}: {exc}", err=True)
+        else:
+            typer.echo(f"  ✓ {target_name}: {n} cell(s)")
+
+    cells = _orchestrate(cfg, bats, rid, base_dir=prompts, api_key=api_key,
+                         progress_cb=progress)
+
+    typer.echo(f"\n{'═' * 60}")
+    typer.echo(f"Compact summary — {rid}")
+    typer.echo(f"{'═' * 60}\n")
+    typer.echo(compact_summary(cells))
+    typer.echo(f"\nTotal: {len(cells)} cell(s) across {len(targets)} target(s)")
+
+    if out:
+        meta = RunMeta(
+            id=rid,
+            date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            gauntlet_version=__version__,
+        )
+        sc = Scorecard(run=meta, cells=cells)
+        write_json(sc, out, share=share)
+        typer.echo(f"Scorecard written to {out}")
+
+
 def _frontier_client(base_url: str, api_key: str | None = None):
     """Frontier endpoint client. Separated so tests can patch it with a MockTransport."""
     from gauntlet.client import OpenAIClient
