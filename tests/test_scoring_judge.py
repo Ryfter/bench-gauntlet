@@ -24,6 +24,19 @@ def test_parse_verdict_clamps_and_derives_passed_from_threshold():
     assert passed is False
 
 
+def test_parse_verdict_strips_think_tags():
+    text = "<think>Let me evaluate... score seems 0.8</think>\n{\"score\": 0.8, \"passed\": true}"
+    score, passed = parse_verdict(text)
+    assert score == 0.8
+    assert passed is True
+
+
+def test_parse_verdict_strips_think_tags_with_inner_braces():
+    text = "<think>I'll use {rubric} carefully to decide {score: high}</think>{\"score\": 0.5}"
+    score, passed = parse_verdict(text)
+    assert score == 0.5
+
+
 def test_parse_verdict_bad_json_raises():
     with pytest.raises(ValueError):
         parse_verdict("not a verdict")

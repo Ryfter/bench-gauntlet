@@ -4,10 +4,13 @@ that cannot be parsed is recorded as unscored — never silently 0 (design G.5).
 from __future__ import annotations
 
 import json
+import re
 
 from gauntlet.client import OpenAIClient
 from gauntlet.models import CaseResult
 from gauntlet.scoring import _extract_json
+
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 _PASS_THRESHOLD = 0.5
 
@@ -20,6 +23,7 @@ JUDGE_PROMPT = (
 
 def parse_verdict(text: str) -> tuple[float, bool]:
     """Return (score in 0..1, passed). Raises ValueError if no usable verdict."""
+    text = _THINK_RE.sub("", text).strip()
     try:
         data = _extract_json(text)
     except json.JSONDecodeError as exc:
