@@ -127,3 +127,51 @@ clean-slate fix is cheap on a young repo with no stars/forks.
 `<box-b-host>` placeholders in docs and TEST-NET (`203.0.113.0/24`) in test
 fixtures. The leak guard (`scorecard.assert_no_leak`) remains the automated backstop
 on emitted scorecards.
+
+---
+
+## D-2026-06-21c — SSE streaming for TTFT measurement
+**Decision:** `OpenAIClient.chat()` switches from a blocking `httpx.post()` to an SSE
+stream (`stream=True` + `stream_options: {include_usage: true}`). The timestamp of the
+first content chunk is captured as `ttft_s`; text is assembled from deltas; token
+counts are extracted from the final `usage` chunk.
+
+**Why:** `ttft_p50_s` was wired through `ChatResult` → `Cell` but always `null`
+because the blocking path reads the full response at once — there is no "first token"
+event. SSE streaming provides that event. TTFT is the latency that matters most for
+interactive use cases (code completion, chat), where waiting for the first word is
+the primary UX bottleneck, distinct from throughput (tokens/sec).
+
+**Consequences:** All MockTransport test handlers that serve chat completions must
+return SSE-formatted bodies. A shared `tests/helpers.py` module provides the `sse()`
+builder to reduce per-test boilerplate. The `stream_options.include_usage` field is
+required to keep token counts available; not all endpoints support it (they silently
+omit `usage`), in which case `prompt_tokens` / `completion_tokens` remain `None`.
+
+---
+
+## D-2026-06-21d — Battery matrix expansion (code-debug, reasoning, classify)
+**Decision:** Added three new batteries covering capabilities not in the original four
+(commit-msg, code-gen, extract-json, summarize-short):
+
+- **code-debug:** 4 cases testing bug identification and repair — missing `return`,
+  wrong operator, index error, logic inversion. Three cases use `regex` to verify the
+  specific fix; one uses `compilable-code`.
+- **reasoning:** 4 cases of arithmetic / logical deduction with exact numeric or
+  single-word answers. All scored with `exact`.
+- **classify:** 5 cases of single-label classification (sentiment, topic, urgency,
+  intent routing) with exact lowercase answers.
+
+**Why:** The original four batteries measured code generation, structured extraction,
+commit formatting, and summarization. Reasoning ability and instruction-following
+under label constraints are qualitatively different skills; a model that excels at
+code-gen may perform poorly on multi-step arithmetic or constrained classification.
+Bug-fixing specifically tests whether a model can diagnose incorrect logic — a high
+value skill for tool routing.
+
+**Consequences:** Battery count grows from 4 to 7. `test_seeded_batteries_load_clean`
+updated to assert the three new capabilities. The `exact` scorer is intentionally
+strict — a model outputting "The sentiment is positive" instead of "positive" fails,
+which is the correct measurement (instruction-following failure). Case prompts include
+explicit format instructions ("Output ONLY the number/word, lowercase, nothing else")
+to make the expected format unambiguous.

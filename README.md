@@ -10,8 +10,10 @@ reputation or vibes.
 > is an OpenAI-compatible endpoint. No dependency on any other repo.
 
 **Version:** 0.5.0 — full-spec build (phases 0–10) plus post-release additions:
-think-tag stripping for thinking models, parallel `orchestrate` command, token-usage
-and cost-savings metrics, and expanded starter batteries (115 tests).
+think-tag stripping for thinking models, parallel `orchestrate` command, SSE streaming
+with TTFT measurement, token-usage and cost-savings metrics, and 7 capability batteries
+covering code-gen, code-debug, commit messages, JSON extraction, reasoning,
+classification, and summarization (117 tests).
 
 ---
 
@@ -255,7 +257,7 @@ targets.example.yaml   endpoint roster template (real roster = targets.yaml, git
 ```bash
 python -m venv .venv
 .venv/Scripts/python -m pip install -e ".[dev]"
-.venv/Scripts/python -m pytest            # default suite (no network), 115 tests
+.venv/Scripts/python -m pytest            # default suite (no network), 117 tests
 .venv/Scripts/gauntlet targets            # list models per target (metadata only)
 ```
 

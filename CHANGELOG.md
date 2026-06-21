@@ -1,5 +1,31 @@
 # Changelog
 
+## Post-v0.5.0 additions — 2026-06-21 (session 2)
+
+### TTFT streaming
+- **SSE streaming** — `OpenAIClient.chat()` switched from a blocking POST to an SSE
+  stream (`stream=True` + `stream_options.include_usage=True`). Time-to-first-token
+  is now recorded when the first content chunk arrives; text is assembled from deltas;
+  token counts come from the final `usage` chunk. `ttft_p50_s` is now populated on
+  every run instead of always being `null`.
+- **Shared test helper** — `tests/helpers.py` provides an `sse()` builder for
+  MockTransport handlers; all chat-completion mock handlers updated to SSE format.
+
+### Battery matrix expansion
+- **`code-debug` battery (4 cases):** deterministic bug-fix verification — missing
+  `return` statement, wrong arithmetic operator, off-by-one index error, inverted
+  conditional. First three scored with `regex` to verify the specific fix; fourth
+  with `compilable-code`.
+- **`reasoning` battery (4 cases):** exact numeric/word answers — arithmetic word
+  problem, percentage discount, doubling number sequence, 3-person logic deduction.
+- **`classify` battery (5 cases):** exact single-word label output — sentiment
+  (positive/negative), topic (technology), urgency triage (high), intent routing
+  (billing). All scored with `exact`.
+- Battery count: 4 → 7. Test suite stays at 117 (new batteries covered by
+  `test_seeded_batteries_load_clean` and `test_seeded_case_prompt_files_exist`).
+
+---
+
 ## Post-v0.5.0 additions — 2026-06-21
 
 ### Thinking-model correctness
