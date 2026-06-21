@@ -1,0 +1,4 @@
+Fix the bug in the following Python function and output ONLY the corrected Python code block, nothing else.
+
+def last_element(arr):
+    return arr[len(arr)]  # Bug: index out of range; should access the last element

@@ -1,0 +1,1 @@
+A train starts with 48 passengers. At the first stop, 12 passengers get off and 7 get on. At the second stop, 15 get off and 3 get on. How many passengers are on the train now? Output ONLY the number, nothing else.

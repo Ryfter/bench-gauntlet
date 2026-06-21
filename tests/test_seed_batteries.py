@@ -10,7 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_seeded_batteries_load_clean():
     bats = {b.capability: b for b in load_batteries(ROOT / "batteries")}
     # every seeded capability parses
-    assert {"commit-msg", "extract-json", "code-gen", "summarize-short"} <= set(bats)
+    assert {"commit-msg", "extract-json", "code-gen", "summarize-short",
+            "code-debug", "reasoning", "classify"} <= set(bats)
     # each battery has at least one case
     assert all(b.cases for b in bats.values())
 

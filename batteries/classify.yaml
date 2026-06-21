@@ -1,0 +1,24 @@
+capability: classify
+context_floor: 0
+cases:
+  - id: sentiment-pos
+    prompt_file: cases/classify/sentiment-pos.txt
+    scoring: exact
+    expect: "positive"
+  - id: sentiment-neg
+    prompt_file: cases/classify/sentiment-neg.txt
+    scoring: exact
+    expect: "negative"
+  - id: topic-tech
+    prompt_file: cases/classify/topic-tech.txt
+    scoring: exact
+    expect: "technology"
+  - id: urgency-high
+    prompt_file: cases/classify/urgency-high.txt
+    scoring: exact
+    expect: "high"
+  - id: route-billing
+    prompt_file: cases/classify/route-billing.txt
+    scoring: exact
+    expect: "billing"
+weights: { quality: 1.0 }

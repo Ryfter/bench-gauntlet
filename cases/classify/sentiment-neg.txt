@@ -1,0 +1,3 @@
+Classify the sentiment of the following review. Output ONLY one word, lowercase: positive, negative, or neutral.
+
+Review: "Total waste of money. The item broke after one use and customer service was completely unhelpful. Avoid this product."

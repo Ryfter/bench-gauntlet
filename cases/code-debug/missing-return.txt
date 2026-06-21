@@ -1,0 +1,8 @@
+Fix the bug in the following Python function and output ONLY the corrected Python code block, nothing else.
+
+def collect_evens(numbers):
+    result = []
+    for n in numbers:
+        if n % 2 == 0:
+            result.append(n)
+    # Bug: the function never returns its result

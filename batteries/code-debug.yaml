@@ -1,0 +1,19 @@
+capability: code-debug
+context_floor: 0
+cases:
+  - id: missing-return
+    prompt_file: cases/code-debug/missing-return.txt
+    scoring: regex
+    pattern: 'return\s+result'
+  - id: wrong-operator
+    prompt_file: cases/code-debug/wrong-operator.txt
+    scoring: regex
+    pattern: 'width\s*\*\s*height|height\s*\*\s*width'
+  - id: index-error
+    prompt_file: cases/code-debug/index-error.txt
+    scoring: regex
+    pattern: 'arr\[-1\]|len\(arr\)\s*-\s*1'
+  - id: logic-inversion
+    prompt_file: cases/code-debug/logic-inversion.txt
+    scoring: compilable-code
+weights: { quality: 1.0 }

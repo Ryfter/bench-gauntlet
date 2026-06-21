@@ -1,0 +1,3 @@
+Classify the topic of the following paragraph. Output ONLY one word, lowercase: technology, sports, politics, or food.
+
+Paragraph: "The latest smartphone release features a breakthrough neural processing unit that handles on-device AI inference at record speeds. Benchmark tests show a 40% improvement over last year's model in machine learning tasks."

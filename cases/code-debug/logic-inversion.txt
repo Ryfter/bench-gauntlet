@@ -1,0 +1,8 @@
+Fix the bug in the following Python function and output ONLY the corrected Python code block, nothing else.
+
+def all_positive(numbers):
+    """Return True if every number in the list is positive, False otherwise."""
+    for n in numbers:
+        if n > 0:
+            return False  # Bug: condition is inverted; should return False when n is NOT positive
+    return True

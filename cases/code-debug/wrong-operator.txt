@@ -1,0 +1,4 @@
+Fix the bug in the following Python function and output ONLY the corrected Python code block, nothing else.
+
+def area_of_rectangle(width, height):
+    return width + height  # Bug: should be multiplication, not addition

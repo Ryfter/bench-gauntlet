@@ -1,0 +1,3 @@
+Classify the urgency of the following support ticket. Output ONLY one word, lowercase: high, medium, or low.
+
+Ticket: "URGENT — Our payment processing system is completely down. We cannot accept any customer orders. This is a live production outage affecting thousands of customers right now."

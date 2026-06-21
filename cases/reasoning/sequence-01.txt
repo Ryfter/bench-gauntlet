@@ -1,0 +1,1 @@
+What is the next number in this sequence: 3, 6, 12, 24, 48, ___? Output ONLY the number, nothing else.

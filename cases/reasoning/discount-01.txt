@@ -1,0 +1,1 @@
+A jacket costs $80. It is on sale for 25% off. What is the sale price in dollars? Output ONLY the number, nothing else.

@@ -1,0 +1,3 @@
+Classify the intent of the following customer message into one category. Output ONLY one word, lowercase: billing, technical, or general.
+
+Message: "Hi, I was charged twice on my credit card last month and I'd like a refund for the duplicate charge."

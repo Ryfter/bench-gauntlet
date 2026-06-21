@@ -1,0 +1,1 @@
+Alice, Bob, and Carol each have exactly one pet. The pets are a cat, a dog, and a fish. Alice does not have the cat. Bob has the dog. What pet does Alice have? Output ONLY the pet name, lowercase, nothing else.

@@ -1,0 +1,20 @@
+capability: reasoning
+context_floor: 0
+cases:
+  - id: arithmetic-01
+    prompt_file: cases/reasoning/arithmetic-01.txt
+    scoring: exact
+    expect: "31"
+  - id: discount-01
+    prompt_file: cases/reasoning/discount-01.txt
+    scoring: exact
+    expect: "60"
+  - id: sequence-01
+    prompt_file: cases/reasoning/sequence-01.txt
+    scoring: exact
+    expect: "96"
+  - id: deduction-01
+    prompt_file: cases/reasoning/deduction-01.txt
+    scoring: exact
+    expect: "fish"
+weights: { quality: 1.0 }
