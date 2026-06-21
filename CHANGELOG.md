@@ -1,5 +1,49 @@
 # Changelog
 
+## Post-v0.5.0 additions — 2026-06-21
+
+### Thinking-model correctness
+- **Think-tag stripping** — `runner.py` strips `<think>…</think>` blocks (compiled
+  regex, case-insensitive, dotall) from model output before ALL scoring paths.
+  Thinking models (qwen3, openthinker) were producing compilation failures,
+  commit-format mismatches, and JSON parse errors because chain-of-thought was
+  included in the scored text. Same stripping applied to judge outputs before JSON
+  verdict parse (the judge path was caught and fixed first in an earlier commit).
+
+### Parallel orchestration
+- **`gauntlet orchestrate`** — new command that runs the battery matrix across
+  multiple targets in parallel using `concurrent.futures.ThreadPoolExecutor`. Each
+  target runs in its own thread; a compact summary table is printed on completion
+  alongside the per-target scorecard paths.
+
+### Judge pool quality
+- **`judge: false` flag** — `ModelProfile` now accepts `judge: false` to exclude a
+  model from the judge pool. Models with known verdict-format problems can be
+  blacklisted without removing them from the test roster. `tavernari/git-commit-message`
+  is the first model so marked.
+
+### Token metrics and cost-savings reporting
+- **`pricing.py`** — frontier pricing table (Anthropic: Fable 5, Opus 4.8, Sonnet 4.6,
+  Haiku 4.5; OpenAI: gpt-5.5, gpt-5.4, gpt-5.4-mini, gpt-5.4-nano, gpt-5.3-codex).
+  `savings_summary()` computes what the same token budget would have cost at each
+  frontier tier and renders a Markdown cost-savings section appended to every scorecard
+  report. Default comparison baselines: Claude Sonnet 4.6 + Claude Haiku 4.5.
+- **Token accumulation** — `run_cell()` accumulates `prompt_tokens` and
+  `completion_tokens` separately from the API `usage` field. `Cell` carries both plus
+  `ttft_p50_s` (median time-to-first-token, wired through but populated only when
+  streaming). `tokens_per_s` corrected to use completion tokens only (previously
+  used total tokens, overstating generation throughput).
+
+### Battery expansion
+- 19 new test cases across all four starter batteries:
+  - `commit-msg`: feat with class body, error-handling refactor, breaking API change, large-scale architectural refactor
+  - `code-gen`: binary search, LRU cache, palindrome check, CSV parsing
+  - `extract-json`: contact card, event announcement, product list (with JSON schema)
+  - `summarize-short`: technical article, long-form article, meeting notes with action items
+- Test suite: 106 → 115 tests.
+
+---
+
 ## v0.5.0 — 2026-06-14 (first public release)
 
 First public release of Gauntlet. Delivers the complete pipeline (design phases

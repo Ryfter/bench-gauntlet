@@ -47,6 +47,68 @@ baseline is gated behind `GAUNTLET_FRONTIER_API_KEY` and never runs by default.
 
 ---
 
+## D-2026-06-15a — Judge exclusion flag (`judge: false` on ModelProfile)
+**Decision:** Added a `judge: false` flag to `ModelProfile`. Any model with this flag
+is excluded from the judge candidate pool in `_judge_pool_for()`, even if it is
+otherwise eligible (correct family, available on the target).
+
+**Why:** Some models produce judge verdicts that are systematically garbled — malformed
+JSON, wrong keys, non-numeric scores — poisoning the pool and causing `score_with_judge()`
+to record spurious `unscored` results. Removing such models from the test roster is too
+blunt (their generation quality is still worth benchmarking). The flag lets them be
+benchmarked as subjects while being excluded as judges. `tavernari/git-commit-message`
+was the first model that triggered this.
+
+**Consequences:** `_judge_pool_for` filters on `p.judge` (defaults `True`). The field
+is documented in `config.py`. Test suite updated.
+
+---
+
+## D-2026-06-21a — Think-tag stripping before all scoring paths
+**Decision:** `runner.py` strips `<think>…</think>` blocks (compiled regex,
+case-insensitive, dotall) from model output before it reaches any scorer — both
+deterministic (`score_case`) and judge (`score_with_judge`). Applied in `run_cell()`
+immediately after the API reply is received.
+
+**Why:** Thinking models (qwen3:30b, openthinker:32b) wrap chain-of-thought in
+`<think>…</think>`. Without stripping, deterministic scorers see the thinking block as
+part of the output: `compilable-code` fails compilation, `conventional-commit` rejects
+valid subjects buried after the block, `json-schema` fails parse, and judge models
+receive verbose thinking output that breaks strict-JSON verdict parsing. The fix must
+be applied universally — not per-scorer — because a scorer has no knowledge of which
+model produced the output. The same stripping is applied to judge outputs before JSON
+verdict parse (that path was caught and fixed independently, a commit earlier).
+
+**Consequences:** Thinking models now score on their final answer only, which is the
+correct measurement. No change to battery authoring; the stripping is invisible to
+case definitions.
+
+---
+
+## D-2026-06-21b — Token metrics and cost-savings reporting
+**Decision:** Added `prompt_tokens`, `completion_tokens`, and `ttft_p50_s` to `Cell`;
+`pricing.py` holds a frontier pricing table with current Anthropic and OpenAI tiers;
+`savings_summary()` renders a cost-equivalent Markdown section appended to every
+scorecard report. `tokens_per_s` corrected to use completion tokens only. Default
+comparison baselines: Claude Sonnet 4.6 + Claude Haiku 4.5 (user-selected).
+
+**Why:** The core value proposition is "how much does local inference save vs. paying a
+frontier API?" Without token counts and a pricing reference, a scorecard can only
+answer *how good* a local model is — not *how much it saves*. Token counts are
+returned in the OpenAI `/v1/chat/completions` `usage` field at no extra cost.
+`tokens_per_s` was previously computed as `total_tokens / latency`, which overstates
+generation throughput — prompt tokens are processed, not generated; the correct metric
+is `completion_tokens / latency`. TTFT is wired through `ChatResult` → `Cell` but
+only populated when streaming (deferred to a later pass).
+
+**Consequences:** `pricing.py` must be kept current as frontier prices change. The
+savings section appears in Markdown reports only — not in the JSON contract (the JSON
+carries raw token counts; the Markdown renders the dollar math). The `--compare` flag
+on `gauntlet report` overrides the default baseline pair. `DEFAULT_COMPARE` is
+`["claude-sonnet-4-6", "claude-haiku-4-5"]`.
+
+---
+
 ## D-2026-06-13c — Privacy remediation: scrub committed IP, rewrite history, recreate remote
 **Decision:** A real Tailscale IP had been committed to tracked files (the
 scorecard leak-guard test fixtures and config examples). Remediation: replace it in

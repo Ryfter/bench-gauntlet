@@ -9,9 +9,9 @@ reputation or vibes.
 > pick local LLMs as tools), but **standalone by design** — all it asks of a target
 > is an OpenAI-compatible endpoint. No dependency on any other repo.
 
-**Version:** 0.5.0 — full-spec build (phases 0–10): foundation, scoring, scorecard,
-resumable runner, special batteries (context-depth, embeddings), frontier baseline,
-and seeded starter batteries.
+**Version:** 0.5.0 — full-spec build (phases 0–10) plus post-release additions:
+think-tag stripping for thinking models, parallel `orchestrate` command, token-usage
+and cost-savings metrics, and expanded starter batteries (115 tests).
 
 ---
 
@@ -73,8 +73,9 @@ config + batteries ──▶ sequencer ──▶ runner ──▶ scorecard ─�
    co-reside up to the budget — and it **defers** any box marked `busy`.
 
 4. **The runner executes and checkpoints.** For each cell it fires the cases,
-   scores them, and records quality, pass-rate, latency p50, tokens/sec, and
-   errors — appending each completed cell to an append-only `cells.jsonl`. A crash
+   scores them, and records quality, pass-rate, latency p50, tokens/sec, prompt and
+   completion token counts, and errors — appending each completed cell to an
+   append-only `cells.jsonl`. A crash
    loses at most the in-flight cell; `--resume <run-id>` skips what's done. **The
    run never aborts:** an unreachable target → its cells errored and counted; a
    busy box → deferred; an ineligible judge → the case is `unscored` (never
@@ -118,6 +119,9 @@ config + batteries ──▶ sequencer ──▶ runner ──▶ scorecard ─�
 - **Quality-per-resource, not max quality.** The scorecard carries quality
   *alongside* latency, throughput, and footprint, so a consumer can apply bars
   ("good enough at this speed on this GPU") instead of chasing a single maximum.
+  The Markdown report also renders a **cost-savings section**: what the same token
+  budget would have cost at each frontier API tier (Anthropic, OpenAI), so "close
+  enough to route locally" has a dollar figure attached.
 
 - **Privacy by construction.** The engine is public; your network is not. The
   scorecard schema has **no field for a base_url or IP, ever**; box identity is
@@ -174,6 +178,7 @@ variables only** — never in YAML.
 |---|---|
 | `gauntlet targets` | list configured targets + models (metadata only, no model loads) |
 | `gauntlet run` | sequence the work matrix and run batteries against live targets; resumable (`--resume <run-id>`) |
+| `gauntlet orchestrate` | run batteries across multiple targets in parallel; prints a compact summary table |
 | `gauntlet depth` | measure effective context via needle-at-depth retrieval (special battery) |
 | `gauntlet embed` | evaluate an embedding model by retrieval recall@k |
 | `gauntlet baseline` | opt-in frontier comparison (gated by `GAUNTLET_FRONTIER_API_KEY`) |
@@ -202,8 +207,9 @@ its cells. The frontier baseline never runs without `GAUNTLET_FRONTIER_API_KEY` 
 { "run": { "id": "...", "date": "...", "gauntlet_version": "0.5.0" },
   "cells": [ { "model": "gemma3:1b", "box": "RTX 2070 Super laptop", "context": 4096,
                "capability": "commit-msg", "quality": 0.88, "pass_rate": 0.86,
-               "latency_p50_s": 2.1, "tokens_per_s": 38, "judge": null,
-               "cases": 14, "errors": 0 } ],
+               "latency_p50_s": 2.1, "tokens_per_s": 38, "ttft_p50_s": null,
+               "prompt_tokens": 1820, "completion_tokens": 312,
+               "judge": null, "cases": 14, "errors": 0 } ],
   "context_depth": [ { "model": "...", "advertised": 32768, "effective_90pct": 16384 } ],
   "baseline_gaps": [ { "capability": "commit-msg", "local_champion": "gemma3:1b",
                        "frontier": "claude", "gap": 0.03 } ] }
@@ -249,7 +255,7 @@ targets.example.yaml   endpoint roster template (real roster = targets.yaml, git
 ```bash
 python -m venv .venv
 .venv/Scripts/python -m pip install -e ".[dev]"
-.venv/Scripts/python -m pytest            # default suite (no network), 106 tests
+.venv/Scripts/python -m pytest            # default suite (no network), 115 tests
 .venv/Scripts/gauntlet targets            # list models per target (metadata only)
 ```
 

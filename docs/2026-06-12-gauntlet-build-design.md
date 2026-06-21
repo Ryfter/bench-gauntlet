@@ -4,6 +4,13 @@
 > Foundation, scoring, scorecard, runner+resume, special batteries (context-depth,
 > embed), frontier baseline, and seeded starter batteries all landed. See
 > `docs/superpowers/plans/` for the per-plan task breakdowns.
+>
+> **Post-v0.5.0 additions (2026-06-21):** think-tag stripping before all scoring
+> paths; `gauntlet orchestrate` parallel multi-target runner; judge exclusion flag
+> (`judge: false` on ModelProfile); token metrics (`prompt_tokens`,
+> `completion_tokens`, `ttft_p50_s` on Cell); `pricing.py` frontier cost table;
+> `savings_summary()` Markdown cost-savings section; 19 additional battery cases
+> (115 tests). See `docs/decisions.md` (D-2026-06-15a, D-2026-06-21a/b).
 
 **Status:** approved 2026-06-12, build starting. Supersedes the deferred spec
 [`2026-06-11-gauntlet-design.md`](2026-06-11-gauntlet-design.md) (still the
@@ -139,6 +146,8 @@ plus `schema_file`/`rubric` as the method needs), `weights`.
 |---|---|---|
 | `model`, `context`, `capability` | ✓ | ✓ |
 | `quality`, `pass_rate`, `latency_p50_s`, `tokens_per_s`, `cases`, `errors` | ✓ | ✓ |
+| `prompt_tokens`, `completion_tokens` | ✓ | ✓ |
+| `ttft_p50_s` (median TTFT; null when not streaming) | ✓ | ✓ |
 | `box` (hardware label) | ✓ | ✓ |
 | `target` (hostname label) | ✓ | **dropped** |
 | `base_url` / any IP | no such field | no such field |
@@ -171,9 +180,10 @@ records metrics, appends immediately. `--resume <run-id>` reads `cells.jsonl`,
 skips completed cells, continues — a crash loses at most the in-flight cell. The
 final `<date>-<run-id>.json` + `.md` are assembled from `cells.jsonl`.
 
-**Per-cell metrics:** mean quality / pass-rate, latency p50, tokens/sec (usage +
-timing), configured context, observed footprint (enrichment `loaded_instances`/
-size where available), error count.
+**Per-cell metrics:** mean quality / pass-rate, latency p50, tokens/sec (completion
+tokens only / total latency), prompt tokens, completion tokens, median TTFT (streaming
+only), configured context, observed footprint (enrichment `loaded_instances`/size
+where available), error count.
 
 **Scoring dispatch** — `Scorer` protocol `score(case, output) -> CaseResult{score,
 passed, method, detail}`, by `case.scoring`:
