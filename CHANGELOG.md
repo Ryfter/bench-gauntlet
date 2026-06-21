@@ -1,6 +1,8 @@
 # Changelog
 
-## Post-v0.5.0 additions — 2026-06-21 (session 3)
+## v0.6.0 — 2026-06-21
+
+### Post-v0.5.0 additions — session 3
 
 ### `gauntlet add-case` CLI helper
 - **`gauntlet add-case <capability>`** — interactive command to add a new test case to an
@@ -16,7 +18,7 @@
 
 ---
 
-## Post-v0.5.0 additions — 2026-06-21 (session 2)
+### Post-v0.5.0 additions — session 2
 
 ### TTFT streaming
 - **SSE streaming** — `OpenAIClient.chat()` switched from a blocking POST to an SSE

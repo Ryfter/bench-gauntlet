@@ -9,7 +9,7 @@ reputation or vibes.
 > pick local LLMs as tools), but **standalone by design** — all it asks of a target
 > is an OpenAI-compatible endpoint. No dependency on any other repo.
 
-**Version:** 0.5.0 — full-spec build (phases 0–10) plus post-release additions:
+**Version:** 0.6.0 — full-spec build (phases 0–10) plus post-release additions:
 think-tag stripping for thinking models, parallel `orchestrate` command, SSE streaming
 with TTFT measurement, token-usage and cost-savings metrics, 7 capability batteries
 covering code-gen, code-debug, commit messages, JSON extraction, reasoning,
@@ -208,7 +208,7 @@ its cells. The frontier baseline never runs without `GAUNTLET_FRONTIER_API_KEY` 
 ## The scorecard contract
 
 ```jsonc
-{ "run": { "id": "...", "date": "...", "gauntlet_version": "0.5.0" },
+{ "run": { "id": "...", "date": "...", "gauntlet_version": "0.6.0" },
   "cells": [ { "model": "gemma3:1b", "box": "RTX 2070 Super laptop", "context": 4096,
                "capability": "commit-msg", "quality": 0.88, "pass_rate": 0.86,
                "latency_p50_s": 2.1, "tokens_per_s": 38, "ttft_p50_s": null,
