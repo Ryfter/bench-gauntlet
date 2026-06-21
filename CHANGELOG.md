@@ -1,5 +1,21 @@
 # Changelog
 
+## Post-v0.5.0 additions — 2026-06-21 (session 3)
+
+### `gauntlet add-case` CLI helper
+- **`gauntlet add-case <capability>`** — interactive command to add a new test case to an
+  existing battery. Prompts for case ID (validates uniqueness), scoring method
+  (`exact`, `regex`, `json-schema`, `conventional-commit`, `compilable-code`, `judge`),
+  scorer-specific params (`expect`, `pattern`, `rubric`, `schema_file`), and prompt text
+  (or `--from-file` to read from an existing file). Writes the prompt to
+  `cases/<capability>/<id>.txt` and appends the case block to the battery YAML while
+  preserving all existing formatting.
+- 10 new tests covering every scoring method, duplicate-ID retry loop, `--from-file` flag,
+  empty `cases: []` battery handling, and post-write round-trip loading.
+- Test suite: 117 → 127 tests.
+
+---
+
 ## Post-v0.5.0 additions — 2026-06-21 (session 2)
 
 ### TTFT streaming

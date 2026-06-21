@@ -150,6 +150,37 @@ omit `usage`), in which case `prompt_tokens` / `completion_tokens` remain `None`
 
 ---
 
+## D-2026-06-21e — `gauntlet add-case` interactive CLI helper
+**Decision:** Added `gauntlet add-case <capability>` — an interactive command that
+collects case ID, scoring method, scorer-specific params, and prompt text from the
+terminal, then writes the prompt file and appends a YAML case block to the existing
+battery file. Prompt text is multiline (blank-line-terminated) unless `--from-file` is
+given. All single-line fields use `typer.prompt()`; multiline prompt reads via
+`sys.stdin.readline()` in a loop, which is correctly mocked by typer's `CliRunner`.
+
+**Why:** Writing batteries by hand requires knowing the YAML schema, creating the
+prompt file in the right directory, and avoiding duplicate IDs — error-prone friction
+that slows down case authoring. A CLI guide eliminates all three problems and is
+consistent with how the rest of the tool works (no external tools required). Battery
+authoring remains a core loop: run the tool, notice a gap, add a case, re-run.
+
+**Design choices:**
+- YAML is updated by string-surgery (insert before `\nweights:`) rather than
+  yaml.dump/load, to preserve the existing file's formatting (indentation, flow-style
+  `weights:` line). The only edge case is `cases: []` (empty flow sequence), detected
+  with a regex and replaced with a block-style list.
+- Scalar values are single-quoted via `_yaml_scalar()` so backslash-heavy regex
+  patterns survive the round-trip without double-escaping (YAML single-quoted strings
+  are fully literal — no backslash escapes).
+- `--batteries` and `--prompts` default to `batteries` and `.` (same as `gauntlet run`)
+  so the command works from the repo root without flags.
+
+**Consequences:** `gauntlet add-case` covers all six scoring methods. `batteries/README.md`
+authoring guide is still the reference for manual authoring; add-case is the fast path.
+10 new tests; test suite 117 → 127.
+
+---
+
 ## D-2026-06-21d — Battery matrix expansion (code-debug, reasoning, classify)
 **Decision:** Added three new batteries covering capabilities not in the original four
 (commit-msg, code-gen, extract-json, summarize-short):

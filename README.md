@@ -11,9 +11,10 @@ reputation or vibes.
 
 **Version:** 0.5.0 — full-spec build (phases 0–10) plus post-release additions:
 think-tag stripping for thinking models, parallel `orchestrate` command, SSE streaming
-with TTFT measurement, token-usage and cost-savings metrics, and 7 capability batteries
+with TTFT measurement, token-usage and cost-savings metrics, 7 capability batteries
 covering code-gen, code-debug, commit messages, JSON extraction, reasoning,
-classification, and summarization (117 tests).
+classification, and summarization, and `gauntlet add-case` for interactive battery
+authoring (127 tests).
 
 ---
 
@@ -184,6 +185,7 @@ variables only** — never in YAML.
 | `gauntlet depth` | measure effective context via needle-at-depth retrieval (special battery) |
 | `gauntlet embed` | evaluate an embedding model by retrieval recall@k |
 | `gauntlet baseline` | opt-in frontier comparison (gated by `GAUNTLET_FRONTIER_API_KEY`) |
+| `gauntlet add-case` | interactively add a new test case to an existing battery |
 | `gauntlet report` | render a scorecard JSON to Markdown (`--share` to sanitize) |
 
 See [batteries/README.md](batteries/README.md) for how to author a battery.
@@ -257,7 +259,7 @@ targets.example.yaml   endpoint roster template (real roster = targets.yaml, git
 ```bash
 python -m venv .venv
 .venv/Scripts/python -m pip install -e ".[dev]"
-.venv/Scripts/python -m pytest            # default suite (no network), 117 tests
+.venv/Scripts/python -m pytest            # default suite (no network), 127 tests
 .venv/Scripts/gauntlet targets            # list models per target (metadata only)
 ```
 

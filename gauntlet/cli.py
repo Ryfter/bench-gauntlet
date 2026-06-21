@@ -379,5 +379,122 @@ def baseline(
         typer.echo(f"Wrote baseline into {into}")
 
 
+def _yaml_scalar(value: str) -> str:
+    """Single-quote a YAML scalar — YAML single-quoted strings are fully literal
+    (backslashes are not escape characters), so regex patterns survive round-trips."""
+    return "'" + value.replace("'", "''") + "'"
+
+
+@app.command("add-case")
+def add_case(
+    capability: str = typer.Argument(..., help="Battery capability to extend (e.g. commit-msg, code-gen)"),
+    batteries_dir: str = typer.Option("batteries", "--batteries", help="Directory of battery YAML files"),
+    prompts_dir: str = typer.Option(".", "--prompts", help="Base dir for prompt_file paths"),
+    from_file: str = typer.Option(None, "--from-file", help="Read prompt text from this file instead of stdin"),
+) -> None:
+    """Add a new test case to an existing battery interactively."""
+    import re
+    import sys
+    from pathlib import Path
+
+    from gauntlet.battery import load_battery
+
+    bat_path = Path(batteries_dir) / f"{capability}.yaml"
+    if not bat_path.exists():
+        known = sorted(p.stem for p in Path(batteries_dir).glob("*.yaml")) if Path(batteries_dir).is_dir() else []
+        typer.echo(
+            f"No battery '{capability}' in {batteries_dir}/."
+            + (f"  Known: {', '.join(known)}" if known else "  (directory is empty)")
+        )
+        raise typer.Exit(code=1)
+
+    battery = load_battery(bat_path)
+    existing_ids = {c.id for c in battery.cases}
+
+    # --- Case ID ---
+    while True:
+        case_id = typer.prompt("Case ID").strip()
+        if not case_id:
+            typer.echo("Case ID cannot be empty.")
+            continue
+        if "/" in case_id or "\\" in case_id:
+            typer.echo("Case ID must not contain slashes.")
+            continue
+        if case_id in existing_ids:
+            typer.echo(f"'{case_id}' already exists in {capability}. Use a different ID.")
+            continue
+        break
+
+    # --- Scoring method ---
+    valid_methods = ("exact", "regex", "json-schema", "conventional-commit", "compilable-code", "judge")
+    typer.echo(f"Scoring methods: {', '.join(valid_methods)}")
+    while True:
+        scoring = typer.prompt("Scoring", default="compilable-code").strip()
+        if scoring in valid_methods:
+            break
+        typer.echo(f"Unknown method. Choose from: {', '.join(valid_methods)}")
+
+    # --- Scorer-specific extras ---
+    extra: dict[str, str] = {}
+    if scoring == "exact":
+        extra["expect"] = typer.prompt("Expected output (exact match after stripping fences)").strip()
+    elif scoring == "regex":
+        extra["pattern"] = typer.prompt("Regex pattern (re.search)").strip()
+    elif scoring == "judge":
+        extra["rubric"] = typer.prompt("Judge rubric").strip()
+    elif scoring == "json-schema":
+        schema_rel = f"cases/{capability}/{case_id}.schema.json"
+        extra["schema_file"] = schema_rel
+        typer.echo(f"Schema file: create {Path(prompts_dir) / schema_rel} before running.")
+
+    # --- Prompt text ---
+    prompt_rel = f"cases/{capability}/{case_id}.txt"
+    prompt_abs = Path(prompts_dir) / prompt_rel
+    prompt_abs.parent.mkdir(parents=True, exist_ok=True)
+
+    if from_file:
+        src = Path(from_file)
+        if not src.exists():
+            typer.echo(f"File not found: {from_file}")
+            raise typer.Exit(code=1)
+        prompt_abs.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+    else:
+        typer.echo("Prompt text (blank line to finish):")
+        lines: list[str] = []
+        while True:
+            line = sys.stdin.readline()
+            if line in ("", "\n"):
+                break
+            lines.append(line.rstrip("\n"))
+        if not lines:
+            typer.echo("Prompt cannot be empty.")
+            raise typer.Exit(code=1)
+        prompt_abs.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    typer.echo(f"→ Wrote {prompt_abs}")
+
+    # --- Build case YAML block (2-space indent to match battery format) ---
+    block = f"  - id: {case_id}\n"
+    block += f"    prompt_file: {prompt_rel}\n"
+    block += f"    scoring: {scoring}\n"
+    for key, val in extra.items():
+        block += f"    {key}: {_yaml_scalar(val)}\n"
+
+    # --- Insert into battery YAML while preserving existing formatting ---
+    raw = bat_path.read_text(encoding="utf-8")
+    m = re.search(r"\ncases:\s*\[\]", raw)   # handle empty flow-sequence
+    if m:
+        raw = raw[: m.start()] + "\ncases:\n" + block.rstrip("\n") + raw[m.end():]
+    else:
+        idx = raw.rfind("\nweights:")
+        if idx == -1:
+            raw = raw.rstrip("\n") + "\n" + block
+        else:
+            raw = raw[:idx] + "\n" + block + raw[idx:]
+    bat_path.write_text(raw, encoding="utf-8")
+
+    typer.echo(f"→ Added case '{case_id}' to {bat_path}")
+
+
 if __name__ == "__main__":
     app()
