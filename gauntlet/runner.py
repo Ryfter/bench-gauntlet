@@ -82,7 +82,9 @@ def run_cell(
     never raised — the run must continue (design error taxonomy)."""
     results: list[CaseResult] = []
     latencies: list[float] = []
-    total_tokens = 0
+    ttfts: list[float] = []
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
     error_count = 0
     judge_used: str | None = None
 
@@ -98,8 +100,12 @@ def run_cell(
                                       passed=False, detail=f"errored: {exc}"))
             continue
         latencies.append(reply.latency_s)
+        if reply.ttft_s is not None:
+            ttfts.append(reply.ttft_s)
+        if reply.prompt_tokens:
+            total_prompt_tokens += reply.prompt_tokens
         if reply.completion_tokens:
-            total_tokens += reply.completion_tokens
+            total_completion_tokens += reply.completion_tokens
 
         # Strip think-tags so deterministic scorers see only the final answer.
         # Thinking models wrap chain-of-thought in <think>…</think>; leaving it
@@ -122,12 +128,17 @@ def run_cell(
             results.append(result)
 
     p50 = statistics.median(latencies) if latencies else None
+    ttft_p50 = statistics.median(ttfts) if ttfts else None
     total_latency = sum(latencies)
-    tps = (total_tokens / total_latency) if total_tokens and total_latency else None
+    tps = (total_completion_tokens / total_latency) if total_completion_tokens and total_latency else None
 
     cell = aggregate_cell(model=model, target=target, box=box, context=context,
                           capability=battery.capability, results=results,
-                          latency_p50_s=p50, tokens_per_s=tps, errors=error_count)
+                          latency_p50_s=p50, tokens_per_s=tps,
+                          ttft_p50_s=ttft_p50,
+                          prompt_tokens=total_prompt_tokens or None,
+                          completion_tokens=total_completion_tokens or None,
+                          errors=error_count)
     cell.judge = judge_used
     return cell
 

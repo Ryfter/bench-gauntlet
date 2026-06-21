@@ -27,6 +27,9 @@ class Cell(BaseModel):
     pass_rate: float | None
     latency_p50_s: float | None = None
     tokens_per_s: float | None = None
+    ttft_p50_s: float | None = None        # median time-to-first-token (streaming)
+    prompt_tokens: int | None = None       # total prompt tokens across all cases
+    completion_tokens: int | None = None   # total completion tokens across all cases
     judge: str | None = None
     cases: int = 0
     errors: int = 0

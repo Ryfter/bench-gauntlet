@@ -10,6 +10,7 @@ from pathlib import Path
 
 from gauntlet import errors
 from gauntlet.models import BaselineGap, CaseResult, Cell, ContextDepth, Scorecard
+from gauntlet.pricing import DEFAULT_COMPARE, savings_summary
 
 # IPv4 (with optional :port) or any URL scheme — a scorecard must contain neither.
 _LEAK_RE = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b|[a-zA-Z][a-zA-Z0-9+.-]*://")
@@ -24,6 +25,9 @@ def aggregate_cell(
     results: list[CaseResult],
     latency_p50_s: float | None = None,
     tokens_per_s: float | None = None,
+    ttft_p50_s: float | None = None,
+    prompt_tokens: int | None = None,
+    completion_tokens: int | None = None,
     errors: int = 0,
 ) -> Cell:
     scored = [r.score for r in results if r.score is not None]
@@ -32,7 +36,9 @@ def aggregate_cell(
     return Cell(
         model=model, target=target, box=box, context=context, capability=capability,
         quality=quality, pass_rate=pass_rate, latency_p50_s=latency_p50_s,
-        tokens_per_s=tokens_per_s, cases=len(results), errors=errors,
+        tokens_per_s=tokens_per_s, ttft_p50_s=ttft_p50_s,
+        prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+        cases=len(results), errors=errors,
     )
 
 
@@ -63,7 +69,8 @@ def _fmt(value: float | None, places: int = 2) -> str:
     return "—" if value is None else f"{value:.{places}f}"
 
 
-def render_markdown(scorecard: Scorecard, share: bool = False) -> str:
+def render_markdown(scorecard: Scorecard, share: bool = False,
+                    compare: list[str] | None = None) -> str:
     run = scorecard.run
     lines = [
         "# Gauntlet scorecard",
@@ -71,7 +78,7 @@ def render_markdown(scorecard: Scorecard, share: bool = False) -> str:
         f"- **run:** {run.id}  **date:** {run.date}  **gauntlet:** {run.gauntlet_version}",
         "",
     ]
-    header = ["model", "box", "ctx", "capability", "quality", "pass", "tok/s", "cases", "err"]
+    header = ["model", "box", "ctx", "capability", "quality", "pass", "tok/s", "ttft", "cases", "err"]
     if not share:
         header.insert(2, "target")
     lines.append("| " + " | ".join(header) + " |")
@@ -82,9 +89,14 @@ def render_markdown(scorecard: Scorecard, share: bool = False) -> str:
             row.append(c.target or "—")
         row += [
             str(c.context), c.capability, _fmt(c.quality), _fmt(c.pass_rate),
-            _fmt(c.tokens_per_s, 0), str(c.cases), str(c.errors),
+            _fmt(c.tokens_per_s, 0), _fmt(c.ttft_p50_s, 2), str(c.cases), str(c.errors),
         ]
         lines.append("| " + " | ".join(row) + " |")
+
+    savings = savings_summary(scorecard.cells, compare=compare or DEFAULT_COMPARE)
+    if savings:
+        lines.append(savings)
+
     return "\n".join(lines) + "\n"
 
 

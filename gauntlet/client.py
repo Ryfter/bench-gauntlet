@@ -10,8 +10,10 @@ from gauntlet import errors
 
 class ChatResult(BaseModel):
     text: str
+    prompt_tokens: int | None = None
     completion_tokens: int | None = None
     latency_s: float = 0.0
+    ttft_s: float | None = None  # populated only when streaming
 
 
 class OpenAIClient:
@@ -50,8 +52,12 @@ class OpenAIClient:
         data = resp.json()
         text = data["choices"][0]["message"]["content"]
         usage = data.get("usage") or {}
-        return ChatResult(text=text, completion_tokens=usage.get("completion_tokens"),
-                          latency_s=latency)
+        return ChatResult(
+            text=text,
+            prompt_tokens=usage.get("prompt_tokens"),
+            completion_tokens=usage.get("completion_tokens"),
+            latency_s=latency,
+        )
 
     def embeddings(self, model: str, inputs: list[str]) -> list[list[float]]:
         payload = {"model": model, "input": inputs}
