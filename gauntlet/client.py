@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 
 import httpx
@@ -13,7 +14,7 @@ class ChatResult(BaseModel):
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
     latency_s: float = 0.0
-    ttft_s: float | None = None  # populated only when streaming
+    ttft_s: float | None = None  # time to first token; populated via SSE streaming
 
 
 class OpenAIClient:
@@ -39,24 +40,48 @@ class OpenAIClient:
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens,
             "temperature": temperature,
+            "stream": True,
+            "stream_options": {"include_usage": True},
         }
         start = time.monotonic()
         try:
-            resp = self._http.post("/v1/chat/completions", json=payload)
-            resp.raise_for_status()
+            with self._http.stream("POST", "/v1/chat/completions", json=payload) as resp:
+                resp.raise_for_status()
+                ttft_s: float | None = None
+                chunks: list[str] = []
+                usage: dict = {}
+                for line in resp.iter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:]
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        obj = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        continue
+                    if obj.get("usage"):
+                        usage = obj["usage"]
+                    choices = obj.get("choices") or []
+                    if not choices:
+                        continue
+                    delta = choices[0].get("delta") or {}
+                    content = delta.get("content")
+                    if content:
+                        if ttft_s is None:
+                            ttft_s = time.monotonic() - start
+                        chunks.append(content)
         except httpx.ConnectError as exc:
             raise errors.Unreachable(f"{self.base_url}: {exc}") from exc
         except httpx.HTTPStatusError as exc:
             raise errors.ModelLoadFailed(f"{model}: HTTP {exc.response.status_code}") from exc
         latency = time.monotonic() - start
-        data = resp.json()
-        text = data["choices"][0]["message"]["content"]
-        usage = data.get("usage") or {}
         return ChatResult(
-            text=text,
+            text="".join(chunks),
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
             latency_s=latency,
+            ttft_s=ttft_s,
         )
 
     def embeddings(self, model: str, inputs: list[str]) -> list[list[float]]:

@@ -3,14 +3,12 @@ import httpx
 from gauntlet.battery import Battery, Case
 from gauntlet.client import OpenAIClient
 from gauntlet.runner import run_cell
+from tests.helpers import sse
 
 
 def _client(reply_text):
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={
-            "choices": [{"message": {"content": reply_text}}],
-            "usage": {"completion_tokens": 7},
-        })
+        return httpx.Response(200, text=sse(reply_text, completion_tokens=7))
     return OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
 
 
@@ -63,11 +61,10 @@ def test_run_cell_strips_think_tags_before_judge_scoring(tmp_path):
         body = request.content.decode()
         if "strict grader" in body:
             captured["judge_input"] = body
-            return httpx.Response(200, json={"choices": [{"message": {"content": '{"score":0.9,"passed":true}'}}]})
-        return httpx.Response(200, json={
-            "choices": [{"message": {"content": "<think>Reasoning…</think>\nThe article discusses X."}}],
-            "usage": {"completion_tokens": 10},
-        })
+            return httpx.Response(200, text=sse('{"score":0.9,"passed":true}'))
+        return httpx.Response(200, text=sse(
+            "<think>Reasoning…</think>\nThe article discusses X.", completion_tokens=10
+        ))
 
     client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
     battery = Battery(capability="summarize",
@@ -86,9 +83,8 @@ def test_run_cell_judge_uses_eligible_pool(tmp_path):
     def handler(request: httpx.Request) -> httpx.Response:
         body = request.content.decode()
         if "strict grader" in body:
-            return httpx.Response(200, json={"choices": [{"message": {"content": '{"score":0.8,"passed":true}'}}]})
-        return httpx.Response(200, json={"choices": [{"message": {"content": "some summary"}}],
-                                         "usage": {"completion_tokens": 5}})
+            return httpx.Response(200, text=sse('{"score":0.8,"passed":true}'))
+        return httpx.Response(200, text=sse("some summary", completion_tokens=5))
     client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
     battery = Battery(capability="summarize",
                       cases=[Case(id="c1", scoring="judge", rubric="grade it", prompt_file="p.txt")])

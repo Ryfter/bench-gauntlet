@@ -3,6 +3,7 @@ import httpx
 from gauntlet.battery import Battery, Case
 from gauntlet.config import Box, GauntletConfig, ModelProfile, Target
 from gauntlet.runner import RunPaths, execute_plan, read_completed
+from tests.helpers import sse
 
 
 def _cfg():
@@ -22,8 +23,7 @@ def _batteries(tmp_path):
 def _client_factory(text):
     def make(base_url, api_key=None):
         def handler(request):
-            return httpx.Response(200, json={"choices": [{"message": {"content": text}}],
-                                             "usage": {"completion_tokens": 4}})
+            return httpx.Response(200, text=sse(text, completion_tokens=4))
         from gauntlet.client import OpenAIClient
         return OpenAIClient(base_url=base_url, transport=httpx.MockTransport(handler))
     return make

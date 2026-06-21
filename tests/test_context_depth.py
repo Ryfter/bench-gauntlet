@@ -1,3 +1,4 @@
+from tests.helpers import sse
 from gauntlet.batteries.context_depth import (
     DEFAULT_ANSWER,
     approx_tokens,
@@ -52,8 +53,7 @@ def test_run_context_depth_finds_cutoff():
     def handler(request: httpx.Request) -> httpx.Response:
         body = request.content.decode()
         text = DEFAULT_ANSWER if len(body) <= 6000 else "I could not find it."
-        return httpx.Response(200, json={"choices": [{"message": {"content": text}}],
-                                         "usage": {"completion_tokens": 5}})
+        return httpx.Response(200, text=sse(text, completion_tokens=5))
     client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
     cd = run_context_depth(client, model="gemma3:1b", advertised=8192,
                            lengths=[500, 1000, 4000], depths=[0.0, 0.5, 1.0])

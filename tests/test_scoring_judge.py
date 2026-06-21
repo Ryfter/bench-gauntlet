@@ -3,6 +3,7 @@ import pytest
 
 from gauntlet.client import OpenAIClient
 from gauntlet.scoring.judge import parse_verdict, score_with_judge, select_judge
+from tests.helpers import sse
 
 
 def test_parse_verdict_reads_score_and_passed():
@@ -54,9 +55,7 @@ def test_select_judge_none_when_all_same_family():
 
 def test_score_with_judge_calls_model_and_returns_caseresult():
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={
-            "choices": [{"message": {"content": '{"score": 0.9, "passed": true}'}}],
-        })
+        return httpx.Response(200, text=sse('{"score": 0.9, "passed": true}'))
 
     client = OpenAIClient(base_url="http://j:1", transport=httpx.MockTransport(handler))
     res = score_with_judge(client, judge_model="dolphin3:8b",
@@ -69,7 +68,7 @@ def test_score_with_judge_calls_model_and_returns_caseresult():
 
 def test_score_with_judge_unparseable_marks_unscored():
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"choices": [{"message": {"content": "garbage"}}]})
+        return httpx.Response(200, text=sse("garbage"))
 
     client = OpenAIClient(base_url="http://j:1", transport=httpx.MockTransport(handler))
     res = score_with_judge(client, judge_model="dolphin3:8b",
