@@ -1,0 +1,3 @@
+Extract all products as a JSON array. Each item has keys: name (string) and price_usd (number). Output ONLY JSON.
+
+Our spring catalog includes the Apex Trail Runner ($129.99), the Summit Daypack in forest green ($84.50), and the HydroCore water filter ($49.00). We also carry the Ridgeline Trekking Poles at just $67.95 a pair.

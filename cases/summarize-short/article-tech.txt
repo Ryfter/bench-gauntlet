@@ -1,0 +1,3 @@
+Summarize the following in ONE sentence.
+
+Rust's ownership model eliminates an entire class of memory bugs at compile time by enforcing that each value has exactly one owner, that borrows are either shared-and-immutable or exclusive-and-mutable but never both simultaneously, and that all references must outlive the data they point to — rules checked statically by the borrow checker without a garbage collector or runtime overhead.

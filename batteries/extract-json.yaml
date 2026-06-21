@@ -5,4 +5,16 @@ cases:
     prompt_file: cases/extract-json/invoice-01.txt
     scoring: json-schema
     schema_file: cases/extract-json/invoice-01.schema.json
+  - id: contact-card
+    prompt_file: cases/extract-json/contact-card.txt
+    scoring: json-schema
+    schema_file: cases/extract-json/contact-card.schema.json
+  - id: event-announce
+    prompt_file: cases/extract-json/event-announce.txt
+    scoring: json-schema
+    schema_file: cases/extract-json/event-announce.schema.json
+  - id: product-list
+    prompt_file: cases/extract-json/product-list.txt
+    scoring: json-schema
+    schema_file: cases/extract-json/product-list.schema.json
 weights: { quality: 1.0 }

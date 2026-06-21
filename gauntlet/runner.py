@@ -5,6 +5,7 @@ checkpoints immediately so `--resume` loses at most the in-flight cell. The run
 NEVER aborts: unreachable / load-fail / busy become typed cell outcomes."""
 from __future__ import annotations
 
+import re
 import statistics
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -21,6 +22,8 @@ if TYPE_CHECKING:
     from gauntlet.battery import Battery, Case
     from gauntlet.client import OpenAIClient
     from gauntlet.config import GauntletConfig
+
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 
 class RunPaths:
@@ -98,7 +101,12 @@ def run_cell(
         if reply.completion_tokens:
             total_tokens += reply.completion_tokens
 
-        result = score_case(case, reply.text, base_dir=base_dir)
+        # Strip think-tags so deterministic scorers see only the final answer.
+        # Thinking models wrap chain-of-thought in <think>…</think>; leaving it
+        # in causes compilation failures, commit-format mismatches, and bad JSON parses.
+        scored_text = _THINK_RE.sub("", reply.text).strip()
+
+        result = score_case(case, scored_text, base_dir=base_dir)
         if result is NEEDS_JUDGE:
             judge = select_judge(judge_pool or [], target_family=_model_family(model))
             if judge is None:
@@ -107,7 +115,7 @@ def run_cell(
                 continue
             judge_used = judge
             results.append(score_with_judge(client, judge_model=judge,
-                                             rubric=case.rubric or "", output=reply.text,
+                                             rubric=case.rubric or "", output=scored_text,
                                              case_id=case.id))
         else:
             result.case_id = case.id

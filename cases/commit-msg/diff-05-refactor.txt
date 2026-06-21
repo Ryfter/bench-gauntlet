@@ -1,0 +1,73 @@
+Write a single Conventional Commits subject line (type(scope): summary) for this diff. Output ONLY the line.
+
+diff --git a/src/handlers/user.py b/src/handlers/user.py
+deleted file mode 100644
+index a1b2c3d..0000000
+--- a/src/handlers/user.py
++++ /dev/null
+@@ -1,28 +0,0 @@
+-from src.models import User
+-from src.db import get_db
+-
+-def get_user(user_id: int) -> User | None:
+-    return get_db().query(User).filter_by(id=user_id).first()
+-
+-def create_user(name: str, email: str) -> User:
+-    db = get_db()
+-    user = User(name=name, email=email)
+-    db.add(user)
+-    db.commit()
+-    return user
+-
+-def update_user(user_id: int, **kwargs) -> User:
+-    user = get_user(user_id)
+-    if user is None:
+-        raise NotFoundError(user_id)
+-    for k, v in kwargs.items():
+-        setattr(user, k, v)
+-    get_db().commit()
+-    return user
+-
+-def delete_user(user_id: int) -> None:
+-    user = get_user(user_id)
+-    if user is None:
+-        raise NotFoundError(user_id)
+-    get_db().delete(user)
+-    get_db().commit()
+diff --git a/src/repositories/user_repo.py b/src/repositories/user_repo.py
+new file mode 100644
+index 0000000..b4c5d6e
+--- /dev/null
++++ b/src/repositories/user_repo.py
+@@ -0,0 +1,30 @@
++from src.models import User
++from src.db import Session
++
++class UserRepository:
++    def __init__(self, session: Session):
++        self._session = session
++
++    def get(self, user_id: int) -> User | None:
++        return self._session.query(User).filter_by(id=user_id).first()
++
++    def create(self, name: str, email: str) -> User:
++        user = User(name=name, email=email)
++        self._session.add(user)
++        self._session.commit()
++        return user
++
++    def update(self, user_id: int, **kwargs) -> User:
++        user = self.get(user_id)
++        if user is None:
++            raise NotFoundError(user_id)
++        for k, v in kwargs.items():
++            setattr(user, k, v)
++        self._session.commit()
++        return user
++
++    def delete(self, user_id: int) -> None:
++        user = self.get(user_id)
++        if user is None:
++            raise NotFoundError(user_id)
++        self._session.delete(user)
++        self._session.commit()

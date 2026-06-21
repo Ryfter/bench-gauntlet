@@ -1,0 +1,3 @@
+Extract the event details as JSON with keys: title (string), date (string), location (string), price_usd (number, or null if free). Output ONLY JSON.
+
+Join us for the Mountain West Developer Summit on August 14, 2026 at the Salt Lake Convention Center, Hall C. Tickets are $149 per person. Doors open at 8 AM.

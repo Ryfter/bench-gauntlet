@@ -1,0 +1,13 @@
+Write a single Conventional Commits subject line (type(scope): summary) for this diff. Output ONLY the line.
+
+diff --git a/src/parser.py b/src/parser.py
+index 7f3a1b2..9c4d5e6 100644
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -41,7 +41,10 @@ def parse_config(path: str) -> dict:
+     with open(path) as f:
+-        return json.load(f)
++        try:
++            return json.load(f)
++        except json.JSONDecodeError as exc:
++            raise ConfigError(f"Invalid JSON in {path}: {exc}") from exc

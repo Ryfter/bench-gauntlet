@@ -1,0 +1,1 @@
+Write a Python function is_palindrome(s: str) -> bool that returns True if s is a palindrome, ignoring case and non-alphanumeric characters. Output ONLY a Python code block.

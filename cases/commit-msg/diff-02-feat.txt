@@ -1,0 +1,31 @@
+Write a single Conventional Commits subject line (type(scope): summary) for this diff. Output ONLY the line.
+
+diff --git a/src/cache.py b/src/cache.py
+new file mode 100644
+index 0000000..4a3b2c1
+--- /dev/null
++++ b/src/cache.py
+@@ -0,0 +1,22 @@
++import time
++from typing import Any
++
++class TTLCache:
++    def __init__(self, ttl: int = 300):
++        self._store: dict[str, tuple[Any, float]] = {}
++        self._ttl = ttl
++
++    def get(self, key: str) -> Any | None:
++        entry = self._store.get(key)
++        if entry is None:
++            return None
++        value, expires_at = entry
++        if time.time() > expires_at:
++            del self._store[key]
++            return None
++        return value
++
++    def set(self, key: str, value: Any) -> None:
++        self._store[key] = (value, time.time() + self._ttl)
++
++    def delete(self, key: str) -> None:
++        self._store.pop(key, None)

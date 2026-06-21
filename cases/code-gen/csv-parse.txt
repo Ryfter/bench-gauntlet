@@ -1,0 +1,1 @@
+Write a Python function parse_csv(text: str) -> list[dict] that parses a CSV string where the first line is headers and returns a list of dicts. Return an empty list for empty or whitespace-only input. Output ONLY a Python code block.

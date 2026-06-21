@@ -1,0 +1,1 @@
+Write a Python class LRUCache with methods __init__(self, capacity: int), get(self, key: int) -> int (returns -1 if not present), and put(self, key: int, value: int) -> None that evicts the least-recently-used entry when over capacity. Output ONLY a Python code block.

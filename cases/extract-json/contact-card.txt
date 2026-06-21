@@ -1,0 +1,5 @@
+Extract the contact details as JSON with keys: name (string), email (string or null), phone (string or null), company (string or null). Output ONLY JSON.
+
+Sarah Chen  |  Head of Engineering
+Nexaflow Systems  ·  sarah.chen@nexaflow.io
+Mobile: +1 (415) 882-0034

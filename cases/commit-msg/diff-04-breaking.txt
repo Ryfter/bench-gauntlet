@@ -1,0 +1,12 @@
+Write a Conventional Commits message for this diff. It is a BREAKING CHANGE — the connect() signature changed and all callers must update. Use the ! notation after the type and include a BREAKING CHANGE: footer. Output ONLY the commit message.
+
+diff --git a/src/db.py b/src/db.py
+index 2d4f1a8..8b3c9e0 100644
+--- a/src/db.py
++++ b/src/db.py
+@@ -8,8 +8,9 @@ class Database:
+-    def connect(self, host: str, port: int = 5432) -> None:
++    def connect(self, dsn: str, *, pool_size: int = 5) -> None:
+         """Open a database connection."""
+-        self._conn = psycopg2.connect(host=host, port=port)
++        self._conn = psycopg2.connect(dsn, options=f"-c pool_size={pool_size}")

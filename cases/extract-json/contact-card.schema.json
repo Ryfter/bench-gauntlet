@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["name", "email", "phone", "company"],
+  "properties": {
+    "name":    { "type": "string" },
+    "email":   { "type": ["string", "null"] },
+    "phone":   { "type": ["string", "null"] },
+    "company": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

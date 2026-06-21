@@ -1,0 +1,1 @@
+Write a Python function binary_search(arr: list[int], target: int) -> int that returns the index of target in the sorted list arr, or -1 if not found. Output ONLY a Python code block.

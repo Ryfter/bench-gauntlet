@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["title", "date", "location", "price_usd"],
+  "properties": {
+    "title":     { "type": "string" },
+    "date":      { "type": "string" },
+    "location":  { "type": "string" },
+    "price_usd": { "type": ["number", "null"] }
+  },
+  "additionalProperties": false
+}

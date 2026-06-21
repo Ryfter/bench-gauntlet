@@ -1,0 +1,9 @@
+Summarize the following in 2-3 sentences.
+
+Scientists at the National Renewable Energy Laboratory have demonstrated a solid-state lithium battery that retains 92% of its original capacity after 1,200 charge cycles, a milestone that could make the technology viable for electric vehicles that must last ten years or more under real-world conditions.
+
+Traditional lithium-ion batteries use a liquid electrolyte to shuttle ions between electrodes during charging and discharging. While effective, liquid electrolytes degrade over time, are flammable, and limit how thin or flexible a battery can be. Solid-state designs replace the liquid with a ceramic or polymer material that is chemically stable, non-flammable, and allows the use of a lithium-metal anode instead of the graphite anode in conventional cells — unlocking higher energy density.
+
+The NREL team's key advance addresses a longstanding manufacturing problem: ceramic electrolytes tend to crack under the mechanical stress of repeated ion movement. The researchers developed a composite electrolyte combining a rigid ceramic matrix with a flexible polymer binder that absorbs stress without fracturing. The resulting cells achieved an energy density of 412 watt-hours per kilogram, compared to roughly 250-300 Wh/kg for the best current lithium-ion batteries.
+
+Commercial viability still depends on cost. The solid-state cells currently cost about four times as much to produce as lithium-ion cells, largely because the ceramic electrolyte requires high-temperature sintering that is difficult to scale. The team estimates that with dedicated production lines and material refinements, costs could reach parity within five to seven years, potentially enabling longer-range electric vehicles and grid storage systems designed to last decades.

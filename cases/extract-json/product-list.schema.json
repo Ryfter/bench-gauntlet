@@ -1,0 +1,13 @@
+{
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "required": ["name", "price_usd"],
+    "properties": {
+      "name":      { "type": "string" },
+      "price_usd": { "type": "number" }
+    },
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,6 @@
+Extract exactly 3 action items from these meeting notes as bullet points. Format each bullet as: "- [Owner] will [action] by [date]." Output ONLY the 3 bullets.
+
+Q3 Product Sync — June 10, 2026
+Attendees: Priya (PM), Marcus (Eng), Leila (Design), Tom (QA)
+
+Priya opened with status. The API rate-limit redesign slipped two weeks due to infra dependencies. Marcus confirmed the new token-bucket implementation is ready to merge but needs load-test sign-off before prod. Tom will run the load-test suite and get results to Marcus by June 20. Leila walked through updated onboarding flow mockups. The team agreed to drop the welcome-tour modal. Leila will revise the empty-state screens to include inline tips instead and deliver finals to Marcus by June 17. Priya flagged that the analytics dashboard shows stale cohort data past 90 days. Marcus traced it to a missing index on the events table. Priya will open a P1 ticket with the DBA team by end of day June 11.

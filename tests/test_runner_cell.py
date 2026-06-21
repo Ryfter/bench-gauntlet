@@ -42,6 +42,44 @@ def test_run_cell_unreachable_marks_errored_cell(tmp_path):
     assert cell.cases == 1
 
 
+def test_run_cell_strips_think_tags_before_deterministic_scoring(tmp_path):
+    (tmp_path / "p.txt").write_text("write a commit message", encoding="utf-8")
+    battery = Battery(capability="commit-msg",
+                      cases=[Case(id="c1", scoring="conventional-commit", prompt_file="p.txt")])
+    # Thinking model wraps its answer in <think>…</think>; the scorer should see only the clean line.
+    think_reply = "<think>Let me format this properly.</think>\nfeat: add the thing"
+    cell = run_cell(_client(think_reply), model="qwen3:30b", target="box-a-ollama",
+                    box="RTX 5090 desktop", context=8192, battery=battery, base_dir=tmp_path)
+    assert cell.quality == 1.0
+    assert cell.pass_rate == 1.0
+    assert cell.errors == 0
+
+
+def test_run_cell_strips_think_tags_before_judge_scoring(tmp_path):
+    (tmp_path / "p.txt").write_text("summarize this", encoding="utf-8")
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = request.content.decode()
+        if "strict grader" in body:
+            captured["judge_input"] = body
+            return httpx.Response(200, json={"choices": [{"message": {"content": '{"score":0.9,"passed":true}'}}]})
+        return httpx.Response(200, json={
+            "choices": [{"message": {"content": "<think>Reasoning…</think>\nThe article discusses X."}}],
+            "usage": {"completion_tokens": 10},
+        })
+
+    client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
+    battery = Battery(capability="summarize",
+                      cases=[Case(id="c1", scoring="judge", rubric="grade it", prompt_file="p.txt")])
+    cell = run_cell(client, model="qwen3:30b", target="box-a-ollama", box="RTX 5090 desktop",
+                    context=8192, battery=battery, base_dir=tmp_path,
+                    judge_pool=[("devstral:latest", "devstral")])
+    assert "<think>" not in captured.get("judge_input", "")
+    assert "The article discusses X." in captured.get("judge_input", "")
+    assert cell.quality == 0.9
+
+
 def test_run_cell_judge_uses_eligible_pool(tmp_path):
     (tmp_path / "p.txt").write_text("summarize", encoding="utf-8")
     # model under test is gemma3; judge pool offers a different family -> judged.

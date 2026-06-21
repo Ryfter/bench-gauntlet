@@ -5,4 +5,16 @@ cases:
     prompt_file: cases/summarize-short/article-01.txt
     scoring: judge
     rubric: "Score 0-1: is this a faithful one-sentence summary that names the main subject and the key fact, with no invented details?"
+  - id: article-tech
+    prompt_file: cases/summarize-short/article-tech.txt
+    scoring: judge
+    rubric: "Score 0-1: does this one-sentence summary accurately capture that Rust's ownership model prevents memory bugs at compile time without a garbage collector?"
+  - id: article-long
+    prompt_file: cases/summarize-short/article-long.txt
+    scoring: judge
+    rubric: "Score 0-1: does this 2-3 sentence summary cover the key finding (solid-state battery retains 92% capacity), the core innovation (composite electrolyte), and the remaining barrier (cost), without inventing details?"
+  - id: meeting-notes
+    prompt_file: cases/summarize-short/meeting-notes.txt
+    scoring: judge
+    rubric: "Score 0-1: are there exactly 3 bullet points each naming a specific owner, action, and date? The three items are: Tom running load tests by June 20, Leila revising empty-state screens by June 17, and Priya opening a P1 ticket by June 11."
 weights: { quality: 1.0 }

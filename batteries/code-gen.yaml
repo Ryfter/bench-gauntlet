@@ -4,4 +4,16 @@ cases:
   - id: fizzbuzz
     prompt_file: cases/code-gen/fizzbuzz.txt
     scoring: compilable-code
+  - id: palindrome
+    prompt_file: cases/code-gen/palindrome.txt
+    scoring: compilable-code
+  - id: binary-search
+    prompt_file: cases/code-gen/binary-search.txt
+    scoring: compilable-code
+  - id: lru-cache
+    prompt_file: cases/code-gen/lru-cache.txt
+    scoring: compilable-code
+  - id: csv-parse
+    prompt_file: cases/code-gen/csv-parse.txt
+    scoring: compilable-code
 weights: { quality: 1.0 }

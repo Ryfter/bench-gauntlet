@@ -4,4 +4,16 @@ cases:
   - id: diff-01
     prompt_file: cases/commit-msg/diff-01.txt
     scoring: conventional-commit
+  - id: diff-02-feat
+    prompt_file: cases/commit-msg/diff-02-feat.txt
+    scoring: conventional-commit
+  - id: diff-03-fix
+    prompt_file: cases/commit-msg/diff-03-fix.txt
+    scoring: conventional-commit
+  - id: diff-04-breaking
+    prompt_file: cases/commit-msg/diff-04-breaking.txt
+    scoring: conventional-commit
+  - id: diff-05-refactor
+    prompt_file: cases/commit-msg/diff-05-refactor.txt
+    scoring: conventional-commit
 weights: { quality: 1.0 }
