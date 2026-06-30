@@ -1,0 +1,3 @@
+Summarize this news excerpt in 1-2 sentences:
+
+"TechCorp announced today it is laying off 12% of its workforce, affecting approximately 3,400 employees across engineering, sales, and operations. CEO Sarah Chen cited slowing growth in cloud services and the need to 'right-size our organization for macroeconomic realities.' The company will offer severance packages and extended healthcare benefits through the end of 2024. Shares fell 8% in after-hours trading."

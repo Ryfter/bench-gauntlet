@@ -1,0 +1,1 @@
+You are reverting a previous commit. The original commit was "feat(api): add user caching layer" with hash 3f8c2d9a. Write a proper conventional commit message using the revert format: `revert: original message` with the hash reference. Follow conventional commit style.

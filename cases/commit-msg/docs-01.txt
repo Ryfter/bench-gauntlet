@@ -1,0 +1,1 @@
+You are writing a commit message for a documentation-only change. The diff adds a README section explaining error handling and adds code examples to a tutorial. Write a proper conventional commit message (starting with type: scope if applicable, one-line summary, blank line, optional body).

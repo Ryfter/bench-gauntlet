@@ -1,0 +1,3 @@
+Summarize this abstract in 1-2 sentences:
+
+"Recent advances in transformer architectures have enabled state-of-the-art performance on natural language understanding tasks. We propose a novel attention mechanism that reduces computational complexity from O(n²) to O(n log n) while maintaining accuracy on GLUE and SuperGLUE benchmarks. Our model achieves 94.2% on RTE and 89.1% on CoLA, comparable to BERT-large while requiring 40% less memory. The key innovation is sparse attention patterns learned during pretraining, which we demonstrate transfers across downstream tasks."

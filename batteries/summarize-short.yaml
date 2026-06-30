@@ -17,4 +17,16 @@ cases:
     prompt_file: cases/summarize-short/meeting-notes.txt
     scoring: judge
     rubric: "Score 0-1: are there exactly 3 bullet points each naming a specific owner, action, and date? The three items are: Tom running load tests by June 20, Leila revising empty-state screens by June 17, and Priya opening a P1 ticket by June 11."
+  - id: technical-paper
+    prompt_file: cases/summarize-short/technical-paper.txt
+    scoring: judge
+    rubric: "Score 0-1: does the summary capture the two key points: (1) novel attention mechanism reduces complexity to O(n log n), and (2) achieves comparable accuracy to BERT with 40% less memory? No invented details."
+  - id: narrative-excerpt
+    prompt_file: cases/summarize-short/narrative-excerpt.txt
+    scoring: judge
+    rubric: "Score 0-1: does the summary convey that Elena found her lost journal behind books and rediscovered an unfinished short story? Should be concise and mention both the discovery and the story insight."
+  - id: news-business
+    prompt_file: cases/summarize-short/news-business.txt
+    scoring: judge
+    rubric: "Score 0-1: does the summary mention TechCorp's layoff of 12% (3,400 employees) and the reason (slowing cloud growth)? Should convey the scale and stated cause without invented details."
 weights: { quality: 1.0 }

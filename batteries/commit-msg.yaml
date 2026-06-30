@@ -16,4 +16,13 @@ cases:
   - id: diff-05-refactor
     prompt_file: cases/commit-msg/diff-05-refactor.txt
     scoring: conventional-commit
+  - id: docs-01
+    prompt_file: cases/commit-msg/docs-01.txt
+    scoring: conventional-commit
+  - id: revert-01
+    prompt_file: cases/commit-msg/revert-01.txt
+    scoring: conventional-commit
+  - id: perf-01
+    prompt_file: cases/commit-msg/perf-01.txt
+    scoring: conventional-commit
 weights: { quality: 1.0 }
