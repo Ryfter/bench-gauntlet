@@ -21,4 +21,16 @@ cases:
     prompt_file: cases/classify/route-billing.txt
     scoring: exact
     expect: "billing"
+  - id: sentiment-neutral
+    prompt_file: cases/classify/sentiment-neutral.txt
+    scoring: exact
+    expect: "neutral"
+  - id: route-technical
+    prompt_file: cases/classify/route-technical.txt
+    scoring: exact
+    expect: "technical"
+  - id: urgency-low
+    prompt_file: cases/classify/urgency-low.txt
+    scoring: exact
+    expect: "low"
 weights: { quality: 1.0 }

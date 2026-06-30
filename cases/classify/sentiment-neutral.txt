@@ -1,0 +1,3 @@
+Classify the sentiment of the following message. Output ONLY one word, lowercase: positive, neutral, or negative.
+
+Message: "The package arrived on Tuesday and contained the three items listed on the receipt."

@@ -17,4 +17,16 @@ cases:
     prompt_file: cases/reasoning/deduction-01.txt
     scoring: exact
     expect: "fish"
+  - id: inventory-01
+    prompt_file: cases/reasoning/inventory-01.txt
+    scoring: exact
+    expect: "42"
+  - id: scheduling-01
+    prompt_file: cases/reasoning/scheduling-01.txt
+    scoring: exact
+    expect: "55"
+  - id: constraints-01
+    prompt_file: cases/reasoning/constraints-01.txt
+    scoring: exact
+    expect: "Maya"
 weights: { quality: 1.0 }

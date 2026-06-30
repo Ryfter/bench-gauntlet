@@ -1,0 +1,1 @@
+Two cartons contain 12 notebooks each. Three smaller packs contain 6 notebooks each. How many notebooks are there in total? Output ONLY the number, nothing else.

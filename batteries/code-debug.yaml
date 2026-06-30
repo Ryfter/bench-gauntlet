@@ -16,4 +16,12 @@ cases:
   - id: logic-inversion
     prompt_file: cases/code-debug/logic-inversion.txt
     scoring: compilable-code
+  - id: accumulator-aliasing
+    prompt_file: cases/code-debug/accumulator-aliasing.txt
+    scoring: regex
+    pattern: 'row\.copy\(\)|list\(row\)|row\[:\]'
+  - id: none-check
+    prompt_file: cases/code-debug/none-check.txt
+    scoring: regex
+    pattern: 'limit\s+is\s+None'
 weights: { quality: 1.0 }

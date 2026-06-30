@@ -1,0 +1,7 @@
+Fix the bug in the following Python function and output ONLY the corrected Python code block, nothing else.
+
+def take_items(items, limit=None):
+    # Bug: limit=0 should return an empty list, but this treats 0 like no limit
+    if not limit:
+        return list(items)
+    return list(items)[:limit]

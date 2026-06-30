@@ -1,0 +1,6 @@
+Extract the shipping label as JSON with keys recipient (string), city (string), state (string), and postal_code (string). Output ONLY JSON.
+
+SHIP TO:
+Rina Patel
+1840 Market Street
+Denver, CO 80202

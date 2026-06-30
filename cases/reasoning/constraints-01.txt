@@ -1,0 +1,1 @@
+Three people, Imani, Jonah, and Maya, each chose a different snack: apple, granola, or yogurt. Imani did not choose yogurt. Jonah chose granola. Who chose yogurt? Output ONLY the person's first name, nothing else.

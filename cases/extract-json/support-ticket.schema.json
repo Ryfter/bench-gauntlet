@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "required": ["ticket_id", "priority", "tags"],
+  "properties": {
+    "ticket_id": { "type": "string", "const": "HD-4421" },
+    "priority": { "type": "string", "const": "high" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 3,
+      "maxItems": 3,
+      "allOf": [
+        { "contains": { "const": "login" } },
+        { "contains": { "const": "two-factor" } },
+        { "contains": { "const": "mobile" } }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

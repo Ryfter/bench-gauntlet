@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["recipient", "city", "state", "postal_code"],
+  "properties": {
+    "recipient": { "type": "string", "const": "Rina Patel" },
+    "city": { "type": "string", "const": "Denver" },
+    "state": { "type": "string", "const": "CO" },
+    "postal_code": { "type": "string", "const": "80202" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,6 @@
+Extract the support ticket as JSON with keys ticket_id (string), priority (string), and tags (array of strings). Output ONLY JSON.
+
+Ticket: HD-4421
+Priority: high
+Tags: login, two-factor, mobile
+Customer says the mobile app accepts the password but never sends the two-factor code.

@@ -1,0 +1,3 @@
+Classify the urgency of the following request. Output ONLY one word, lowercase: low, medium, or high.
+
+Message: "When you have time next week, could you update the footer text on the staging site?"

@@ -1,0 +1,1 @@
+Nora starts a 90-minute focus block at 1:15 PM. She takes a 10-minute break, then spends 35 minutes reviewing notes. How many minutes after 3:00 PM does she finish? Output ONLY the number, nothing else.
