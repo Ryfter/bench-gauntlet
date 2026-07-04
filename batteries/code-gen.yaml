@@ -16,4 +16,28 @@ cases:
   - id: csv-parse
     prompt_file: cases/code-gen/csv-parse.txt
     scoring: compilable-code
+  - id: run-length-encode
+    prompt_file: cases/code-gen/run-length-encode.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/run-length-encode.py
+  - id: matrix-transpose
+    prompt_file: cases/code-gen/matrix-transpose.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/matrix-transpose.py
+  - id: safe-divide
+    prompt_file: cases/code-gen/safe-divide.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/safe-divide.py
+  - id: factorial-strict
+    prompt_file: cases/code-gen/factorial-strict.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/factorial-strict.py
+  - id: inventory-tracker
+    prompt_file: cases/code-gen/inventory-tracker.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/inventory-tracker.py
+  - id: prime-pair
+    prompt_file: cases/code-gen/prime-pair.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/prime-pair.py
 weights: { quality: 1.0 }

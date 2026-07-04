@@ -1,0 +1,1 @@
+Write a Python function run_length_encode(s: str) -> str that run-length-encodes a string: each maximal run of one repeated character becomes "<char><count>" (e.g. "aaabbc" -> "a3b2c1"). A run of length 1 still gets the count "1". Return "" for an empty string. Output ONLY a Python code block.

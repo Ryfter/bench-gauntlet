@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, ValidationError
 from gauntlet import errors
 
 Scoring = Literal["exact", "regex", "json-schema", "conventional-commit",
-                  "compilable-code", "judge"]
+                  "compilable-code", "code-exec", "judge"]
 
 
 class Case(BaseModel):
@@ -21,6 +21,8 @@ class Case(BaseModel):
     rubric: str | None = None
     expect: str | None = None     # exact scoring: the expected output
     pattern: str | None = None    # regex scoring: the pattern to find
+    tests_file: str | None = None   # code-exec scoring: hidden asserts (see scoring/execute.py)
+    timeout_s: float | None = None  # code-exec scoring: sandbox wall-clock timeout (default 5.0)
 
 
 class Battery(BaseModel):

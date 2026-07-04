@@ -1,0 +1,1 @@
+Write a Python function transpose(matrix: list[list[int]]) -> list[list[int]] that returns the transpose of matrix (rows become columns). matrix may be non-square. Return [] for an empty matrix ([] or [[]]). Output ONLY a Python code block.

@@ -26,6 +26,8 @@ def test_seeded_case_prompt_files_exist():
                 assert (ROOT / case.prompt_file).exists(), case.prompt_file
             if case.schema_file:
                 assert (ROOT / case.schema_file).exists(), case.schema_file
+            if case.tests_file:
+                assert (ROOT / case.tests_file).exists(), case.tests_file
 
 
 def test_seeded_case_ids_are_unique_per_battery():
@@ -47,6 +49,8 @@ def test_seeded_scoring_cases_have_required_fields():
                 assert case.schema_file is not None, case.id
             if case.scoring == "judge":
                 assert case.rubric is not None, case.id
+            if case.scoring == "code-exec":
+                assert case.tests_file is not None, case.id
 
 
 def test_seeded_json_schemas_are_valid():

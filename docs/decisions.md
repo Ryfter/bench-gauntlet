@@ -206,3 +206,49 @@ strict — a model outputting "The sentiment is positive" instead of "positive" 
 which is the correct measurement (instruction-following failure). Case prompts include
 explicit format instructions ("Output ONLY the number/word, lowercase, nothing else")
 to make the expected format unambiguous.
+
+---
+
+## D-2026-07-04a — Execution-based code-gen scorer (`code-exec`)
+
+**Decision:** Added a `code-exec` scoring method alongside `compilable-code`
+(kept, for backward compat). It runs the model's generated code in an isolated
+subprocess (fresh process, own process group so a timeout also kills any
+children, a scratch tempdir as cwd — not the repo tree, a minimal env with no
+inherited proxy/API-key vars) against a hidden, maintainer-authored assert
+suite (`gauntlet/scoring/execute.py`). A case's `tests_file` is a plain Python
+file defining `check(ns) -> list[bool]`, where `ns` is the exec'd namespace of
+the candidate code. Score is the fraction of hidden asserts passed; `passed`
+requires all of them. Six new `code-gen` cases were added on `code-exec`
+(`run-length-encode`, `matrix-transpose`, `safe-divide`, `factorial-strict`,
+`inventory-tracker`, `prime-pair`), each with edge cases (empty/negative
+inputs), one stateful (a class holding state across calls), and one
+multi-function ask — deliberately not memorized classics.
+
+**Why:** `compilable-code` only checks that output parses via `compile(...,
+"exec")` — garbage that compiles scores 1.0. The first real Firefly run
+(`2026-06-30-firefly-expanded`) showed this made code-gen non-discriminative:
+nearly every model scored 1.0, including on toy cases (fizzbuzz/palindrome/
+binary-search) memorized even by 1B models. See
+`docs/2026-06-30-discriminative-scoring-v2-seed.md` (item 1, sequenced first
+because it's contained and unblocks every downstream code-gen number) and
+`docs/superpowers/plans/2026-07-04-discriminative-scoring-v2-plan.md` for the
+full v2 roadmap this is item 1 of.
+
+**Design choices / open questions:**
+- Hidden test files must look up symbols defensively (`ns.get(...)`) and wrap
+  each per-case call in `try/except`: a candidate that never defines the
+  expected function must fail that assertion (score 0, the candidate's fault)
+  rather than crash `check()` (which is treated as `unscored` — a bug in the
+  *harness*, not the candidate, per the scoring-honesty invariant).
+- Sandbox hardening is subprocess-only: fresh process + own process group +
+  wall-clock timeout + scratch cwd + minimal env. It does **not** block direct
+  network syscalls or filesystem access outside cwd — true isolation would need
+  OS-level support (network namespace, seccomp, a container). Flagged as an
+  open question for Kevin; fine for now since Gauntlet targets a headless box
+  under the operator's control, not an adversarial multi-tenant setting.
+
+**Consequences:** `code-gen` battery grows from 5 cases (all `compilable-code`)
+to 11 (5 `compilable-code` + 6 `code-exec`). New module
+`gauntlet/scoring/execute.py`, 12 new tests in `tests/test_scoring_execute.py`
+plus dispatch tests in `tests/test_scoring_dispatch.py`; test suite 130 → 144.

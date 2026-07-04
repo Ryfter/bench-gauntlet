@@ -1,0 +1,1 @@
+Write a Python function factorial(n: int) -> int that returns n! for n >= 0, with factorial(0) == 1. Raise ValueError for negative n. Must be correct for n as large as 20 (2432902008176640000). Output ONLY a Python code block.

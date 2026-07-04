@@ -1,0 +1,6 @@
+Write a Python class Inventory with methods:
+- __init__(self): starts empty
+- add(self, item: str, qty: int) -> None: increases the stock of item by qty
+- remove(self, item: str, qty: int) -> bool: if item has at least qty in stock, decreases it by qty and returns True; otherwise leaves stock unchanged and returns False (this includes items never added, and qty greater than what's in stock)
+- count(self, item: str) -> int: returns the current stock of item, or 0 if it was never added
+Output ONLY a Python code block.

@@ -46,3 +46,26 @@ def test_dispatch_missing_param_raises():
     case = Case(id="c6", scoring="exact")  # no expect
     with pytest.raises(ValueError):
         score_case(case, "x")
+
+
+def test_dispatch_code_exec_reads_tests_file(tmp_path):
+    tests_src = (
+        "def check(ns):\n"
+        "    f = ns.get('add')\n"
+        "    try:\n"
+        "        return [f(1, 2) == 3]\n"
+        "    except Exception:\n"
+        "        return [False]\n"
+    )
+    (tmp_path / "add_tests.py").write_text(tests_src, encoding="utf-8")
+    case = Case(id="c7", scoring="code-exec", tests_file="add_tests.py")
+    res = score_case(case, "def add(a, b):\n    return a + b\n", base_dir=tmp_path)
+    assert res.method == "code-exec"
+    assert res.passed is True
+    assert res.score == 1.0
+
+
+def test_dispatch_code_exec_missing_tests_file_raises():
+    case = Case(id="c8", scoring="code-exec")  # no tests_file
+    with pytest.raises(ValueError):
+        score_case(case, "def add(a, b):\n    return a + b\n")

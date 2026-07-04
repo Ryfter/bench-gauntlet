@@ -1,0 +1,160 @@
+"""TDD for the code-exec scorer (gauntlet/scoring/execute.py): runs untrusted
+model-generated code against a hidden, maintainer-authored assert suite in an
+isolated subprocess. Correctness, not parseability — never crashes the runner."""
+from __future__ import annotations
+
+from gauntlet.scoring.execute import code_execution_match
+
+ADD_TESTS = """
+def check(ns):
+    # Defensive lookup: a candidate that never defines add() fails every case
+    # below rather than crashing the harness (missing symbol is the
+    # candidate's fault, not ours -- it must score 0, not unscored).
+    f = ns.get("add")
+    cases = [((1, 2), 3), ((-1, 1), 0), ((0, 0), 0)]
+    results = []
+    for args, expected in cases:
+        try:
+            results.append(f(*args) == expected)
+        except Exception:
+            results.append(False)
+    return results
+"""
+
+
+def _write_tests(tmp_path, name, src):
+    path = tmp_path / name
+    path.write_text(src, encoding="utf-8")
+    return path
+
+
+def test_correct_code_scores_1_and_passes(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = "def add(a, b):\n    return a + b\n"
+    result = code_execution_match(code, tests_path)
+    assert result.score == 1.0
+    assert result.passed is True
+
+
+def test_partial_correctness_scores_fraction(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    # Hardcodes the wrong answer for (1, 2) only -> fails 1 of 3 hidden cases.
+    code = "def add(a, b):\n    if (a, b) == (1, 2):\n        return 999\n    return a + b\n"
+    result = code_execution_match(code, tests_path)
+    assert 0.0 < result.score < 1.0
+    assert result.passed is False
+
+
+def test_wrong_code_scores_0(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = "def add(a, b):\n    return 999\n"
+    result = code_execution_match(code, tests_path)
+    assert result.score == 0.0
+    assert result.passed is False
+
+
+def test_syntax_error_scores_0_never_crashes(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = "def add(a, b) return a + b\n"
+    result = code_execution_match(code, tests_path)
+    assert result.score == 0.0
+    assert result.passed is False
+    assert "syntax" in result.detail.lower()
+
+
+def test_missing_function_scores_0_never_crashes(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = "def not_add(a, b):\n    return a + b\n"
+    result = code_execution_match(code, tests_path)
+    assert result.score == 0.0
+    assert result.passed is False
+
+
+def test_runtime_exception_scores_0_never_crashes(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = "def add(a, b):\n    raise RuntimeError('boom')\n"
+    result = code_execution_match(code, tests_path)
+    assert result.score == 0.0
+    assert result.passed is False
+
+
+def test_infinite_loop_times_out_and_scores_0(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = "def add(a, b):\n    while True:\n        pass\n"
+    result = code_execution_match(code, tests_path, timeout_s=0.5)
+    assert result.score == 0.0
+    assert result.passed is False
+    assert "timeout" in result.detail.lower()
+
+
+def test_fenced_code_block_is_stripped(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = "```python\ndef add(a, b):\n    return a + b\n```"
+    result = code_execution_match(code, tests_path)
+    assert result.score == 1.0
+    assert result.passed is True
+
+
+def test_missing_tests_file_is_unscored_not_zero(tmp_path):
+    result = code_execution_match("def add(a, b):\n    return a + b\n",
+                                   tmp_path / "does-not-exist.py")
+    assert result.score is None
+    assert result.passed is False
+    assert "unscored" in result.detail.lower()
+
+
+def test_broken_hidden_test_harness_is_unscored_not_zero(tmp_path):
+    # A bug in *our* hidden test file (not the candidate's fault) must not
+    # silently read as a 0 — that would overstate confidence the model failed.
+    tests_path = _write_tests(tmp_path, "tests.py", "def check(ns):\n    raise ValueError('harness bug')\n")
+    code = "def add(a, b):\n    return a + b\n"
+    result = code_execution_match(code, tests_path)
+    assert result.score is None
+    assert result.passed is False
+    assert "unscored" in result.detail.lower()
+
+
+def test_stateful_class_under_test(tmp_path):
+    stateful_tests = """
+def check(ns):
+    cls = ns["Counter"]
+    c = cls()
+    results = []
+    results.append(c.value() == 0)
+    c.increment()
+    c.increment()
+    results.append(c.value() == 2)
+    c.reset()
+    results.append(c.value() == 0)
+    return results
+"""
+    tests_path = _write_tests(tmp_path, "tests.py", stateful_tests)
+    code = (
+        "class Counter:\n"
+        "    def __init__(self):\n"
+        "        self._v = 0\n"
+        "    def increment(self):\n"
+        "        self._v += 1\n"
+        "    def reset(self):\n"
+        "        self._v = 0\n"
+        "    def value(self):\n"
+        "        return self._v\n"
+    )
+    result = code_execution_match(code, tests_path)
+    assert result.score == 1.0
+    assert result.passed is True
+
+
+def test_sandbox_has_no_filesystem_access_to_repo_tree(tmp_path):
+    # The candidate's cwd is an isolated tempdir, not the repo tree — writing a
+    # relative-path file must not land anywhere the caller can see.
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = (
+        "def add(a, b):\n"
+        "    with open('leaked.txt', 'w') as fh:\n"
+        "        fh.write('x')\n"
+        "    return a + b\n"
+    )
+    result = code_execution_match(code, tests_path)
+    assert result.score == 1.0
+    assert not (tmp_path / "leaked.txt").exists()
