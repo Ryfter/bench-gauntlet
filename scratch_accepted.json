@@ -1,0 +1,22 @@
+[
+  {
+    "id": "reconcile-stock-deltas",
+    "tier": "T1",
+    "dimension": "adversarial-correctness"
+  },
+  {
+    "id": "contiguous-gap-lengths",
+    "tier": "T2",
+    "dimension": "adversarial-correctness"
+  },
+  {
+    "id": "merge-half-open-spans",
+    "tier": "T3",
+    "dimension": "adversarial-correctness"
+  },
+  {
+    "id": "rank-auction-bid-slots",
+    "tier": "T4",
+    "dimension": "adversarial-correctness"
+  }
+]

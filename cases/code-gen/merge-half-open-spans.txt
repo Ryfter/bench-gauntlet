@@ -1,0 +1,7 @@
+Write a function merge_half_open(intervals: list[tuple[int, int]]) -> list[tuple[int, int]].
+
+Each interval is a half-open integer span [start, end): it covers integers start, start+1, ..., end-1 and does not cover end. Intervals may arrive in any order and may overlap, nest, or touch.
+
+Discard any pair where start >= end (empty or inverted). Merge any two remaining intervals that overlap or abut: half-open spans [a, b) and [b, c) share no points but must still merge into [a, c) because together they form one contiguous coverage. Overlapping spans merge to the min start and max end.
+
+Return the merged spans sorted by ascending start (and thus non-overlapping, non-adjacent). If nothing remains, return []. Do not mutate the input list. Starts and ends may be negative, zero, or large positive integers.

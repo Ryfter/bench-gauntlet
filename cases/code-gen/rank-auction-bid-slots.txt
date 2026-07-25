@@ -1,0 +1,9 @@
+Write a function rank_bid_slots(bids: list[tuple[str, int, int]], k: int) -> list[str].
+
+Each bid is (bidder_id, amount, timestamp) where bidder_id is a non-empty string, amount is an integer (may be negative or zero), and timestamp is an integer (smaller means earlier).
+
+A bidder may appear more than once. Keep only that bidder's single best bid, where better means: strictly higher amount; if amounts tie, strictly earlier (smaller) timestamp; if amount and timestamp both tie, lexicographically smaller bidder_id (though same id cannot disagree with itself).
+
+Rank the surviving unique bidders by the same total order: higher amount first; then earlier timestamp; then lexicographically smaller bidder_id. Return the bidder_id list for the first min(k, number_of_unique_bidders) places.
+
+If k <= 0, return []. If bids is empty, return []. Do not mutate the input. Ranking must be deterministic under the rules above.

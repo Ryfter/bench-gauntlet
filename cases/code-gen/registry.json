@@ -1,0 +1,18 @@
+{
+  "contiguous-gap-lengths": {
+    "dimension": "adversarial-correctness",
+    "tier": "T2"
+  },
+  "merge-half-open-spans": {
+    "dimension": "adversarial-correctness",
+    "tier": "T3"
+  },
+  "rank-auction-bid-slots": {
+    "dimension": "adversarial-correctness",
+    "tier": "T4"
+  },
+  "reconcile-stock-deltas": {
+    "dimension": "adversarial-correctness",
+    "tier": "T1"
+  }
+}

@@ -1,0 +1,5 @@
+Write a function reconcile_counts(expected: dict[str, int], actual: dict[str, int]) -> dict[str, int].
+
+Both mappings associate stock-keeping unit (SKU) strings with integer counts. Return a new dict containing every SKU that appears in either mapping (union of keys). For each SKU the value is actual_count - expected_count, treating a missing key in either mapping as count 0.
+
+Include SKUs whose difference is zero. Do not mutate the inputs. SKU strings may be any non-empty unicode text and are case-sensitive and compared exactly. Counts may be negative, zero, or positive.
