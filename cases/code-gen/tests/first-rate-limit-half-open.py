@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-7661135360e0
 def check(ns):
     f = ns.get("first_rate_limit_hit")
     if not callable(f):

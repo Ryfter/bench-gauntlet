@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-235a1fc9345f
 def check(ns):
     f = ns.get("spill_right_inplace")
     if not callable(f):

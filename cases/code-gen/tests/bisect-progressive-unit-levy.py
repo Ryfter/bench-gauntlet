@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-b1b08bc33931
 def check(ns):
     f = ns.get("progressive_levy")
     if not callable(f):

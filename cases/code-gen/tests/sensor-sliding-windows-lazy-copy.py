@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-57658ee74b83
 def check(ns):
     f = ns.get("sliding_windows")
     if not callable(f):

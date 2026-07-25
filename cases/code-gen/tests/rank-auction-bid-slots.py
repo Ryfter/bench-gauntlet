@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-c31be8170328
 def check(ns):
     f = ns.get("rank_bid_slots")
     if not callable(f):

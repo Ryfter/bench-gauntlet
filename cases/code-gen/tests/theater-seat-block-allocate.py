@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-a2b3e57055bb
 def check(ns):
     f = ns.get("fits_block")
     g = ns.get("allocate_seats")

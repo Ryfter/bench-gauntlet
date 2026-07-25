@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-0dd657b2f315
 def check(ns):
     f = ns.get("merge_duty_windows")
     if not callable(f):

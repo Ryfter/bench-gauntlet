@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-9b1c5b542cf8
 def check(ns):
     f = ns.get("to_grams")
     g = ns.get("total_grams")

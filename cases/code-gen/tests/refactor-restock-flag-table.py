@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-e275639e0567
 def check(ns):
     f = ns.get("restock_flag")
     if not callable(f):

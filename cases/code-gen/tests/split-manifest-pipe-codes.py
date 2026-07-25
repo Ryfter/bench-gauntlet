@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-dc0062095f0b
 def check(ns):
     f = ns.get("split_manifest_codes")
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-8d58d7b1616b
 def check(ns):
     f = ns.get("parcel_surcharge")
     if not callable(f):

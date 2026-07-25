@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-ed5a635416fa
 def check(ns):
     f = ns.get("dispatch_orders")
     if not callable(f):

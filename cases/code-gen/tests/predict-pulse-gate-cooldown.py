@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-9da863a5330f
 def check(ns):
     def t(thunk):
         try:

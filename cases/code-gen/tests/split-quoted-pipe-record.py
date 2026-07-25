@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-f0b38b06b346
 def check(ns):
     f = ns.get("split_quoted_pipe_record")
     if not callable(f):

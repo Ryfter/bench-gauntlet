@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-379fa2e3f217
 def check(ns):
     f = ns.get("merge_ascending")
     if not callable(f):

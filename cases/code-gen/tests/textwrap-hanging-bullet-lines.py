@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-1ed6d5e4e86e
 def check(ns):
     f = ns.get("format_bullet_list")
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-0fd6d9a39759
 def check(ns):
     f = ns.get("debounce_ready")
     if not callable(f):

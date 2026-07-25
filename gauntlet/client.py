@@ -6,7 +6,7 @@ import time
 import httpx
 from pydantic import BaseModel
 
-from gauntlet import errors
+from gauntlet import errors, integrity
 
 
 class ChatResult(BaseModel):
@@ -43,6 +43,10 @@ class OpenAIClient:
             "stream": True,
             "stream_options": {"include_usage": True},
         }
+        # This is the only place a request is built, so it is the only place
+        # the check has to live. A server-side tool or web-search call would be
+        # scored as though the model produced it.
+        integrity.assert_request_is_tool_free(payload)
         start = time.monotonic()
         try:
             with self._http.stream("POST", "/v1/chat/completions", json=payload) as resp:

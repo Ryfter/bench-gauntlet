@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-62bbf4a742ce
 def check(ns):
     f = ns.get("coalesce_ranges")
     if not callable(f):

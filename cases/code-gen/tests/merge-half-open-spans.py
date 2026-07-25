@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-55dc1f1ae484
 def check(ns):
     f = ns.get("merge_half_open")
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-8e557caf8a58
 def check(ns):
     f = ns.get("expand_lane_tokens")
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-979a18c8248c
 def check(ns):
     f = ns.get('PinnedLRUCache')
     if not callable(f):

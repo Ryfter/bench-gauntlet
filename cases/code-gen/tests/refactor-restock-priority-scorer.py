@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-c560732a40a0
 def check(ns):
     f = ns.get("restock_priority")
     if not callable(f):

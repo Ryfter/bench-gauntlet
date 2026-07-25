@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-cee1e690cbd7
 def check(ns):
     f = ns.get("first_viable_window")
     if not callable(f):

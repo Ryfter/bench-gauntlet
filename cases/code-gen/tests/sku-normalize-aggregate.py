@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-ff9b3b2ac1df
 def check(ns):
     f = ns.get("normalize_sku")
     g = ns.get("aggregate_skus")

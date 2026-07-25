@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-dff64b88f988
 def check(ns):
     C = ns.get("BudgetEnvelope")
     if not callable(C):

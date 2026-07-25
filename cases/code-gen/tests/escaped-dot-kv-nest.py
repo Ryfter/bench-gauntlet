@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-6d920f3e10a7
 def check(ns):
     f = ns.get("parse_nested_kv")
     if not callable(f):

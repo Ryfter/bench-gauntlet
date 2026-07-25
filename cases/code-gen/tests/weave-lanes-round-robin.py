@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-f1051ec861c0
 def check(ns):
     f = ns.get("weave_lanes")
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-17dafac7d0f1
 def check(ns):
     f = ns.get("rank_ready_parcels")
     if not callable(f):

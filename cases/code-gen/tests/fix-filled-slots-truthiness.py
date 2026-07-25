@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-6b9ddb2e8edb
 def check(ns):
     f = ns.get("count_filled_slots")
     if not callable(f):

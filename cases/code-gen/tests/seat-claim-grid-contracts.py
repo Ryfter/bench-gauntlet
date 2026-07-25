@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-9a54e361ae78
 def check(ns):
     f = ns.get("claim_seat")
     if not callable(f):

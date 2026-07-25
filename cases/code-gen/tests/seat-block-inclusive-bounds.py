@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-3d2d3a5ee758
 def check(ns):
     f = ns.get("seat_in_block")
     if not callable(f):

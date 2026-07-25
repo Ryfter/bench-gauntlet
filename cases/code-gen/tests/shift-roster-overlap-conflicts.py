@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-2caa6c9d9586
 def check(ns):
     f = ns.get("intervals_overlap")
     g = ns.get("find_conflicts")

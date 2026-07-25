@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-62aa2a648d17
 def check(ns):
     f = ns.get("filled_sections")
     if not callable(f):

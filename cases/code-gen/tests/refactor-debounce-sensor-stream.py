@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-3860a8def8ea
 def check(ns):
     f = ns.get("debounce_sensor_stream")
     if not callable(f):

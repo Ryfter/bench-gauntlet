@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-8e6e90e346f7
 def check(ns):
     f = ns.get("rate_for_weight")
     E = ns.get("BandGapError")

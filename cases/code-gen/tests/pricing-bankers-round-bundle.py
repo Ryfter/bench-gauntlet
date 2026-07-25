@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-dfd1d1225653
 def check(ns):
     f = ns.get("round_money")
     g = ns.get("price_bundle")

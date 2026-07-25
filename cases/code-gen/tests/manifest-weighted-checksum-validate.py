@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-6ed3fd514682
 def check(ns):
     f = ns.get("item_checksum")
     g = ns.get("validate_manifest")

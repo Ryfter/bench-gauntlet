@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-c2b96b95d697
 def check(ns):
     f = ns.get("expand_suffix")
     g = ns.get("normalize_address")

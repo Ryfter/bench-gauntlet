@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-b688ac75fc1c
 def check(ns):
     f = ns.get("half_open_hits")
     if not callable(f):

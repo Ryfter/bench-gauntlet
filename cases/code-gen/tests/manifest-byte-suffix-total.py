@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-722981cbcdfe
 def check(ns):
     f = ns.get("total_payload_bytes")
     if not callable(f):

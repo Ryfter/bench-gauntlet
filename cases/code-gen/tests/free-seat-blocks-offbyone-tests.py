@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-14b121ddc654
 def check(ns):
     ts = ns.get("test_suite")
     if not callable(ts):

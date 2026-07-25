@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-ac868059f6fc
 def check(ns):
     f = ns.get("surplus_skus")
     if not callable(f):

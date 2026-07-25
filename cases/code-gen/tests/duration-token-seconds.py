@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-1f67cc5e6582
 def check(ns):
     f = ns.get("duration_to_seconds")
     if not callable(f):

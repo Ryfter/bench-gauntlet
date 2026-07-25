@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-b8b59b7a2f4e
 def check(ns):
     f = ns.get('SeatHoldBoard')
     if not callable(f):

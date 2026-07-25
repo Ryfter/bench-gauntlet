@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-6faf3736c3d4
 def check(ns):
     f = ns.get("build_invoice_lines")
     if not callable(f):

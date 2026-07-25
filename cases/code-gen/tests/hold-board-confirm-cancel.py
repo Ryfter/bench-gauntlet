@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-8b94d9bc3c10
 def check(ns):
     C = ns.get("HoldBoard")
     if not callable(C):

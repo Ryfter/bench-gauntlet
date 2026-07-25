@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-4be359869a7a
 def check(ns):
     f = ns.get("max_stable_span")
     if not callable(f):

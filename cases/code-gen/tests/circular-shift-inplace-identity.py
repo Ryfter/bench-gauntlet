@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-f56f5e995e5c
 def check(ns):
     f = ns.get("circular_shift_inplace")
     if not callable(f):

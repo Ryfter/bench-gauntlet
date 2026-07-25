@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-27aa623d0587
 def check(ns):
     f = ns.get("parse_shift_log")
     if not callable(f):

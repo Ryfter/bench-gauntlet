@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-8b4efe1fbf4f
 def check(ns):
     f = ns.get("reconcile_counts")
     if not callable(f):

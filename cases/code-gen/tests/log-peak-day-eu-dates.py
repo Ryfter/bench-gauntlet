@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-fcfcf0f249fc
 def check(ns):
     f = ns.get("peak_day_totals")
     if not callable(f):

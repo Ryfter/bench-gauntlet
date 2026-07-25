@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-521105824d78
 def check(ns):
     f = ns.get("clamp_inplace")
     if not callable(f):

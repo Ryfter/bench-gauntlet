@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-26f748caceb9
 def check(ns):
     f = ns.get("shortest_k_variety")
     if not callable(f):

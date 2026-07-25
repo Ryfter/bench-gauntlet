@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-3d44a13e8301
 def check(ns):
     f = ns.get("claim_cabin_slots")
     E = ns.get("OverbookError")

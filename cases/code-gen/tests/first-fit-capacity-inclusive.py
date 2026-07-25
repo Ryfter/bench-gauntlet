@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-fa234ae1da11
 def check(ns):
     f = ns.get("first_fit_assign")
     if not callable(f):

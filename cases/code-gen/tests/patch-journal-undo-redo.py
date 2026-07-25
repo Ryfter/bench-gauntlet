@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-77fe3eafe520
 def check(ns):
     C = ns.get("PatchJournal")
     if not callable(C):

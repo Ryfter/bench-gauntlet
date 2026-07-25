@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-8f98a983c18e
 def check(ns):
     f = ns.get("reconcile_stock")
     StockCorruptError = ns.get("StockCorruptError")

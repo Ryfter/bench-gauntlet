@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-5e58c074963c
 def check(ns):
     f = ns.get("lazy_merge_sorted")
     if not callable(f):

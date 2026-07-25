@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-0c1d00b5dcef
 def check(ns):
     C = ns.get("BookingLedger")
     if not callable(C):

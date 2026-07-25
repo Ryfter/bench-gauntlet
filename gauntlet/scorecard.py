@@ -41,7 +41,25 @@ def aggregate_cell(
         cases=len(results), errors=errors,
         quality_by_tier=quality_by_tier(results),
         failure_modes=failure_mode_counts(results),
+        integrity=integrity_counts(results),
     )
+
+
+def integrity_counts(results: list[CaseResult]) -> dict[str, int] | None:
+    """Count integrity violations by kind across a cell.
+
+    `None` means clean. Anything else means the cell contains cases that were
+    marked unscored because the candidate reached for the answers or the
+    network — and that the surrounding numbers deserve scrutiny. Surfacing this
+    is the difference between a scorecard that reports results and one that
+    reports results it can vouch for.
+    """
+    counts: dict[str, int] = {}
+    for r in results:
+        for violation in r.integrity_violations or ():
+            kind = violation.get("kind", "unknown")
+            counts[kind] = counts.get(kind, 0) + 1
+    return dict(sorted(counts.items())) or None
 
 
 def quality_by_tier(results: list[CaseResult]) -> dict[str, float] | None:

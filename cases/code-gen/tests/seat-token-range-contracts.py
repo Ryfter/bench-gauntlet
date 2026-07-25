@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-5abd29a798df
 def check(ns):
     f = ns.get("parse_seat_token")
     if not callable(f):

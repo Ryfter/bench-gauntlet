@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-22cec13d1c1f
 def check(ns):
     f = ns.get("zero_sum_slice_count")
     if not callable(f):

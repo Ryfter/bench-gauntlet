@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-3c1694b1ea21
 def check(ns):
     f = ns.get("window_span")
     ChronologyError = ns.get("ChronologyError")

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-2f87a2e48cea
 def check(ns):
     f = ns.get('RunningMedianTracker')
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-cbfa8e613632
 def check(ns):
     f = ns.get("step_gaps")
     if not callable(f):

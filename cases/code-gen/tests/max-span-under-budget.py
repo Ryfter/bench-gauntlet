@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-47f9a32d2499
 def check(ns):
     f = ns.get("max_span_under")
     if not callable(f):

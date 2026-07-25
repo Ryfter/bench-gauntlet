@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-60aab8138a4c
 def check(ns):
     f = ns.get("sku_qty_totals")
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-0d162066eb4e
 def check(ns):
     f = ns.get("bus_boarding")
     if not callable(f):

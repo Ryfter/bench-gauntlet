@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-e789c38968fd
 def check(ns):
     f = ns.get("debit_cascade")
     ShortfallError = ns.get("ShortfallError")

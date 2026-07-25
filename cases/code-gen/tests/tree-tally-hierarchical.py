@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-a165c69dff54
 def check(ns):
     C = ns.get("TreeTally")
     if not callable(C):

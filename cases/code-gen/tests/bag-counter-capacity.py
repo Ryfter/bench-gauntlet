@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-81be049964e2
 def check(ns):
     C = ns.get("BagCounter")
     if not callable(C):

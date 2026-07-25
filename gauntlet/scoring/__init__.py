@@ -86,7 +86,8 @@ def score_case(case: Case, output: str, base_dir: Path | str | None = None) -> C
         return CaseResult(case_id=case.id, method=method, score=result.score,
                           passed=result.passed, detail=result.detail,
                           failure_mode=result.failure_mode,
-                          tier=case.tier, dimension=case.dimension)
+                          tier=case.tier, dimension=case.dimension,
+                          integrity_violations=result.integrity_violations)
     if method == "judge":
         return NEEDS_JUDGE
     raise ValueError(f"case {case.id}: unknown scoring method {method!r}")

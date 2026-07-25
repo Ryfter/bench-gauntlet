@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-66fcea2c82fb
 def check(ns):
     f = ns.get("strip_void_rows")
     if not callable(f):

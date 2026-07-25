@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-c41dde9c6da8
 def check(ns):
     f = ns.get('TwoPhaseCommitLog')
     if not callable(f):

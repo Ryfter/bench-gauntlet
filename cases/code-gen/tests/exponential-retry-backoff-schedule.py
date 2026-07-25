@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-8571491b45d2
 def check(ns):
     f = ns.get("next_delay")
     g = ns.get("backoff_schedule")

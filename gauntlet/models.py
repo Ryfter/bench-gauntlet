@@ -23,6 +23,10 @@ class CaseResult(BaseModel):
     failure_mode: str | None = None
     tier: str | None = None       # T1-T4 difficulty rung
     dimension: str | None = None  # capability axis (see batteries/README.md)
+    # What the candidate tried that it should not have (reading the benchmark
+    # tree, reaching the network, echoing a hidden-test canary). Recorded even
+    # when blocked: a blocked attempt is still evidence about the run.
+    integrity_violations: list[dict] = Field(default_factory=list)
 
 
 class Cell(BaseModel):
@@ -50,6 +54,11 @@ class Cell(BaseModel):
     # otherwise-plausible code (wrong_answer) — only the latter is worth
     # scaffolding (D-2026-06-30c).
     failure_modes: dict[str, int] | None = None
+    # Integrity summary: how many cases in this cell showed each kind of
+    # violation (filesystem / network / canary). Present and non-empty means
+    # some cells are unscored and the rest deserve a second look — a reader
+    # must be able to see at a glance whether a scorecard is trustworthy.
+    integrity: dict[str, int] | None = None
     # NOTE: deliberately no base_url / IP field — privacy invariant.
 
 

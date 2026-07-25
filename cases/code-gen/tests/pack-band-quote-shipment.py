@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-db30f7e1cec7
 def check(ns):
     f = ns.get("pack_weight_band")
     g = ns.get("quote_shipment")

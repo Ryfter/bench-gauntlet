@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-d93fd1f06222
 def check(ns):
     f = ns.get("allocate_units")
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-18112cebf516
 def check(ns):
     f = ns.get("contiguous_gap_lengths")
     if not callable(f):

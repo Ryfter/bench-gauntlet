@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-ab753ddbc32d
 def check(ns):
     f = ns.get("consecutive_runs")
     if not callable(f):

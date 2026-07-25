@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-c6d57a062ff9
 def check(ns):
     f = ns.get("compress_duty_blocks")
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-94847d49be9f
 def check(ns):
     C = ns.get("SpanPool")
     if not callable(C):

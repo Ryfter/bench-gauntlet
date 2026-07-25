@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-56544d9e5a8f
 def check(ns):
     f = ns.get("line_kg")
     if not callable(f):

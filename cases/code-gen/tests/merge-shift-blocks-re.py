@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-d897589309f9
 def check(ns):
     f = ns.get("merge_shift_blocks")
     if not callable(f):

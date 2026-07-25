@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-fdd90812072b
 def check(ns):
     f = ns.get("debounce_series")
     if not callable(f):

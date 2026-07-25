@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-d9ab6653ca08
 def check(ns):
     f = ns.get("apply_stock_delta")
     if not callable(f):

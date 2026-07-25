@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-c36bf722c2e7
 def check(ns):
     f = ns.get("expand_seat_range")
     if not callable(f):

@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-bf66b032a0a1
 def check(ns):
     C = ns.get("WindowRateLimiter")
     if not callable(C):

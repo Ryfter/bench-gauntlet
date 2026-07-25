@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-c7d8c5c1f6b8
 def check(ns):
     f = ns.get("lookup_band")
     g = ns.get("compute_tariff")

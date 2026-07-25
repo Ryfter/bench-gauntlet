@@ -15,53 +15,87 @@ invariant, CLAUDE.md).
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import os
 import signal
+import re
 import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
 from gauntlet.scoring import _strip_fences
+from gauntlet.scoring._guard import GUARD_SRC
 
 DEFAULT_TIMEOUT_S = 5.0
 
 _RUNNER_SRC = '''
 import importlib.util
 import json
+import os
+import sys
 import traceback
+
+import _guard
+
+
+def _emit(payload):
+    payload["violations"] = _guard.violations()
+    print(json.dumps(payload))
 
 
 def main():
+    deny_roots = json.loads(sys.argv[1]) if len(sys.argv) > 1 else []
+
     ns = {"__name__": "candidate"}
+    # Read our own inputs BEFORE the guard goes up, then load the hidden tests
+    # too: once installed the guard blocks the benchmark tree, and the runner
+    # must never be caught by its own control.
     try:
         with open("candidate.py", encoding="utf-8") as fh:
             source = fh.read()
-        code = compile(source, "candidate.py", "exec")
-    except SyntaxError as exc:
-        print(json.dumps({"status": "syntax_error", "error": str(exc)}))
-        return
-    try:
-        exec(code, ns)
-    except BaseException:
-        print(json.dumps({"status": "runtime_error", "error": traceback.format_exc(limit=5)}))
+    except OSError as exc:
+        _emit({"status": "harness_error", "error": f"cannot read candidate: {exc}"})
         return
 
     try:
         spec = importlib.util.spec_from_file_location("hidden_tests", "hidden_tests.py")
         hidden = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(hidden)
+    except BaseException:
+        _emit({"status": "harness_error", "error": traceback.format_exc(limit=5)})
+        return
+
+    try:
+        code = compile(source, "candidate.py", "exec")
+    except SyntaxError as exc:
+        _emit({"status": "syntax_error", "error": str(exc)})
+        return
+
+    # Everything below this line runs untrusted code. The sandbox's own copy of
+    # the hidden tests sits in cwd next to the candidate, so it must be denied
+    # too — blocking the source tree while leaving the local copy readable
+    # would guard the front door and leave the answers on the step.
+    _guard.install(deny_roots + [os.path.abspath("hidden_tests.py")])
+
+    try:
+        exec(code, ns)
+    except BaseException:
+        _emit({"status": "runtime_error", "error": traceback.format_exc(limit=5)})
+        return
+
+    try:
         results = hidden.check(ns)
     except BaseException:
-        print(json.dumps({"status": "harness_error", "error": traceback.format_exc(limit=5)}))
+        _emit({"status": "harness_error", "error": traceback.format_exc(limit=5)})
         return
 
     total = len(results)
     passed = sum(1 for r in results if r)
-    print(json.dumps({"status": "ok", "passed": passed, "total": total}))
+    _emit({"status": "ok", "passed": passed, "total": total})
 
 
 if __name__ == "__main__":
@@ -76,8 +110,19 @@ FailureMode = Literal[
     "wrong_answer",    # ran clean, but some hidden asserts failed
     "timeout",         # exceeded the sandbox wall clock
     "no_code_emitted",  # model returned prose/nothing — no code to run
+    "integrity_violation",  # tried to read the benchmark tree / reach the net
     "harness_error",   # OUR bug, not the candidate's -> unscored
 ]
+
+# Marker planted in every hidden-test file. If a candidate's *output* contains
+# one, the model demonstrably saw the file it is graded against.
+CANARY_RE = re.compile(r"GAUNTLET-CANARY-[0-9a-f]{12}")
+
+
+def canary_for(case_id: str) -> str:
+    """Deterministic per-case canary, so it is reproducible without storing it."""
+    digest = hashlib.sha256(f"gauntlet-canary::{case_id}".encode()).hexdigest()
+    return f"GAUNTLET-CANARY-{digest[:12]}"
 
 
 @dataclass
@@ -90,6 +135,11 @@ class ExecutionResult:
     # miss is a capability gap or a working-memory problem (selective-offload
     # principle, D-2026-06-30c).
     failure_mode: FailureMode = "none"
+    # What the candidate tried to do that it should not have: filesystem reads
+    # of the benchmark tree, network use, or echoing a hidden-test canary.
+    # Recorded even when the attempt was blocked — a blocked attempt is still
+    # evidence, and a scorecard that hides it overstates its own trustworthiness.
+    integrity_violations: list[dict] = field(default_factory=list)
 
 
 def _sandbox_env() -> dict[str, str]:
@@ -170,6 +220,28 @@ def _kill_tree(proc: subprocess.Popen) -> None:
             pass
 
 
+def _deny_roots(tests_path: Path) -> list[str]:
+    """Paths the candidate must not be able to read.
+
+    The hidden tests live under `cases/`; blocking that whole subtree (rather
+    than just this one file) stops a candidate reading a *sibling* case's
+    answers too. The repo root itself is left readable so the sandbox can still
+    import the standard library and the venv — this is a targeted deny-list, not
+    a general confinement. See the threat-model doc.
+    """
+    roots: list[str] = []
+    tests_dir = tests_path.resolve().parent
+    roots.append(str(tests_dir))
+    # Walk up to the `cases/` root if we are inside one.
+    for parent in tests_dir.parents:
+        roots.append(str(parent))
+        if parent.name == "cases":
+            break
+    else:
+        return [str(tests_dir)]
+    return roots
+
+
 def code_execution_match(output: str, tests_path: str | Path,
                           timeout_s: float = DEFAULT_TIMEOUT_S) -> ExecutionResult:
     tests_path = Path(tests_path)
@@ -179,6 +251,20 @@ def code_execution_match(output: str, tests_path: str | Path,
         return ExecutionResult(score=None, passed=False,
                                 detail=f"unscored: cannot read tests file: {exc}",
                                 failure_mode="harness_error")
+
+    # Canary check runs on the RAW model output, before fences are stripped: a
+    # model that echoes a hidden-test canary has demonstrably seen the file it
+    # is graded against, whatever else it produced. That is unscoreable rather
+    # than zero — we cannot say what it can do, only that this number is not
+    # evidence of it.
+    canaries = set(CANARY_RE.findall(hidden_src))
+    echoed = sorted(c for c in canaries if c in output)
+    if echoed:
+        return ExecutionResult(
+            score=None, passed=False,
+            detail=f"unscored: output echoed hidden-test canary {echoed[0]}",
+            failure_mode="integrity_violation",
+            integrity_violations=[{"kind": "canary", "detail": echoed[0]}])
 
     candidate_src = _strip_fences(output)
     if not _looks_like_code(candidate_src):
@@ -197,9 +283,10 @@ def code_execution_match(output: str, tests_path: str | Path,
         (tmp_path / "candidate.py").write_text(candidate_src, encoding="utf-8")
         (tmp_path / "hidden_tests.py").write_text(hidden_src, encoding="utf-8")
         (tmp_path / "runner.py").write_text(_RUNNER_SRC, encoding="utf-8")
+        (tmp_path / "_guard.py").write_text(GUARD_SRC, encoding="utf-8")
 
         proc = subprocess.Popen(
-            [sys.executable, "runner.py"],
+            [sys.executable, "runner.py", json.dumps(_deny_roots(tests_path))],
             cwd=tmp_path,
             env=_sandbox_env(),
             stdout=subprocess.PIPE,
@@ -230,6 +317,19 @@ def code_execution_match(output: str, tests_path: str | Path,
         return ExecutionResult(score=0.0, passed=False,
                                 detail=f"malformed sandbox output: stdout={stdout!r} stderr={stderr[-300:]!r}",
                                 failure_mode="runtime_exception")
+
+    violations = verdict.get("violations") or []
+    if violations:
+        # The candidate reached for the answers or the network. Whether or not
+        # the guard stopped it, the resulting score is not evidence of
+        # capability, so it is unscored rather than 0 — reporting a number here
+        # would be the scorecard vouching for something it cannot.
+        kinds = sorted({v.get("kind", "?") for v in violations})
+        return ExecutionResult(
+            score=None, passed=False,
+            detail=f"unscored: integrity violation ({', '.join(kinds)})",
+            failure_mode="integrity_violation",
+            integrity_violations=violations)
 
     status = verdict.get("status")
     if status == "syntax_error":

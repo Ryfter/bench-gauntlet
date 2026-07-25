@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-1f333b90df4f
 def check(ns):
     f = ns.get("severity_rank")
     g = ns.get("alert_starts")

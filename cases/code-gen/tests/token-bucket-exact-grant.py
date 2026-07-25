@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-d4488a6e5925
 def check(ns):
     f = ns.get("token_bucket_accept")
     if not callable(f):

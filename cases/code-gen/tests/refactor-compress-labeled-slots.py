@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-85200701b07b
 def check(ns):
     f = ns.get("compress_slots")
     if not callable(f):

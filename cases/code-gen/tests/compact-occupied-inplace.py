@@ -1,3 +1,4 @@
+# GAUNTLET-CANARY-57d935468127
 def check(ns):
     f = ns.get("compact_occupied_inplace")
     if not callable(f):
