@@ -158,3 +158,51 @@ def test_sandbox_has_no_filesystem_access_to_repo_tree(tmp_path):
     result = code_execution_match(code, tests_path)
     assert result.score == 1.0
     assert not (tmp_path / "leaked.txt").exists()
+
+
+# --- prose vs broken code (failure-mode attribution) --------------------------
+
+_TESTS_ANY = """
+def check(ns):
+    f = ns.get("solve")
+    if not callable(f):
+        return [False] * 2
+    return [True, True]
+"""
+
+
+def _tests_file(tmp_path):
+    p = tmp_path / "hidden_tests.py"
+    p.write_text(_TESTS_ANY, encoding="utf-8")
+    return p
+
+
+def test_prose_reply_is_no_code_emitted_not_syntax_error(tmp_path):
+    """A chatty refusal is a different failure from broken code.
+
+    Both score 0, but only one is worth trying to scaffold around, so the
+    scorecard must not file them under the same reason.
+    """
+    result = code_execution_match(
+        "I'd be happy to help! Could you clarify the expected output format?",
+        _tests_file(tmp_path))
+    assert result.failure_mode == "no_code_emitted"
+    assert result.score == 0.0
+
+
+def test_empty_reply_is_no_code_emitted(tmp_path):
+    result = code_execution_match("   \n\n  ", _tests_file(tmp_path))
+    assert result.failure_mode == "no_code_emitted"
+
+
+def test_genuine_but_malformed_attempt_is_syntax_error(tmp_path):
+    """A real attempt that does not parse must stay syntax_error — the
+    prose check is generous on purpose and must not swallow broken code."""
+    result = code_execution_match("def solve(:\n    return 1\n", _tests_file(tmp_path))
+    assert result.failure_mode == "syntax_error"
+
+
+def test_working_code_reports_no_failure_mode(tmp_path):
+    result = code_execution_match("def solve(x):\n    return x\n", _tests_file(tmp_path))
+    assert result.failure_mode == "none"
+    assert result.score == 1.0

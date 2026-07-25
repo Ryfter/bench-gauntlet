@@ -14,6 +14,7 @@ invariant, CLAUDE.md).
 """
 from __future__ import annotations
 
+import ast
 import json
 import os
 import signal
@@ -104,6 +105,27 @@ def _sandbox_env() -> dict[str, str]:
     return {"PATH": "/usr/bin:/bin"}
 
 
+def _looks_like_code(src: str) -> bool:
+    """Did the model attempt Python at all?
+
+    Anything that parses is code. Anything that does not is only reported as a
+    *syntax* error if it at least reaches for the language — otherwise a chatty
+    refusal ("I'd be happy to help! Could you clarify...") gets filed as broken
+    code, which misattributes the failure. Deliberately generous: a genuine but
+    malformed attempt should read as syntax_error, not as silence.
+    """
+    if not src.strip():
+        return False
+    try:
+        ast.parse(src)
+        return True
+    except SyntaxError:
+        pass
+    markers = ("def ", "class ", "import ", "return ", "lambda", "yield",
+               "for ", "while ", "if ", "=", "(")
+    return any(m in src for m in markers)
+
+
 def _spawn_kwargs() -> dict[str, object]:
     """Put the child in its own group so a timeout can take its children with
     it. The mechanism is platform-specific: POSIX gets a new session, Windows
@@ -159,10 +181,13 @@ def code_execution_match(output: str, tests_path: str | Path,
                                 failure_mode="harness_error")
 
     candidate_src = _strip_fences(output)
-    if not candidate_src.strip():
-        # The model returned prose, a refusal, or nothing at all. That is a
-        # real (and common) small-model failure, distinct from writing code
-        # that does not work — keep them apart so the scorecard can say which.
+    if not _looks_like_code(candidate_src):
+        # The model returned nothing, a refusal, or plain prose. That is a real
+        # (and common) small-model failure and a *different* one from writing
+        # code that does not work — a model that never engages with the task
+        # needs a different intervention from one with an off-by-one. Prose
+        # would otherwise be reported as `syntax_error`, which is true of the
+        # bytes but wrong about what happened.
         return ExecutionResult(score=0.0, passed=False,
                                 detail="no code emitted",
                                 failure_mode="no_code_emitted")
