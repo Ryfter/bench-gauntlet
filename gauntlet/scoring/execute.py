@@ -22,6 +22,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from gauntlet.scoring import _strip_fences
 
@@ -67,11 +68,27 @@ if __name__ == "__main__":
 '''
 
 
+FailureMode = Literal[
+    "none",            # scored 1.0, nothing went wrong
+    "syntax_error",    # candidate source does not parse
+    "runtime_exception",  # candidate raised while being exec'd
+    "wrong_answer",    # ran clean, but some hidden asserts failed
+    "timeout",         # exceeded the sandbox wall clock
+    "no_code_emitted",  # model returned prose/nothing — no code to run
+    "harness_error",   # OUR bug, not the candidate's -> unscored
+]
+
+
 @dataclass
 class ExecutionResult:
     score: float | None   # None == unscored (harness fault, never the candidate's)
     passed: bool
     detail: str
+    # Structured reason, so the scorecard can aggregate *why* a model failed
+    # rather than parsing `detail` prose. This is what tells Baton whether a
+    # miss is a capability gap or a working-memory problem (selective-offload
+    # principle, D-2026-06-30c).
+    failure_mode: FailureMode = "none"
 
 
 def _sandbox_env() -> dict[str, str]:
@@ -79,7 +96,56 @@ def _sandbox_env() -> dict[str, str]:
     # else the parent process carries. Candidate code gets nothing to phone
     # home with beyond direct socket calls (a true network sandbox needs OS
     # support — netns/seccomp — out of scope for a subprocess-only sandbox).
+    if os.name == "nt":
+        # Windows needs SystemRoot for the C runtime + socket stack to init;
+        # without it the interpreter fails to start at all.
+        root = os.environ.get("SystemRoot", r"C:\Windows")
+        return {"PATH": f"{root}\\System32", "SystemRoot": root}
     return {"PATH": "/usr/bin:/bin"}
+
+
+def _spawn_kwargs() -> dict[str, object]:
+    """Put the child in its own group so a timeout can take its children with
+    it. The mechanism is platform-specific: POSIX gets a new session, Windows
+    a new process group."""
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {"start_new_session": True}
+
+
+def _kill_tree(proc: subprocess.Popen) -> None:
+    """Kill the sandbox process *and any children it spawned*, then reap it.
+
+    Must not raise: it runs on the timeout path, and it must leave no live
+    handle on the scratch dir or TemporaryDirectory cleanup fails (on Windows
+    an open handle makes rmdir raise PermissionError/WinError 32).
+    """
+    try:
+        if os.name == "nt":
+            # No killpg on Windows; taskkill /T walks the child tree.
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                capture_output=True, check=False,
+            )
+        else:
+            os.killpg(proc.pid, signal.SIGKILL)
+    except (OSError, ProcessLookupError):
+        pass
+    try:
+        proc.kill()
+    except OSError:
+        pass
+    try:
+        proc.wait(timeout=10)
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+    # Release our own pipe handles; on Windows these also pin the temp dir.
+    for stream in (proc.stdout, proc.stderr):
+        try:
+            if stream is not None:
+                stream.close()
+        except OSError:
+            pass
 
 
 def code_execution_match(output: str, tests_path: str | Path,
@@ -89,9 +155,17 @@ def code_execution_match(output: str, tests_path: str | Path,
         hidden_src = tests_path.read_text(encoding="utf-8")
     except OSError as exc:
         return ExecutionResult(score=None, passed=False,
-                                detail=f"unscored: cannot read tests file: {exc}")
+                                detail=f"unscored: cannot read tests file: {exc}",
+                                failure_mode="harness_error")
 
     candidate_src = _strip_fences(output)
+    if not candidate_src.strip():
+        # The model returned prose, a refusal, or nothing at all. That is a
+        # real (and common) small-model failure, distinct from writing code
+        # that does not work — keep them apart so the scorecard can say which.
+        return ExecutionResult(score=0.0, passed=False,
+                                detail="no code emitted",
+                                failure_mode="no_code_emitted")
 
     with tempfile.TemporaryDirectory(prefix="gauntlet-codeexec-") as tmp:
         tmp_path = Path(tmp)
@@ -106,47 +180,57 @@ def code_execution_match(output: str, tests_path: str | Path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            start_new_session=True,  # own process group -> can kill children on timeout
+            **_spawn_kwargs(),  # own group -> a timeout can kill children too
         )
         try:
             stdout, stderr = proc.communicate(timeout=timeout_s)
         except subprocess.TimeoutExpired:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            proc.wait()
+            # Must fully reap before leaving the `with`, or TemporaryDirectory
+            # cleanup fails on a still-open handle (WinError 32).
+            _kill_tree(proc)
             return ExecutionResult(score=0.0, passed=False,
-                                    detail=f"timeout after {timeout_s}s")
+                                    detail=f"timeout after {timeout_s}s",
+                                    failure_mode="timeout")
 
     if proc.returncode != 0 and not stdout.strip():
         # Sandbox process died before emitting its JSON verdict (killed by a
         # signal, OOM, etc.) — that's the candidate's fault, not ours.
         return ExecutionResult(score=0.0, passed=False,
-                                detail=f"process exited {proc.returncode}: {stderr[-500:]}")
+                                detail=f"process exited {proc.returncode}: {stderr[-500:]}",
+                                failure_mode="runtime_exception")
 
     try:
         verdict = json.loads(stdout.strip().splitlines()[-1])
     except (json.JSONDecodeError, IndexError):
         return ExecutionResult(score=0.0, passed=False,
-                                detail=f"malformed sandbox output: stdout={stdout!r} stderr={stderr[-300:]!r}")
+                                detail=f"malformed sandbox output: stdout={stdout!r} stderr={stderr[-300:]!r}",
+                                failure_mode="runtime_exception")
 
     status = verdict.get("status")
-    if status in ("syntax_error", "runtime_error"):
+    if status == "syntax_error":
         return ExecutionResult(score=0.0, passed=False,
-                                detail=f"{status}: {str(verdict.get('error', ''))[:300]}")
+                                detail=f"syntax_error: {str(verdict.get('error', ''))[:300]}",
+                                failure_mode="syntax_error")
+    if status == "runtime_error":
+        return ExecutionResult(score=0.0, passed=False,
+                                detail=f"runtime_error: {str(verdict.get('error', ''))[:300]}",
+                                failure_mode="runtime_exception")
     if status == "harness_error":
         return ExecutionResult(score=None, passed=False,
-                                detail=f"unscored: hidden test harness error: {str(verdict.get('error', ''))[:300]}")
+                                detail=f"unscored: hidden test harness error: {str(verdict.get('error', ''))[:300]}",
+                                failure_mode="harness_error")
     if status != "ok":
         return ExecutionResult(score=None, passed=False,
-                                detail=f"unscored: unexpected sandbox status {status!r}")
+                                detail=f"unscored: unexpected sandbox status {status!r}",
+                                failure_mode="harness_error")
 
     total = verdict.get("total", 0)
     passed_n = verdict.get("passed", 0)
     if total <= 0:
         return ExecutionResult(score=None, passed=False,
-                                detail="unscored: hidden test suite reported 0 cases")
+                                detail="unscored: hidden test suite reported 0 cases",
+                                failure_mode="harness_error")
     score = passed_n / total
     return ExecutionResult(score=score, passed=score == 1.0,
-                            detail=f"{passed_n}/{total} hidden asserts passed")
+                            detail=f"{passed_n}/{total} hidden asserts passed",
+                            failure_mode="none" if score == 1.0 else "wrong_answer")
