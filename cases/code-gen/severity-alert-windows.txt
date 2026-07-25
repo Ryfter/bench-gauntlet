@@ -1,0 +1,21 @@
+Write two Python functions for sliding-window log alerting.
+
+1) severity_rank(level: str) -> int
+Map a severity label to a rank after strip() and casefolding to uppercase:
+- "DEBUG" -> 0
+- "INFO" -> 1
+- "WARN" -> 2
+- "ERROR" -> 3
+- "FATAL" -> 4
+Any other string (including empty) -> -1.
+
+2) alert_starts(levels: list[str], threshold: str, window: int) -> list[int]
+- Let thr = severity_rank(threshold). If thr is -1, return [].
+- If window < 1 or window > len(levels), return [].
+- Consider every contiguous sublist of length window whose start index is i, for i from 0 through len(levels) - window inclusive.
+- For a window, take the maximum severity_rank of its entries (unknown labels contribute -1).
+- If that maximum is >= thr, include i in the result.
+- Return start indices in ascending order (natural loop order).
+- Empty levels with an otherwise valid threshold/window still yields [] because window > len(levels).
+
+Use only the Python standard library. No I/O.

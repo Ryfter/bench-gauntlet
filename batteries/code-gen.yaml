@@ -32,6 +32,50 @@ cases:
     tests_file: cases/code-gen/tests/rank-auction-bid-slots.py
     tier: T4
     dimension: adversarial-correctness
+  # --- class-level-stateful ---
+  - id: bag-counter-capacity
+    prompt_file: cases/code-gen/bag-counter-capacity.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/bag-counter-capacity.py
+    tier: T1
+    dimension: class-level-stateful
+  - id: budget-envelope-soft-hard
+    prompt_file: cases/code-gen/budget-envelope-soft-hard.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/budget-envelope-soft-hard.py
+    tier: T2
+    dimension: class-level-stateful
+  - id: hold-board-confirm-cancel
+    prompt_file: cases/code-gen/hold-board-confirm-cancel.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/hold-board-confirm-cancel.py
+    tier: T3
+    dimension: class-level-stateful
+  - id: span-pool-first-fit-coalesce
+    prompt_file: cases/code-gen/span-pool-first-fit-coalesce.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/span-pool-first-fit-coalesce.py
+    tier: T4
+    dimension: class-level-stateful
+  # --- multi-function ---
+  - id: sku-normalize-aggregate
+    prompt_file: cases/code-gen/sku-normalize-aggregate.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/sku-normalize-aggregate.py
+    tier: T1
+    dimension: multi-function
+  - id: pack-band-quote-shipment
+    prompt_file: cases/code-gen/pack-band-quote-shipment.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/pack-band-quote-shipment.py
+    tier: T2
+    dimension: multi-function
+  - id: severity-alert-windows
+    prompt_file: cases/code-gen/severity-alert-windows.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/severity-alert-windows.py
+    tier: T3
+    dimension: multi-function
   # --- stdlib-api-use ---
   - id: filled-sections-textwrap
     prompt_file: cases/code-gen/filled-sections-textwrap.txt

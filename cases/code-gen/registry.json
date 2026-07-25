@@ -1,7 +1,15 @@
 {
+  "bag-counter-capacity": {
+    "dimension": "class-level-stateful",
+    "tier": "T1"
+  },
   "bisect-progressive-unit-levy": {
     "dimension": "stdlib-api-use",
     "tier": "T4"
+  },
+  "budget-envelope-soft-hard": {
+    "dimension": "class-level-stateful",
+    "tier": "T2"
   },
   "contiguous-gap-lengths": {
     "dimension": "adversarial-correctness",
@@ -19,6 +27,10 @@
     "dimension": "stdlib-api-use",
     "tier": "T3"
   },
+  "hold-board-confirm-cancel": {
+    "dimension": "class-level-stateful",
+    "tier": "T3"
+  },
   "merge-half-open-spans": {
     "dimension": "adversarial-correctness",
     "tier": "T3"
@@ -26,6 +38,10 @@
   "merge-shift-blocks-re": {
     "dimension": "stdlib-api-use",
     "tier": "T3"
+  },
+  "pack-band-quote-shipment": {
+    "dimension": "multi-function",
+    "tier": "T2"
   },
   "rank-auction-bid-slots": {
     "dimension": "adversarial-correctness",
@@ -39,9 +55,21 @@
     "dimension": "adversarial-correctness",
     "tier": "T1"
   },
+  "severity-alert-windows": {
+    "dimension": "multi-function",
+    "tier": "T3"
+  },
+  "sku-normalize-aggregate": {
+    "dimension": "multi-function",
+    "tier": "T1"
+  },
   "sku-qty-totals-re-counter": {
     "dimension": "stdlib-api-use",
     "tier": "T2"
+  },
+  "span-pool-first-fit-coalesce": {
+    "dimension": "class-level-stateful",
+    "tier": "T4"
   },
   "textwrap-hanging-bullet-lines": {
     "dimension": "stdlib-api-use",

@@ -1,0 +1,12 @@
+Implement a Python class SpanPool that manages a linear address space of integer units using exact-span claims with first-fit allocation and coalescing frees.
+
+Constructor and methods (exact names and signatures):
+- __init__(self, capacity: int) ΓÇö capacity must be an int >= 1; otherwise raise ValueError. The pool is the half-open interval [0, capacity). Initially the entire interval is free.
+- claim(self, length: int) -> int | None ΓÇö first-fit: find the lowest-start free span whose length is >= length, allocate a block of exactly that length from its start, and return that start index. length must be an int >= 1; otherwise return None. If no free span is large enough, return None and change nothing. Partial consumption of a free span leaves the remainder free at the higher addresses.
+- release(self, start: int, length: int) -> bool ΓÇö free a previously claimed block. Succeeds only if (start, length) exactly matches a currently claimed block (not a sub-range, super-range, or shifted range). On success remove that claim, return the span to the free set, and coalesce with any immediately adjacent free spans. Return False and change nothing on mismatch.
+- free_total(self) -> int ΓÇö sum of lengths of all free spans.
+- max_contiguous(self) -> int ΓÇö length of the largest single free span (0 if none free).
+- is_claimed(self, start: int) -> bool ΓÇö True iff some claimed block begins at start.
+- claim_count(self) -> int ΓÇö number of currently claimed blocks.
+
+Invariants after any sequence: free spans are disjoint and non-adjacent (always coalesced); free_total + sum of claimed lengths == capacity; claim never returns an overlapping start; release of non-exact claims fails.

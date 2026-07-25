@@ -1,0 +1,17 @@
+Write two Python functions for warehouse SKU bookkeeping.
+
+1) normalize_sku(raw: str) -> str
+- Strip leading and trailing whitespace.
+- Convert to uppercase.
+- Remove every space and every hyphen character.
+- If the result is empty, return "".
+
+2) aggregate_skus(rows: list[tuple[str, int]]) -> dict[str, int]
+- Each element of rows is (raw_sku, qty).
+- Normalize each raw_sku with normalize_sku.
+- Skip any row whose normalized SKU is empty.
+- Skip any row whose qty is less than or equal to 0.
+- Sum quantities for identical normalized SKUs.
+- Return a dict mapping normalized SKU -> total quantity (only keys that received a positive total).
+
+Use only the Python standard library. No I/O.

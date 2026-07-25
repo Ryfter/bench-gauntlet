@@ -1,0 +1,11 @@
+Implement a Python class BudgetEnvelope that tracks spending against a soft warning limit and a hard cap.
+
+Constructor and methods (exact names and signatures):
+- __init__(self, soft: int, hard: int) ΓÇö both must be ints; require 0 <= soft <= hard. Raise TypeError if either is not int; raise ValueError if the inequality fails. Initial spent is 0.
+- spend(self, amount: int) -> str ΓÇö amount must be a positive int. If amount is not an int or amount <= 0, return "rejected" and change nothing. If spent + amount would exceed hard, return "rejected" and change nothing. Otherwise add amount to spent. Then return "soft" if the new spent is strictly greater than soft; otherwise return "ok". Spending into or past the soft limit is allowed as long as hard is not exceeded; reaching soft exactly still returns "ok".
+- refund(self, amount: int) -> bool ΓÇö amount must be a positive int and amount <= spent; otherwise return False and change nothing. Otherwise subtract amount from spent and return True.
+- spent(self) -> int ΓÇö total currently spent.
+- remaining(self) -> int ΓÇö hard - spent.
+- soft_remaining(self) -> int ΓÇö max(0, soft - spent).
+
+Invariants: 0 <= spent <= hard always; remaining and soft_remaining never negative; refund cannot drive spent below 0.
