@@ -51,7 +51,8 @@ NEEDS_JUDGE = CaseResult(case_id="", method="judge", score=None, passed=False,
 
 def _result(case: Case, method: str, ok: bool, detail: str = "") -> CaseResult:
     return CaseResult(case_id=case.id, method=method, score=1.0 if ok else 0.0,
-                      passed=ok, detail=detail)
+                      passed=ok, detail=detail,
+                      tier=case.tier, dimension=case.dimension)
 
 
 def score_case(case: Case, output: str, base_dir: Path | str | None = None) -> CaseResult:
@@ -83,7 +84,9 @@ def score_case(case: Case, output: str, base_dir: Path | str | None = None) -> C
         timeout_s = case.timeout_s if case.timeout_s is not None else execute.DEFAULT_TIMEOUT_S
         result = execute.code_execution_match(output, path, timeout_s=timeout_s)
         return CaseResult(case_id=case.id, method=method, score=result.score,
-                          passed=result.passed, detail=result.detail)
+                          passed=result.passed, detail=result.detail,
+                          failure_mode=result.failure_mode,
+                          tier=case.tier, dimension=case.dimension)
     if method == "judge":
         return NEEDS_JUDGE
     raise ValueError(f"case {case.id}: unknown scoring method {method!r}")

@@ -15,6 +15,14 @@ class CaseResult(BaseModel):
     score: float | None  # None == unscored (e.g. judge unavailable) — never silently 0
     passed: bool
     detail: str = ""
+    # Structured reason a case failed (code-exec only, for now). Aggregated per
+    # cell so a scorecard says *why* a model missed, not just how often: a model
+    # emitting no code at all has a different problem from one writing plausible
+    # code with an off-by-one, and only the second is worth scaffolding
+    # (selective-offload principle, D-2026-06-30c).
+    failure_mode: str | None = None
+    tier: str | None = None       # T1-T4 difficulty rung
+    dimension: str | None = None  # capability axis (see batteries/README.md)
 
 
 class Cell(BaseModel):
@@ -33,6 +41,15 @@ class Cell(BaseModel):
     judge: str | None = None
     cases: int = 0
     errors: int = 0
+    # Difficulty profile: mean quality per tier (T1-T4). The shape says more
+    # than the mean — clearing T1-T2 then collapsing at T3 is a different
+    # proposition from scoring evenly across all four.
+    quality_by_tier: dict[str, float] | None = None
+    # Why cases failed, counted by structured failure mode. Distinguishes a
+    # capability gap (no_code_emitted / syntax_error) from a defect in
+    # otherwise-plausible code (wrong_answer) — only the latter is worth
+    # scaffolding (D-2026-06-30c).
+    failure_modes: dict[str, int] | None = None
     # NOTE: deliberately no base_url / IP field — privacy invariant.
 
 
