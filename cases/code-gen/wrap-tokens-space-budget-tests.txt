@@ -1,0 +1,42 @@
+Write test_suite(fn) -> list[bool] checking whether fn meets the wrap_tokens contract. True means that particular assertion held for fn.
+
+Contract ΓÇö wrap_tokens(words, width) -> list[str]:
+- words is a list of non-empty strings containing no spaces.
+- width is a positive int: maximum character length of a finished line.
+- Pack words left to right into lines. Words on a line are joined with a single ASCII space.
+- A word may be appended to the current non-empty line only when len(current_line) + 1 + len(word) <= width (the +1 accounts for the separating space).
+- If it does not fit, finish the current line and start a new line with that word.
+- A single word longer than width is still placed alone on its own line (overflow allowed only in that solo-word case).
+- Empty words returns []. Return the list of line strings in order.
+- Pure; do not mutate words.
+
+Candidate under review (may be wrong):
+
+def wrap_tokens(words, width):
+    if not words:
+        return []
+    lines = []
+    cur = []
+    cur_len = 0
+    for w in words:
+        if not cur:
+            cur = [w]
+            cur_len = len(w)
+            continue
+        if cur_len + len(w) <= width:
+            cur.append(w)
+            cur_len += 1 + len(w)
+        else:
+            lines.append(" ".join(cur))
+            cur = [w]
+            cur_len = len(w)
+    if cur:
+        lines.append(" ".join(cur))
+    return lines
+
+Write ONLY:
+def test_suite(fn):
+    ...
+    return [booleans]
+
+Your checks must pass a correct wrapper that charges a column for each inter-word space and must fail the missing-space-budget bug above (and similar mistakes such as dropping overlong words). Stdlib only, no I/O.

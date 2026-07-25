@@ -1,0 +1,19 @@
+Implement two functions that build a deterministic retry backoff schedule (no wall-clock, no randomness).
+
+`next_delay(attempt: int, base_ms: int, cap_ms: int, jitter_bucket: int) -> int`
+Delay in milliseconds for a single attempt:
+- All four arguments must be integers `>= 0`. If any is negative, raise `ValueError`.
+- `raw = base_ms * (2 ** attempt)` using integer arithmetic (`attempt` is 0-based).
+- `capped = min(raw, cap_ms)`.
+- Deterministic jitter: `jitter = jitter_bucket % 7`, then return `max(0, capped - jitter)`.
+- When `base_ms == 0`, `raw` is always 0 for every attempt.
+
+`backoff_schedule(n: int, base_ms: int, cap_ms: int, jitter_seed: int) -> list[int]`
+- If `n < 0`, raise `ValueError`.
+- If `n == 0`, return `[]`.
+- Otherwise return a list of length `n` where index `i` is
+  `next_delay(i, base_ms, cap_ms, jitter_seed + i * 3)`.
+- `base_ms`, `cap_ms`, and `jitter_seed` follow the same non-negativity rules as in `next_delay` (violations raise via `next_delay`).
+- Must call `next_delay` for each entry; do not reimplement the delay formula in the caller.
+
+Standard library only. No I/O, no time APIs.

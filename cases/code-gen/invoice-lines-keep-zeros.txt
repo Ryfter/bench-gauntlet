@@ -1,0 +1,24 @@
+The function build_invoice_lines(items) takes a list of triples (sku, qty, unit_price). sku is str or None; qty and unit_price are ints (may be zero or negative ΓÇö still include the line and compute the product as-is).
+
+Rules:
+- Emit one output dict per input triple, in the same order, except skip a triple only when sku is None or sku is the empty string "".
+- Do not skip a line because qty is 0, unit_price is 0, or line_total is 0 ΓÇö free items and zero-qty lines must appear.
+- Each dict has exactly the keys: "sku", "qty", "unit_price", "line_total" where line_total == qty * unit_price.
+- Return a new list; do not require mutating items.
+
+This implementation drops valid lines:
+
+def build_invoice_lines(items):
+    out = []
+    for sku, qty, unit_price in items:
+        if not sku or not qty or not unit_price:
+            continue
+        out.append({
+            "sku": sku,
+            "qty": qty,
+            "unit_price": unit_price,
+            "line_total": qty * unit_price,
+        })
+    return out
+
+Symptom: promotional free lines (unit_price 0), zero-qty lines, and any line whose product is 0 disappear; empty-string / None skus should still be the only omissions. Provide a corrected build_invoice_lines with the same signature. Standard library only; no I/O.

@@ -1,0 +1,27 @@
+Implement a class RunningMedianTracker that maintains a multiset of integers and reports the running median after arbitrary adds and single-occurrence removes.
+
+Constructor:
+  __init__(self)
+    Empty multiset.
+
+Methods:
+  add(self, x: int) -> None
+    Insert one copy of x.
+
+  remove(self, x: int) -> bool
+    Remove a single occurrence of x if present; return True.
+    If x is absent, leave state unchanged and return False.
+    If several copies of x exist, remove exactly one.
+
+  median(self):
+    If empty, return None.
+    Let n be the count of numbers in sorted order x0 <= x1 <= ... <= x(n-1).
+    If n is odd, return float(x_{n//2})  (the single middle element as float).
+    If n is even, return the arithmetic mean of the two central elements as a float:
+      (x_{n//2 - 1} + x_{n//2}) / 2.0
+    Example: values [1, 2, 3, 4] -> median 2.5; values [-5] -> -5.0; values [7, 7] -> 7.0.
+
+  count(self) -> int
+    Number of elements currently stored (including duplicates).
+
+Invariants must hold across long mixed add/remove sequences. Python stdlib only. No files, network, or time.

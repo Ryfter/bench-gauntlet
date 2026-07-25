@@ -1,0 +1,49 @@
+Refactor the working function below. Keep the exact name and signature line_kg(s). Behaviour must stay identical, including quirks around blanks, n/a, units, and invalid input. Collapse the duplicated number-parse branches into a single parse path; do not change results. Standard library only; no I/O.
+
+Semantics of the original (must preserve):
+- None or non-str -> None.
+- After strip + lower: empty string or exactly "n/a" -> 0.0 (not None).
+- All whitespace inside the token is removed before unit detection.
+- Suffix "kg" (case-insensitive via lower): parse float of the prefix; empty/"+"/"-"/"." prefix -> None; negative value -> None; else return that float kilograms.
+- Else suffix "g": same rules, return grams/1000.0 as float kilograms.
+- Any other form -> None.
+- "kg"/"g" with no number -> None. Zero weights are valid (0.0).
+
+Original:
+
+def line_kg(s):
+    if s is None:
+        return None
+    if type(s) is not str:
+        return None
+    t = s.strip().lower()
+    if t == "" or t == "n/a":
+        return 0.0
+    t2 = ""
+    for ch in t:
+        if ch != " ":
+            t2 = t2 + ch
+    t = t2
+    if len(t) >= 2 and t[-2:] == "kg":
+        num = t[:-2]
+        if num == "" or num == "-" or num == "+" or num == ".":
+            return None
+        try:
+            v = float(num)
+        except ValueError:
+            return None
+        if v < 0:
+            return None
+        return float(v)
+    if len(t) >= 1 and t[-1] == "g":
+        num = t[:-1]
+        if num == "" or num == "-" or num == "+" or num == ".":
+            return None
+        try:
+            v = float(num)
+        except ValueError:
+            return None
+        if v < 0:
+            return None
+        return float(v) / 1000.0
+    return None

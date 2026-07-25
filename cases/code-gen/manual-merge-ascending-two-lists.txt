@@ -1,0 +1,9 @@
+Write a function merge_ascending(left, right) that merges two lists which are each already sorted in non-decreasing order into one new list that is also non-decreasing.
+
+Rules:
+- Do not call sorted() or list.sort() (or any other method whose purpose is full re-sorting). Implement a linear two-pointer merge.
+- You may only read left and right; do not mutate them.
+- When left[i] == right[j], take the value from left first (stable preference for left).
+- Empty inputs are allowed: merge_ascending([], []) is []; merge_ascending(xs, []) and merge_ascending([], xs) copy the non-empty side.
+- Values may be any comparable ints (including negatives, zeros, and duplicates).
+- Return a new list; do not alias left or right.

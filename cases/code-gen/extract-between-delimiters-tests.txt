@@ -1,0 +1,26 @@
+Write a Python function test_suite(fn) that returns a list of booleans evaluating whether callable fn obeys the extract_between contract below. True means that check passed.
+
+Contract ΓÇö extract_between(text, open_tok, close_tok) -> str | None:
+- text, open_tok, and close_tok are strings. open_tok and close_tok are non-empty.
+- Find the first occurrence of open_tok in text. Then find the first occurrence of close_tok that begins at or after the character immediately following that open_tok match.
+- Return the substring strictly between those two matches (not including either token).
+- If open_tok is missing, or no close_tok occurs after the open match, return None.
+- Empty text yields None. Pure function; do not mutate inputs.
+
+A candidate implementation under review (may be wrong):
+
+def extract_between(text, open_tok, close_tok):
+    i = text.find(open_tok)
+    if i < 0:
+        return None
+    j = text.find(close_tok, i + len(open_tok))
+    if j < 0:
+        return None
+    return text[i:j + len(close_tok)]
+
+Write ONLY:
+def test_suite(fn):
+    ...
+    return [ ... booleans ... ]
+
+Do not implement extract_between. Test the contract so a correct impl yields all True and a contract-breaking impl (for example including delimiters, or searching for close_tok from the start of text) yields at least one False. Use only the Python standard library. No I/O.

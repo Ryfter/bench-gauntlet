@@ -1,0 +1,18 @@
+Implement two functions for contiguous theater seat-block allocation.
+
+`fits_block(row: list[bool], start: int, length: int) -> bool`
+- `row[i] is True` means seat `i` is already occupied; `False` means free.
+- Return `True` if and only if every seat in the half-open index range `[start, start + length)` exists inside `row` and is free (`False`).
+- If `start + length` would run past the end of `row`, return `False` (do not raise).
+- If `length < 1` or `start < 0`, raise `ValueError`.
+- An empty `row` never fits a positive-length block (returns `False` when args are otherwise valid).
+
+`allocate_seats(row: list[bool], parties: list[int]) -> list[int | None]`
+- Work on a local copy of `row`; never mutate the caller's list.
+- If any party size in `parties` is `< 1`, raise `ValueError` before placing anyone.
+- Process parties left to right. For each size `s`, choose the smallest start index where `fits_block` is true on the current working row, mark those `s` seats occupied in the working copy, and record that start index.
+- If no start fits, record `None` for that party (later parties still try on the updated row).
+- Empty `parties` returns `[]`.
+- Must use `fits_block` to test candidate placements (do not reimplement the free-range check only inside the caller).
+
+Standard library only. No I/O.

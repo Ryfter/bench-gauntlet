@@ -1,4 +1,8 @@
 {
+  "approve-charges-until-budget-tests": {
+    "dimension": "test-authoring",
+    "tier": "T2"
+  },
   "bag-counter-capacity": {
     "dimension": "class-level-stateful",
     "tier": "T1"
@@ -23,8 +27,20 @@
     "dimension": "robustness-contracts",
     "tier": "T4"
   },
+  "cascade-debit-order-contracts": {
+    "dimension": "robustness-contracts",
+    "tier": "T4"
+  },
+  "circular-shift-inplace-identity": {
+    "dimension": "surface-constraints",
+    "tier": "T4"
+  },
   "clamp-stock-levels-inplace": {
     "dimension": "surface-constraints",
+    "tier": "T1"
+  },
+  "clip-sum-band-trace": {
+    "dimension": "execution-prediction",
     "tier": "T1"
   },
   "coalesce-half-open-ranges": {
@@ -34,6 +50,10 @@
   "coalesce-windows-grace-tests": {
     "dimension": "test-authoring",
     "tier": "T3"
+  },
+  "compact-occupied-inplace": {
+    "dimension": "surface-constraints",
+    "tier": "T1"
   },
   "contiguous-gap-lengths": {
     "dimension": "adversarial-correctness",
@@ -51,13 +71,29 @@
     "dimension": "data-text-munging",
     "tier": "T3"
   },
+  "event-window-span-contracts": {
+    "dimension": "robustness-contracts",
+    "tier": "T3"
+  },
   "expand-warehouse-lane-tokens": {
     "dimension": "data-text-munging",
     "tier": "T2"
   },
+  "exponential-retry-backoff-schedule": {
+    "dimension": "multi-function",
+    "tier": "T3"
+  },
+  "extract-between-delimiters-tests": {
+    "dimension": "test-authoring",
+    "tier": "T1"
+  },
   "filled-sections-textwrap": {
     "dimension": "stdlib-api-use",
     "tier": "T1"
+  },
+  "first-fit-capacity-inclusive": {
+    "dimension": "bug-fix",
+    "tier": "T4"
   },
   "first-rate-limit-half-open": {
     "dimension": "complexity-constrained",
@@ -111,6 +147,18 @@
     "dimension": "class-level-stateful",
     "tier": "T3"
   },
+  "invoice-lines-keep-zeros": {
+    "dimension": "bug-fix",
+    "tier": "T3"
+  },
+  "lazy-kway-merge-sorted-iters": {
+    "dimension": "surface-constraints",
+    "tier": "T3"
+  },
+  "ledger-credit-halt-trace": {
+    "dimension": "execution-prediction",
+    "tier": "T3"
+  },
   "log-peak-day-eu-dates": {
     "dimension": "data-text-munging",
     "tier": "T4"
@@ -118,6 +166,18 @@
   "manifest-byte-suffix-total": {
     "dimension": "data-text-munging",
     "tier": "T3"
+  },
+  "manifest-weighted-checksum-validate": {
+    "dimension": "multi-function",
+    "tier": "T3"
+  },
+  "manual-merge-ascending-two-lists": {
+    "dimension": "surface-constraints",
+    "tier": "T2"
+  },
+  "max-span-under-budget": {
+    "dimension": "complexity-constrained",
+    "tier": "T2"
   },
   "max-stable-sensor-span": {
     "dimension": "complexity-constrained",
@@ -131,9 +191,17 @@
     "dimension": "stdlib-api-use",
     "tier": "T3"
   },
+  "pack-bags-units-and-skus-tests": {
+    "dimension": "test-authoring",
+    "tier": "T3"
+  },
   "pack-band-quote-shipment": {
     "dimension": "multi-function",
     "tier": "T2"
+  },
+  "package-mass-unit-convert": {
+    "dimension": "multi-function",
+    "tier": "T1"
   },
   "parse-shift-clock-log": {
     "dimension": "data-text-munging",
@@ -142,6 +210,38 @@
   "patch-journal-undo-redo": {
     "dimension": "class-level-stateful",
     "tier": "T3"
+  },
+  "path-bang-halt-trace": {
+    "dimension": "execution-prediction",
+    "tier": "T2"
+  },
+  "pinned-lru-cache": {
+    "dimension": "class-level-stateful",
+    "tier": "T3"
+  },
+  "pivot-parity-fold-trace": {
+    "dimension": "execution-prediction",
+    "tier": "T4"
+  },
+  "predict-clip-merge-half-open": {
+    "dimension": "execution-prediction",
+    "tier": "T3"
+  },
+  "predict-fold-digits-parity": {
+    "dimension": "execution-prediction",
+    "tier": "T2"
+  },
+  "predict-pulse-gate-cooldown": {
+    "dimension": "execution-prediction",
+    "tier": "T3"
+  },
+  "predict-synth-trace-vm": {
+    "dimension": "execution-prediction",
+    "tier": "T4"
+  },
+  "pricing-bankers-round-bundle": {
+    "dimension": "multi-function",
+    "tier": "T4"
   },
   "progressive-fee-bands-tests": {
     "dimension": "test-authoring",
@@ -167,17 +267,49 @@
     "dimension": "behavior-preserving-refactor",
     "tier": "T3"
   },
+  "refactor-compress-labeled-slots": {
+    "dimension": "behavior-preserving-refactor",
+    "tier": "T3"
+  },
   "refactor-debounce-sensor-stream": {
     "dimension": "behavior-preserving-refactor",
     "tier": "T4"
+  },
+  "refactor-line-kg-parser": {
+    "dimension": "behavior-preserving-refactor",
+    "tier": "T2"
   },
   "refactor-parcel-surcharge-bands": {
     "dimension": "behavior-preserving-refactor",
     "tier": "T2"
   },
+  "refactor-restock-flag-table": {
+    "dimension": "behavior-preserving-refactor",
+    "tier": "T1"
+  },
   "refactor-restock-priority-scorer": {
     "dimension": "behavior-preserving-refactor",
     "tier": "T3"
+  },
+  "refactor-sensor-debounce-sticky": {
+    "dimension": "behavior-preserving-refactor",
+    "tier": "T4"
+  },
+  "running-median-tracker": {
+    "dimension": "class-level-stateful",
+    "tier": "T4"
+  },
+  "seat-block-inclusive-bounds": {
+    "dimension": "bug-fix",
+    "tier": "T1"
+  },
+  "seat-claim-grid-contracts": {
+    "dimension": "robustness-contracts",
+    "tier": "T2"
+  },
+  "seat-hold-expiry-board": {
+    "dimension": "class-level-stateful",
+    "tier": "T1"
   },
   "seat-run-cap-trace": {
     "dimension": "execution-prediction",
@@ -199,6 +331,14 @@
     "dimension": "multi-function",
     "tier": "T3"
   },
+  "shift-roster-overlap-conflicts": {
+    "dimension": "multi-function",
+    "tier": "T3"
+  },
+  "shortest-k-variety-window": {
+    "dimension": "complexity-constrained",
+    "tier": "T4"
+  },
   "sku-normalize-aggregate": {
     "dimension": "multi-function",
     "tier": "T1"
@@ -211,6 +351,10 @@
     "dimension": "class-level-stateful",
     "tier": "T4"
   },
+  "spill-right-bins-inplace": {
+    "dimension": "surface-constraints",
+    "tier": "T3"
+  },
   "split-manifest-pipe-codes": {
     "dimension": "data-text-munging",
     "tier": "T1"
@@ -219,17 +363,41 @@
     "dimension": "data-text-munging",
     "tier": "T4"
   },
+  "step-gaps-generator": {
+    "dimension": "surface-constraints",
+    "tier": "T2"
+  },
   "stock-delta-key-nonneg": {
     "dimension": "robustness-contracts",
+    "tier": "T2"
+  },
+  "stock-movement-reconcile-contracts": {
+    "dimension": "robustness-contracts",
+    "tier": "T3"
+  },
+  "street-suffix-address-normalize": {
+    "dimension": "multi-function",
+    "tier": "T2"
+  },
+  "strip-void-rows-inplace": {
+    "dimension": "bug-fix",
     "tier": "T2"
   },
   "tank-pump-spill-trace": {
     "dimension": "execution-prediction",
     "tier": "T4"
   },
+  "tariff-band-lookup-compute": {
+    "dimension": "multi-function",
+    "tier": "T2"
+  },
   "textwrap-hanging-bullet-lines": {
     "dimension": "stdlib-api-use",
     "tier": "T3"
+  },
+  "theater-seat-block-allocate": {
+    "dimension": "multi-function",
+    "tier": "T4"
   },
   "token-bucket-exact-grant": {
     "dimension": "adversarial-correctness",
@@ -239,12 +407,28 @@
     "dimension": "class-level-stateful",
     "tier": "T4"
   },
+  "two-phase-commit-log": {
+    "dimension": "class-level-stateful",
+    "tier": "T2"
+  },
+  "weave-lanes-round-robin": {
+    "dimension": "surface-constraints",
+    "tier": "T3"
+  },
   "weight-band-gap-error": {
     "dimension": "robustness-contracts",
     "tier": "T3"
   },
   "windowed-rate-limiter-slide": {
     "dimension": "class-level-stateful",
+    "tier": "T3"
+  },
+  "wrap-tokens-space-budget-tests": {
+    "dimension": "test-authoring",
+    "tier": "T4"
+  },
+  "zero-sum-slice-count": {
+    "dimension": "complexity-constrained",
     "tier": "T3"
   }
 }

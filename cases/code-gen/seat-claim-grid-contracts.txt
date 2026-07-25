@@ -1,0 +1,17 @@
+Implement claim_seat(layout, row, col, name).
+
+layout is a seating grid: a list of rows, each row a list of cells. A free cell is None or the empty string "".
+
+Behaviour:
+- If layout[row][col] is free, write name into that cell (mutate layout in place) and return True.
+- If the cell already equals name, leave layout unchanged and return False.
+- If the cell holds any other non-empty value, raise ValueError.
+
+Exact exception contracts (type must match exactly):
+- TypeError if name is not a str.
+- TypeError if row is not a plain int or col is not a plain int. Plain int means type(x) is int; bool is rejected.
+- TypeError if layout is not a list, or if the selected row exists but is not a list.
+- ValueError if name is "".
+- IndexError if layout is empty, if row < 0, if col < 0, or if row/col is out of range for the grid.
+
+Do not treat negative row/col as Python-style wraparound; those must be IndexError. Standard library only.

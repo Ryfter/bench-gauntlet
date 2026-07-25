@@ -1,0 +1,20 @@
+Implement two functions for warehouse package mass conversion.
+
+`to_grams(qty: int, unit: str) -> int`
+Convert `qty` into whole grams.
+- Supported `unit` values (exact match, case-sensitive):
+  - `"g"`: return `qty` unchanged
+  - `"kg"`: return `qty * 1000`
+  - `"mg"`: return `qty // 1000` (integer floor toward zero for non-negative qty; milligrams that do not fill a full gram are discarded)
+  - `"oz"`: return `qty * 28` (fixed integer approximation)
+- If `qty < 0`, raise `ValueError`.
+- If `unit` is not one of the four strings above, raise `ValueError`.
+- `qty == 0` is valid and yields 0 for every supported unit.
+
+`total_grams(items: list[tuple[int, str]]) -> int`
+- `items` is a list of `(qty, unit)` pairs.
+- Return the sum of `to_grams(qty, unit)` over every pair, left to right.
+- An empty list returns `0`.
+- Delegate each conversion to `to_grams` (do not reimplement unit logic in the caller).
+
+Standard library only. No I/O.

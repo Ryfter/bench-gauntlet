@@ -1,0 +1,16 @@
+Define ShortfallError(Exception) and DuplicateOrderError(Exception). Implement debit_cascade(ledgers, order, amount).
+
+ledgers is a list of account dicts, each with a "balance" key holding a non-negative plain int. order is a list of plain int indices into ledgers specifying the cascade sequence. amount is a positive plain int to withdraw.
+
+Walk order left to right. From each distinct account, debit min(remaining_amount, that account's current balance), reducing that balance and remaining_amount. Stop early if remaining_amount hits 0. Return a new list of account dicts (shallow-copied entries) with updated balances; do not mutate the input ledgers or their nested dicts.
+
+Validation order and contracts (exact exception types):
+- TypeError if ledgers is not a list, or order is not a list, or amount is not a plain int (type(x) is int; bool rejected).
+- ValueError if amount <= 0.
+- IndexError if order is empty.
+- For each idx in order: TypeError if idx is not a plain int; IndexError if idx < 0 or idx >= len(ledgers).
+- DuplicateOrderError if any ledger index appears more than once in order (detect before debiting).
+- For every ledger dict (not only those in order): TypeError if the entry is not a dict; KeyError if "balance" is missing; TypeError if balance is not a plain int; ValueError if balance < 0.
+- After a full cascade walk, if remaining_amount > 0, raise ShortfallError (include the unpaid remainder in the exception args if you like).
+
+Accounts not listed in order keep their original balances in the returned copy. Standard library only.

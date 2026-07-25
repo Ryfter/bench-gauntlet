@@ -1,0 +1,9 @@
+Write a function lazy_merge_sorted(*iterables) that returns a generator yielding every value from the given iterables in non-decreasing order.
+
+Each argument is an iterable that already produces values in non-decreasing order (you must not re-sort a fully materialized collection). Zero or more iterables may be passed; with none (or only empty ones) the generator yields nothing.
+
+Laziness is required: the generator must pull values from the sources only as needed. Taking the first few yields must not exhaust large or infinite sources up front. In particular, do not list()/tuple() every iterable completely before producing the first result, and do not call sorted() or list.sort().
+
+When the next values from two or more sources are equal, yield from the leftmost (earliest) iterable first among those that share that value, then continue.
+
+Values are comparable ints (negatives, zeros, and duplicates allowed). Use only the Python standard library.

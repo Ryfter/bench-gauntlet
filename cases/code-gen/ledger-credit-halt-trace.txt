@@ -1,0 +1,45 @@
+Trace the function below and predict the return value of each numbered call.
+
+def scan_ledger(ops):
+    bal = 0
+    seen = set()
+    for op in ops:
+        kind, val = op[0], op[1]
+        if kind == 'd':
+            bal += val
+        elif kind == 'w':
+            if val > bal:
+                return None
+            bal -= val
+        elif kind == 'c':
+            if val in seen:
+                continue
+            seen.add(val)
+            bal += val
+        elif kind == 'x':
+            return bal
+    return bal
+
+Calls:
+1. scan_ledger([('d', 10), ('w', 3)])
+2. scan_ledger([('d', 5), ('w', 10)])
+3. scan_ledger([])
+4. scan_ledger([('c', 4), ('c', 4), ('c', 2)])
+5. scan_ledger([('d', 1), ('x', 0), ('d', 100)])
+6. scan_ledger([('w', 1)])
+7. scan_ledger([('c', 0), ('d', 0)])
+8. scan_ledger([('d', 10), ('w', 10), ('c', 5)])
+9. scan_ledger([('c', 3), ('w', 3), ('c', 3)])
+10. scan_ledger([('d', 2), ('d', 3), ('x', 99)])
+
+Reply with ONLY these 10 lines and nothing else:
+ANSWER_1 = <value>
+ANSWER_2 = <value>
+ANSWER_3 = <value>
+ANSWER_4 = <value>
+ANSWER_5 = <value>
+ANSWER_6 = <value>
+ANSWER_7 = <value>
+ANSWER_8 = <value>
+ANSWER_9 = <value>
+ANSWER_10 = <value>
