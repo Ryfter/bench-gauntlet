@@ -1,18 +1,50 @@
 {
+  "bisect-progressive-unit-levy": {
+    "dimension": "stdlib-api-use",
+    "tier": "T4"
+  },
   "contiguous-gap-lengths": {
     "dimension": "adversarial-correctness",
     "tier": "T2"
   },
+  "counter-inbound-surplus-rank": {
+    "dimension": "stdlib-api-use",
+    "tier": "T2"
+  },
+  "filled-sections-textwrap": {
+    "dimension": "stdlib-api-use",
+    "tier": "T1"
+  },
+  "heapq-courier-dispatch-order": {
+    "dimension": "stdlib-api-use",
+    "tier": "T3"
+  },
   "merge-half-open-spans": {
     "dimension": "adversarial-correctness",
+    "tier": "T3"
+  },
+  "merge-shift-blocks-re": {
+    "dimension": "stdlib-api-use",
     "tier": "T3"
   },
   "rank-auction-bid-slots": {
     "dimension": "adversarial-correctness",
     "tier": "T4"
   },
+  "rank-ready-parcels-csv-dt": {
+    "dimension": "stdlib-api-use",
+    "tier": "T4"
+  },
   "reconcile-stock-deltas": {
     "dimension": "adversarial-correctness",
     "tier": "T1"
+  },
+  "sku-qty-totals-re-counter": {
+    "dimension": "stdlib-api-use",
+    "tier": "T2"
+  },
+  "textwrap-hanging-bullet-lines": {
+    "dimension": "stdlib-api-use",
+    "tier": "T3"
   }
 }

@@ -1,0 +1,14 @@
+Implement progressive_levy(amount: int, cuts: list[int], rates: list[int]) -> int.
+
+Charge amount non-negative whole units under progressive brackets.
+
+cuts is a strictly ascending list of cumulative quantity thresholds. rates has length len(cuts) + 1 and holds non-negative integer rates per unit.
+
+Billing:
+- The first cuts[0] units (if any) each cost rates[0].
+- The next (cuts[1] - cuts[0]) units each cost rates[1].
+- ...
+- Units beyond cuts[-1] each cost rates[len(cuts)].
+- If cuts is empty, every unit costs rates[0].
+
+Return the total integer levy. amount == 0 always returns 0. Do not use floating point.

@@ -1,0 +1,4 @@
+Implement a function filled_sections(body: str, width: int) -> list[str].
+Split body into sections separated by one or more blank lines. A blank line is any line that is empty or contains only whitespace. Lines are split with str.splitlines() (no requirement to keep a trailing empty line as a section).
+Within each section, strip each non-blank line, join those lines with a single space, then collapse any remaining runs of ASCII spaces to a single space and strip the result. Discard a section if that result is empty.
+For each remaining section, return textwrap.fill(section, width=width) with break_long_words=False and break_on_hyphens=False (words longer than width stay intact on one line). Preserve section order. Use only the Python standard library.

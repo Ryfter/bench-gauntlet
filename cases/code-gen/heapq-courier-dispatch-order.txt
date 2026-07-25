@@ -1,0 +1,9 @@
+Implement dispatch_orders(orders: list[tuple[str, int, int]], couriers: int) -> list[list[str]].
+
+orders is a list of (order_id, prep_minutes, priority). couriers is an integer N >= 1: couriers are indexed 0..N-1.
+
+All orders are available at time 0. Assign orders one by one in this selection order: higher priority first; if tied, smaller prep_minutes first; if still tied, smaller order_id (lexicographic) first.
+
+Each assignment goes to the courier with the earliest current free time; if several share that free time, choose the lowest courier index. That courier's free time increases by the order's prep_minutes.
+
+Return a list of length N: result[i] is the list of order_ids assigned to courier i, in the order they were assigned. If orders is empty, return N empty lists. Do not mutate the input.

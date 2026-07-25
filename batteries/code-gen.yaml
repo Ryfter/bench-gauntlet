@@ -1,43 +1,85 @@
 capability: code-gen
 context_floor: 0
+
+# Cases are execution-scored: the candidate's code is run against hidden
+# asserts in a subprocess sandbox and scored on the FRACTION passed, not on
+# whether it parses. Tiers T1-T4 form a difficulty ladder so scores spread
+# across a 1B-30B local fleet instead of collapsing to 1.0 or 0.0.
+# Regenerate with scratchpad/gen_yaml.py; see batteries/README.md.
 cases:
-  - id: fizzbuzz
-    prompt_file: cases/code-gen/fizzbuzz.txt
-    scoring: compilable-code
-  - id: palindrome
-    prompt_file: cases/code-gen/palindrome.txt
-    scoring: compilable-code
-  - id: binary-search
-    prompt_file: cases/code-gen/binary-search.txt
-    scoring: compilable-code
-  - id: lru-cache
-    prompt_file: cases/code-gen/lru-cache.txt
-    scoring: compilable-code
-  - id: csv-parse
-    prompt_file: cases/code-gen/csv-parse.txt
-    scoring: compilable-code
-  - id: run-length-encode
-    prompt_file: cases/code-gen/run-length-encode.txt
+  # --- adversarial-correctness ---
+  - id: reconcile-stock-deltas
+    prompt_file: cases/code-gen/reconcile-stock-deltas.txt
     scoring: code-exec
-    tests_file: cases/code-gen/tests/run-length-encode.py
-  - id: matrix-transpose
-    prompt_file: cases/code-gen/matrix-transpose.txt
+    tests_file: cases/code-gen/tests/reconcile-stock-deltas.py
+    tier: T1
+    dimension: adversarial-correctness
+  - id: contiguous-gap-lengths
+    prompt_file: cases/code-gen/contiguous-gap-lengths.txt
     scoring: code-exec
-    tests_file: cases/code-gen/tests/matrix-transpose.py
-  - id: safe-divide
-    prompt_file: cases/code-gen/safe-divide.txt
+    tests_file: cases/code-gen/tests/contiguous-gap-lengths.py
+    tier: T2
+    dimension: adversarial-correctness
+  - id: merge-half-open-spans
+    prompt_file: cases/code-gen/merge-half-open-spans.txt
     scoring: code-exec
-    tests_file: cases/code-gen/tests/safe-divide.py
-  - id: factorial-strict
-    prompt_file: cases/code-gen/factorial-strict.txt
+    tests_file: cases/code-gen/tests/merge-half-open-spans.py
+    tier: T3
+    dimension: adversarial-correctness
+  - id: rank-auction-bid-slots
+    prompt_file: cases/code-gen/rank-auction-bid-slots.txt
     scoring: code-exec
-    tests_file: cases/code-gen/tests/factorial-strict.py
-  - id: inventory-tracker
-    prompt_file: cases/code-gen/inventory-tracker.txt
+    tests_file: cases/code-gen/tests/rank-auction-bid-slots.py
+    tier: T4
+    dimension: adversarial-correctness
+  # --- stdlib-api-use ---
+  - id: filled-sections-textwrap
+    prompt_file: cases/code-gen/filled-sections-textwrap.txt
     scoring: code-exec
-    tests_file: cases/code-gen/tests/inventory-tracker.py
-  - id: prime-pair
-    prompt_file: cases/code-gen/prime-pair.txt
+    tests_file: cases/code-gen/tests/filled-sections-textwrap.py
+    tier: T1
+    dimension: stdlib-api-use
+  - id: counter-inbound-surplus-rank
+    prompt_file: cases/code-gen/counter-inbound-surplus-rank.txt
     scoring: code-exec
-    tests_file: cases/code-gen/tests/prime-pair.py
+    tests_file: cases/code-gen/tests/counter-inbound-surplus-rank.py
+    tier: T2
+    dimension: stdlib-api-use
+  - id: sku-qty-totals-re-counter
+    prompt_file: cases/code-gen/sku-qty-totals-re-counter.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/sku-qty-totals-re-counter.py
+    tier: T2
+    dimension: stdlib-api-use
+  - id: heapq-courier-dispatch-order
+    prompt_file: cases/code-gen/heapq-courier-dispatch-order.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/heapq-courier-dispatch-order.py
+    tier: T3
+    dimension: stdlib-api-use
+  - id: merge-shift-blocks-re
+    prompt_file: cases/code-gen/merge-shift-blocks-re.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/merge-shift-blocks-re.py
+    tier: T3
+    dimension: stdlib-api-use
+  - id: textwrap-hanging-bullet-lines
+    prompt_file: cases/code-gen/textwrap-hanging-bullet-lines.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/textwrap-hanging-bullet-lines.py
+    tier: T3
+    dimension: stdlib-api-use
+  - id: bisect-progressive-unit-levy
+    prompt_file: cases/code-gen/bisect-progressive-unit-levy.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/bisect-progressive-unit-levy.py
+    tier: T4
+    dimension: stdlib-api-use
+  - id: rank-ready-parcels-csv-dt
+    prompt_file: cases/code-gen/rank-ready-parcels-csv-dt.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/rank-ready-parcels-csv-dt.py
+    tier: T4
+    dimension: stdlib-api-use
+
 weights: { quality: 1.0 }
