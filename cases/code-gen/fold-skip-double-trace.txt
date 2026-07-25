@@ -1,0 +1,36 @@
+Trace the function below by hand. Do not write a new implementation.
+
+def fold_skip(xs):
+    out = []
+    for x in xs:
+        if x == 0:
+            continue
+        if out and out[-1] == x:
+            out[-1] = x + x
+        else:
+            out.append(x)
+    return out
+
+Predict the return value of each call:
+1. fold_skip([1, 1])
+2. fold_skip([1, 2, 3])
+3. fold_skip([0, 0, 5])
+4. fold_skip([])
+5. fold_skip([2, 2, 2])
+6. fold_skip([1, 0, 1])
+7. fold_skip([3, 3, 0, 3])
+8. fold_skip([4, 4, 4, 4])
+9. fold_skip([7])
+10. fold_skip([0, 1, 1, 0, 2, 2])
+
+Reply with ONLY these 10 lines and nothing else:
+ANSWER_1 = <value>
+ANSWER_2 = <value>
+ANSWER_3 = <value>
+ANSWER_4 = <value>
+ANSWER_5 = <value>
+ANSWER_6 = <value>
+ANSWER_7 = <value>
+ANSWER_8 = <value>
+ANSWER_9 = <value>
+ANSWER_10 = <value>

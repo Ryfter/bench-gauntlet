@@ -58,7 +58,16 @@ def test_case_files_present_and_well_formed(case_id: str):
 
 @pytest.mark.parametrize("case_id", _case_ids())
 def test_hidden_tests_do_not_leak_into_the_prompt(case_id: str):
-    """The model must never be shown the assertions it is graded against."""
+    """The model must never be shown the assertions it is graded against.
+
+    `test-authoring` is exempt: there the model is handed an implementation and
+    asked to write tests that catch its planted bug, so the prompt and the
+    hidden tests share that implementation by design. What stays hidden is
+    which behaviour is wrong — the thing the model has to find.
+    """
+    if _registry()[case_id].get("dimension") == "test-authoring":
+        pytest.skip("prompt legitimately contains the implementation under test")
+
     prompt = (CASES_DIR / f"{case_id}.txt").read_text(encoding="utf-8")
     hidden = (TESTS_DIR / f"{case_id}.py").read_text(encoding="utf-8")
 

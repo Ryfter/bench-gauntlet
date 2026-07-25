@@ -1,0 +1,9 @@
+Implement apply_stock_delta(stock, delta) -> dict.
+
+stock is a dict mapping product id (str) to current quantity (int). delta is a dict mapping product id (str) to an integer change (positive or negative). Return a NEW dict with updated quantities for every key in stock. Keys present only in delta are not allowed.
+
+Contracts:
+- Raise TypeError if stock or delta is not a dict, or if any key is not str, or if any value is not an int (use type(v) is int ΓÇö bool is invalid).
+- Raise KeyError if any key in delta is missing from stock.
+- Raise ValueError if applying any change would make that product's quantity strictly negative. A resulting quantity of 0 is allowed.
+- Do not mutate the input stock dict.

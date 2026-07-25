@@ -1,0 +1,98 @@
+Refactor the following working but ugly function without changing its behaviour.
+
+Ugly original:
+
+def parcel_surcharge(weight_kg, region, fragile):
+    if weight_kg is None:
+        return -1
+    else:
+        if weight_kg <= 0:
+            return -1
+        else:
+            if region == "local":
+                if weight_kg <= 1:
+                    if fragile == True:
+                        return 0 + 0 + 4 + 0
+                    else:
+                        return 0 + 0 + 0 + 0
+                else:
+                    if weight_kg <= 5:
+                        if fragile == True:
+                            return 2 + 0 + 4 + 0
+                        else:
+                            return 2 + 0 + 0 + 0
+                    else:
+                        if weight_kg <= 20:
+                            if fragile == True:
+                                return 5 + 0 + 4 + 0
+                            else:
+                                return 5 + 0 + 0 + 0
+                        else:
+                            if fragile == True:
+                                return 12 + 0 + 7 + 0
+                            else:
+                                return 12 + 0 + 0 + 0
+            else:
+                if region == "domestic":
+                    if weight_kg <= 1:
+                        if fragile == True:
+                            return 0 + 3 + 4 + 0
+                        else:
+                            return 0 + 3 + 0 + 0
+                    else:
+                        if weight_kg <= 5:
+                            if fragile == True:
+                                return 2 + 3 + 4 + 0
+                            else:
+                                return 2 + 3 + 0 + 0
+                        else:
+                            if weight_kg <= 20:
+                                if fragile == True:
+                                    return 5 + 3 + 4 + 0
+                                else:
+                                    return 5 + 3 + 0 + 0
+                            else:
+                                if fragile == True:
+                                    return 12 + 3 + 7 + 0
+                                else:
+                                    return 12 + 3 + 0 + 0
+                else:
+                    if region == "intl":
+                        if weight_kg <= 1:
+                            if fragile == True:
+                                return 0 + 8 + 4 + 0
+                            else:
+                                return 0 + 8 + 0 + 0
+                        else:
+                            if weight_kg <= 5:
+                                if fragile == True:
+                                    return 2 + 8 + 4 + 0
+                                else:
+                                    return 2 + 8 + 0 + 0
+                            else:
+                                if weight_kg <= 20:
+                                    if fragile == True:
+                                        return 5 + 8 + 4 + 2
+                                    else:
+                                        return 5 + 8 + 0 + 2
+                                else:
+                                    if fragile == True:
+                                        return 12 + 8 + 7 + 2
+                                    else:
+                                        return 12 + 8 + 0 + 2
+                    else:
+                        return -1
+
+Produce a clean function with the exact same name and signature:
+
+    parcel_surcharge(weight_kg, region, fragile) -> int
+
+Behaviour (must match the original exactly):
+- If weight_kg is None or weight_kg <= 0, return -1.
+- If region is not one of "local", "domestic", or "intl", return -1.
+- Weight base fee: weight_kg <= 1 -> 0; <= 5 -> 2; <= 20 -> 5; else -> 12.
+- Region fee: local 0, domestic 3, intl 8.
+- If fragile is true: add 4 when weight_kg <= 20, else add 7.
+- If region is "intl" and weight_kg > 5: add an extra 2.
+- Return the sum of applicable fees.
+- No I/O, no randomness, stdlib only.

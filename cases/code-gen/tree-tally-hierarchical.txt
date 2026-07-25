@@ -1,0 +1,17 @@
+Implement a class TreeTally: hierarchical counters addressed by slash-separated paths.
+
+Paths are non-empty strings of segments joined by '/' (for example 'ops/eu/de'). There is no leading or trailing slash. A path D is a descendant of path P if and only if D starts with P + '/'. In particular, 'ab' is not a descendant of 'a'.
+
+TreeTally() ΓÇö empty tallies.
+
+add(path: str, n: int = 1) -> int ΓÇö Require n >= 1 (raise ValueError otherwise). Add n to the own-count of path (creating it if absent) and return the new own-count for path. Adding a path does not create explicit own-entries for ancestors.
+
+own(path: str) -> int ΓÇö Own-count of path, or 0 if never added / cleared.
+
+rollup(path: str) -> int ΓÇö own(path) plus the own-counts of all current descendants of path.
+
+clear(path: str) -> int ΓÇö Let r = rollup(path). Remove the own-entry for path and for every descendant. Return r. Ancestors and non-descendant siblings are untouched.
+
+paths() -> list[str] ΓÇö Sorted list of paths that currently have an own-entry.
+
+Use only the Python standard library. No file, network, or clock access.

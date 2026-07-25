@@ -1,0 +1,10 @@
+Define class OverbookError(Exception) and implement claim_cabin_slots(manifest, claims) -> dict.
+
+manifest maps cabin_id (str) to non-negative int capacity. claims is a sequence of (cabin_id, n) pairs processed in order. Each claim reserves n seats from that cabin's remaining capacity. Return a new dict of remaining capacity for every cabin in manifest (including cabins never claimed).
+
+Contracts:
+- Raise TypeError if manifest is not a dict, or claims is not a list or tuple, or any claim is not a 2-item list/tuple, or cabin_id is not str, or n is not an int (type(n) is int; bool invalid).
+- Raise ValueError if any manifest capacity is not a non-negative int (type(cap) is int and cap >= 0), or if any claim has n < 1.
+- Raise KeyError if a claim's cabin_id is not in manifest.
+- Raise OverbookError if a claim's n is strictly greater than that cabin's remaining capacity at the time of the claim. Filling a cabin exactly to 0 is allowed and is not an overbook.
+- Do not mutate the input manifest.

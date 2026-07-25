@@ -1,0 +1,14 @@
+Write a function debounce_ready(readings, hold) for a binary sensor debounce.
+
+readings is a list of ints that are only 0 or 1 (0 = inactive, 1 = active), in time order.
+hold is an int: the number of consecutive 1s required before the sensor is considered ready.
+
+Return the index of the reading that completes the first run of exactly hold consecutive 1s (i.e. the index of the hold-th 1 in that run). If the sensor never becomes ready, return -1.
+
+Rules:
+- A 0 always resets the consecutive streak to 0.
+- If hold < 1, return -1 immediately (never ready).
+- If readings is empty, return -1.
+- When hold == 1, the first 1 in the list activates at its own index.
+- Only the first activation matters; ignore later streaks.
+- Do not mutate the caller's list. Return an int.

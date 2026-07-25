@@ -1,0 +1,13 @@
+Write a function `split_manifest_codes(raw: str) -> list[str]`.
+
+`raw` is a shipping-manifest fragment: product codes separated by the `|` character.
+
+Rules:
+- Split on every `|`.
+- Strip leading and trailing ASCII whitespace from each segment.
+- Drop any segment that is empty after stripping (this covers leading/trailing pipes, doubled pipes, and whitespace-only segments).
+- Preserve the order of remaining codes.
+- Do not alter characters inside a code other than the outer strip.
+- An input that is empty or only whitespace/pipes yields `[]`.
+
+Use only the Python standard library. No file, network, or clock access.

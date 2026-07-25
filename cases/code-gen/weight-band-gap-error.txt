@@ -1,0 +1,11 @@
+Define class BandGapError(Exception) and implement rate_for_weight(weight, bands) -> number.
+
+bands is a list of dicts. Each dict must have keys "lo", "hi", and "rate". A band covers weights in the half-open interval [lo, hi): lo inclusive, hi exclusive. Return the rate of the first band whose interval contains weight.
+
+Contracts:
+- Raise TypeError if weight is not an int or float (bool is invalid: type(weight) must be int or float), or if bands is not a list.
+- Raise ValueError if weight is negative.
+- Raise KeyError if a band dict is missing "lo", "hi", or "rate" when that band is inspected (ordinary dict key access).
+- Raise BandGapError if no band's [lo, hi) interval contains weight (including when bands is empty, or weight equals a band's hi and no later band covers it, or weight falls in a gap between bands).
+
+Do not require bands to be sorted or non-overlapping beyond first-match semantics.

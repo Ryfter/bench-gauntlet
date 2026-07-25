@@ -1,0 +1,38 @@
+Write a Python function test_suite(impl) returning a list of booleans that check whether callable impl satisfies the free_blocks contract. True = that assertion passed.
+
+Contract ΓÇö free_blocks(n, taken) -> list[tuple[int, int]]:
+- n is a non-negative int: seats are numbered 0, 1, ..., n-1. If n == 0, return [].
+- taken is a list of seat indices that are reserved. Ignore any entry that is not an int or is outside [0, n-1]. Duplicate reserved indices count once.
+- Return maximal contiguous free runs as (start, length) pairs, ordered by increasing start.
+- length is always >= 1. If every seat is free, return [(0, n)] when n > 0.
+- If every seat is reserved, return [].
+- Pure function; do not mutate taken.
+
+Candidate under review (may contain a bug):
+
+def free_blocks(n, taken):
+    occ = set()
+    for i in taken:
+        if isinstance(i, int) and 0 <= i < n:
+            occ.add(i)
+            if i + 1 < n:
+                occ.add(i + 1)
+    out = []
+    i = 0
+    while i < n:
+        if i in occ:
+            i += 1
+            continue
+        j = i
+        while j < n and j not in occ:
+            j += 1
+        out.append((i, j - i))
+        i = j
+    return out
+
+Write ONLY:
+def test_suite(impl):
+    ...
+    return [ ... booleans ... ]
+
+Test the contract, not "matches this candidate". A correct impl must produce all True; the planted defect (and similar ones) should produce at least one False. Stdlib only, no I/O.

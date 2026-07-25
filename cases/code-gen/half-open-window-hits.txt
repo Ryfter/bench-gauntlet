@@ -1,0 +1,9 @@
+Write a function half_open_hits(values, lo, hi) that counts how many integers in the list values fall inside the half-open interval [lo, hi).
+
+Rules:
+- A value v is counted only when lo <= v < hi.
+- The endpoint lo is inclusive; the endpoint hi is exclusive.
+- If lo >= hi, the interval is empty and the result is 0 (even if values is non-empty).
+- values may be empty, contain duplicates, negatives, or zeros; each matching element counts once per occurrence.
+- values is a list of ints; lo and hi are ints. Do not sort or mutate the caller's list.
+- Return an int count.

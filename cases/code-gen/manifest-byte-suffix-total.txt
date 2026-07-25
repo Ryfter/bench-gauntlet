@@ -1,0 +1,13 @@
+Implement a function total_payload_bytes(manifest: str) -> int that totals payload sizes from a multi-line shipping manifest.
+
+Each non-empty line has exactly three pipe-separated fields: sku|qty|size. sku must be a non-empty string (content otherwise unrestricted except it must not introduce extra pipes). qty is a base-10 integer string that must parse as an int >= 0. size is a magnitude with an optional suffix and no sign: a decimal number (digits with at most one '.') immediately followed by a suffix, or bare digits/decimals meaning bytes.
+
+Accepted suffixes and multipliers (case-sensitive, exact match on the remainder after the number):
+  B = 1
+  KB = 1000, MB = 1000000, GB = 1000000000  (decimal SI)
+  KiB = 1024, MiB = 1048576, GiB = 1073741824  (binary)
+A missing suffix is treated as B. Compute per-line bytes as int(float(number) * multiplier) using toward-zero truncation from the float product, then multiply by qty. Sum contributions from all well-formed lines.
+
+Blank lines contribute nothing. Malformed lines (wrong field count, empty sku, bad qty, negative qty, empty/invalid number, unknown suffix, signs, spaces inside fields, etc.) contribute 0 and are skipped. Return 0 when nothing valid remains.
+
+Use only the Python standard library; no files, network, or clock.

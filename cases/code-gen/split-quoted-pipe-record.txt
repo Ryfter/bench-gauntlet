@@ -1,0 +1,20 @@
+Write a function `split_quoted_pipe_record(line: str) -> list[str]`.
+
+Parse one record whose fields are separated by `|` (pipe), with optional double-quoted fields.
+
+Rules:
+- Unquoted fields run until the next `|` or end of string. Strip leading/trailing ASCII whitespace from unquoted fields only.
+- A field may be wrapped in double quotes (`"..."`). Quoted fields may contain `|` and spaces; do not strip inside the quotes. The surrounding quotes are removed.
+- Inside a quoted field, two consecutive double quotes (`""`) denote a single literal `"` character.
+- A trailing `|` produces a final empty field. A leading `|` produces an initial empty field. Consecutive `||` produce an empty field between them.
+- An empty input string yields a single empty field: `[""]`.
+- After a closing quote, the next character is either `|` or end-of-string (tests are well-formed).
+- Do not treat a bare `"` mid-unquoted-field specially beyond the rules above; tests only use quotes at field boundaries.
+
+Examples of intended behaviour (illustrative, not exhaustive):
+- `a|b|c` ΓåÆ `['a','b','c']`
+- `a|b|` ΓåÆ `['a','b','']`
+- `"a|b"|c` ΓåÆ `['a|b','c']`
+- `x|"y""z"|w` ΓåÆ `['x','y"z','w']`
+
+Use only the Python standard library. No file, network, or clock access.

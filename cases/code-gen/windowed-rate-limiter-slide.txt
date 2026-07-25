@@ -1,0 +1,9 @@
+Implement a class WindowRateLimiter: a sliding-window rate limiter over integer timestamps.
+
+WindowRateLimiter(limit: int, window: int) ΓÇö limit is the maximum number of accepted events allowed in any sliding window of length window. Both arguments are positive integers.
+
+allow(t: int) -> bool ΓÇö Consider only previously accepted event times e that satisfy e > t - window. If fewer than limit such events exist, accept this call: record t as an accepted event and return True. Otherwise reject: return False and do not record t. Rejected calls leave state unchanged. The same timestamp t may be accepted multiple times if still under the limit. Callers pass non-decreasing t values; you need not support decreasing t.
+
+counted(t: int) -> int ΓÇö Return how many already-accepted events e satisfy e > t - window. Do not record a new event.
+
+Use only the Python standard library. No file, network, or clock access.

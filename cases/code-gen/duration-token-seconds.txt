@@ -1,0 +1,9 @@
+Implement a function duration_to_seconds(s: str) -> int that parses a compact duration string into a total number of whole seconds.
+
+A valid input is a concatenation of one or more tokens of the form <non-negative-integer><unit>, with no spaces or other separators. The unit letter must be one of: d (day = 86400 seconds), h (hour = 3600), m (minute = 60), s (second = 1). Letter case is significant: only lowercase unit letters are accepted.
+
+Tokens must appear in strictly decreasing magnitude order: any d before any h before any m before any s. Each unit letter may appear at most once. The integer part must contain at least one digit (leading zeros are allowed).
+
+Return the summed duration in seconds when the string is fully valid. If s is empty, contains any character outside this grammar, has units out of order, repeats a unit, has a bare number without a unit, or has a unit without a number, return -1.
+
+Examples of shape (not exhaustive): '45s', '1h30m', '2d', '1d0h5m'. Do not use network, files, or the system clock.

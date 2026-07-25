@@ -1,0 +1,9 @@
+Implement a function parse_nested_kv(s: str) -> dict that parses a compact configuration string into a nested dictionary of strings.
+
+The input is a sequence of fields separated by unescaped semicolon (';') characters. Empty fields (including those from leading, trailing, or doubled separators) are skipped. Each non-empty field must contain at least one unescaped equals sign ('='); the first unescaped '=' separates the key path from the value. Fields with no unescaped '=' are skipped.
+
+Backslash escaping applies inside keys and values. A backslash followed by another character always produces that second character literally (so '\=', '\;', '\.', and '\\' are literal '=', ';', '.', and '\' respectively). An unescaped '.' in the key path splits nested dictionary levels; escaped dots are ordinary characters inside a single path segment. After splitting on unescaped dots, unescape each segment and the value. If any path segment is empty after unescaping, skip that field.
+
+All stored values are strings (the empty value is allowed: 'k=' stores ""). When setting a nested path, any intermediate key that is missing or currently holds a non-dict is replaced by a new empty dict so the path can continue. Assigning to a final key always overwrites whatever was there (last assignment wins), including replacing a previous nested dict with a string or a string with a nested dict created by a later dotted path.
+
+The empty string input yields {}. Whitespace is significant and is not trimmed. Use only the Python standard library; no files, network, or clock.

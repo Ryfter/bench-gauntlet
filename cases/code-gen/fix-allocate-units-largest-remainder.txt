@@ -1,0 +1,20 @@
+The function allocate_units(total, weights) distributes a non-negative integer total of identical stock units across bins using the largest-remainder method.
+
+Rules:
+- weights is a list of non-negative numbers (ints or floats). Return a list of ints of the same length.
+- If weights is empty, return [].
+- If total is negative, or any weight is negative, raise ValueError.
+- If every weight is 0, return a list of zeros of the same length (nothing can be allocated proportionally).
+- Otherwise compute each bin's exact quota total * weight / sum(weights), give every bin math.floor(quota), then distribute the leftover units one at a time to bins with the largest fractional remainders.
+- Tie-break: when two bins have the same fractional remainder, the lower index receives the leftover unit first.
+- The returned ints must sum to total (except when all weights are 0, in which case they sum to 0).
+
+Buggy implementation:
+
+def allocate_units(total, weights):
+    s = sum(weights)
+    return [total * w // s for w in weights]
+
+Failing symptom: allocate_units(10, [1, 1, 1]) returns [3, 3, 3] (sum 9) instead of [4, 3, 3] ΓÇö pure floor division discards remainders and breaks conservation of units. It also crashes on an empty weight list or all-zero weights.
+
+Fix allocate_units. Keep the function name allocate_units.

@@ -1,0 +1,25 @@
+Write a Python function test_suite(impl) that returns a list of booleans evaluating whether callable impl obeys the reconcile contract below. True means that check passed.
+
+Contract ΓÇö reconcile(base, ops) -> dict[str, int]:
+- base is a dict mapping SKU strings to integer on-hand counts.
+- ops is a list of (sku, delta) pairs applied in order; each delta is an int added to that SKU (missing SKU starts at 0).
+- Return the final SKU -> count mapping.
+- Any SKU whose final count is exactly 0 must be omitted from the result (including zeros already present in base when ops is empty).
+- Negative final counts are valid and must be kept.
+- SKUs never touched by ops remain at their base value (subject to the zero-omit rule).
+- Pure function: do not mutate base or ops.
+
+A candidate implementation under review (may be wrong):
+
+def reconcile(base, ops):
+    d = dict(base)
+    for sku, delta in ops:
+        d[sku] = d.get(sku, 0) + delta
+    return d
+
+Write ONLY:
+def test_suite(impl):
+    ...
+    return [ ... booleans ... ]
+
+Do not implement reconcile. Test the contract so a correct impl yields all True and a contract-breaking impl yields at least one False. Use only the Python standard library. No I/O.

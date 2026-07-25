@@ -1,0 +1,17 @@
+Implement a class PatchJournal: an integer register with linear undo/redo.
+
+PatchJournal(start: int = 0) ΓÇö value begins at start.
+
+apply(delta: int) -> int ΓÇö Add delta to the current value (delta may be negative or zero). Push the pre-change value onto the undo history, clear the redo history, and return the new value.
+
+set(n: int) -> int ΓÇö Set the value to n absolutely. Push the pre-change value onto the undo history, clear the redo history, and return the new value.
+
+undo() -> bool ΓÇö If undo history is empty, return False. Otherwise push the current value onto the redo history, restore the most recent undo entry as the current value, and return True.
+
+redo() -> bool ΓÇö If redo history is empty, return False. Otherwise push the current value onto the undo history, restore the most recent redo entry as the current value, and return True.
+
+value() -> int ΓÇö Return the current value without changing history.
+
+Invariant: any successful apply or set after one or more undos must discard the abandoned redo branch (redo becomes empty).
+
+Use only the Python standard library. No file, network, or clock access.

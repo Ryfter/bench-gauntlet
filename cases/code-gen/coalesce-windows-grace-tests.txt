@@ -1,0 +1,29 @@
+Write test_suite(impl) -> list[bool] that verifies whether impl satisfies the coalesce contract. Each True means that check passed for the given impl.
+
+Contract ΓÇö coalesce(intervals, grace) -> list[tuple[int, int]]:
+- intervals is a list of (start, end) pairs of integers representing half-open windows [start, end).
+- Discard any pair with start >= end (invalid).
+- grace is a non-negative int. After sorting remaining intervals by start ascending (break ties by end ascending), merge left-to-right:
+  merge the next interval into the current merged window when next.start <= current.end + grace
+  (this covers overlap, abutment, and gaps of size at most grace under half-open arithmetic).
+  When merging, the combined end is max(current.end, next.end); start stays current.start.
+- Return the merged half-open intervals as a list of (start, end) tuples in left-to-right order.
+- If nothing valid remains, return [].
+- Pure; do not mutate inputs.
+
+Candidate under review (may be buggy):
+
+def coalesce(intervals, grace):
+    valid = [(s, e) for s, e in intervals if s < e]
+    if not valid:
+        return []
+    valid.sort(key=lambda x: (x[0], x[1]))
+    out = [list(valid[0])]
+    for s, e in valid[1:]:
+        if s <= out[-1][1]:
+            out[-1][1] = max(out[-1][1], e)
+        else:
+            out.append([s, e])
+    return [(a, b) for a, b in out]
+
+Write ONLY def test_suite(impl) returning a list of booleans. Encode the contract so correct code passes every check and grace-related mistakes fail some. Stdlib only, no I/O.

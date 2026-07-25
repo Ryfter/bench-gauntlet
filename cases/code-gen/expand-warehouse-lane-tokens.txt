@@ -1,0 +1,18 @@
+Write a function `expand_lane_tokens(spec: str) -> list[str]`.
+
+`spec` describes warehouse pick-lane IDs. A lane ID is one uppercase letter AΓÇôZ followed by a non-negative integer (e.g. `A1`, `Z12`).
+
+The string is a comma-separated list of tokens. Each token is either:
+- a single lane ID, or
+- an inclusive range `START-END` where START and END share the same letter and only the numeric part changes (e.g. `A1-A3`).
+
+Rules:
+- Strip whitespace around each comma-separated token and around the `-` in a range.
+- Expand ranges inclusively. If the end number is less than the start number, expand in descending order (`A3-A1` ΓåÆ `A3`, `A2`, `A1`).
+- A range whose ends are equal yields a single ID (`A1-A1` ΓåÆ `A1`).
+- Emit each ID as `f"{letter}{number}"` with no zero-padding (`A01` token normalizes to `A1`).
+- Skip empty tokens caused by doubled commas or a blank `spec` after strip ΓåÆ `[]`.
+- Preserve left-to-right order; do not deduplicate.
+- Inputs used in tests are well-formed (valid letters/numbers, matching letters in ranges).
+
+Use only the Python standard library. No file, network, or clock access.

@@ -20,10 +20,28 @@ cases:
     tests_file: cases/code-gen/tests/contiguous-gap-lengths.py
     tier: T2
     dimension: adversarial-correctness
+  - id: half-open-window-hits
+    prompt_file: cases/code-gen/half-open-window-hits.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/half-open-window-hits.py
+    tier: T2
+    dimension: adversarial-correctness
+  - id: bus-groups-skip-nofit
+    prompt_file: cases/code-gen/bus-groups-skip-nofit.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/bus-groups-skip-nofit.py
+    tier: T3
+    dimension: adversarial-correctness
   - id: merge-half-open-spans
     prompt_file: cases/code-gen/merge-half-open-spans.txt
     scoring: code-exec
     tests_file: cases/code-gen/tests/merge-half-open-spans.py
+    tier: T3
+    dimension: adversarial-correctness
+  - id: sensor-debounce-activate-index
+    prompt_file: cases/code-gen/sensor-debounce-activate-index.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/sensor-debounce-activate-index.py
     tier: T3
     dimension: adversarial-correctness
   - id: rank-auction-bid-slots
@@ -32,12 +50,74 @@ cases:
     tests_file: cases/code-gen/tests/rank-auction-bid-slots.py
     tier: T4
     dimension: adversarial-correctness
+  - id: token-bucket-exact-grant
+    prompt_file: cases/code-gen/token-bucket-exact-grant.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/token-bucket-exact-grant.py
+    tier: T4
+    dimension: adversarial-correctness
+  # --- behavior-preserving-refactor ---
+  - id: refactor-parcel-surcharge-bands
+    prompt_file: cases/code-gen/refactor-parcel-surcharge-bands.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/refactor-parcel-surcharge-bands.py
+    tier: T2
+    dimension: behavior-preserving-refactor
+  - id: refactor-compress-duty-blocks
+    prompt_file: cases/code-gen/refactor-compress-duty-blocks.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/refactor-compress-duty-blocks.py
+    tier: T3
+    dimension: behavior-preserving-refactor
+  - id: refactor-restock-priority-scorer
+    prompt_file: cases/code-gen/refactor-restock-priority-scorer.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/refactor-restock-priority-scorer.py
+    tier: T3
+    dimension: behavior-preserving-refactor
+  - id: refactor-debounce-sensor-stream
+    prompt_file: cases/code-gen/refactor-debounce-sensor-stream.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/refactor-debounce-sensor-stream.py
+    tier: T4
+    dimension: behavior-preserving-refactor
+  # --- bug-fix ---
+  - id: fix-filled-slots-truthiness
+    prompt_file: cases/code-gen/fix-filled-slots-truthiness.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/fix-filled-slots-truthiness.py
+    tier: T1
+    dimension: bug-fix
+  - id: fix-expand-seat-range-inclusive
+    prompt_file: cases/code-gen/fix-expand-seat-range-inclusive.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/fix-expand-seat-range-inclusive.py
+    tier: T2
+    dimension: bug-fix
+  - id: fix-merge-duty-windows-adjacent
+    prompt_file: cases/code-gen/fix-merge-duty-windows-adjacent.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/fix-merge-duty-windows-adjacent.py
+    tier: T3
+    dimension: bug-fix
+  - id: fix-allocate-units-largest-remainder
+    prompt_file: cases/code-gen/fix-allocate-units-largest-remainder.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/fix-allocate-units-largest-remainder.py
+    tier: T4
+    dimension: bug-fix
   # --- class-level-stateful ---
   - id: bag-counter-capacity
     prompt_file: cases/code-gen/bag-counter-capacity.txt
     scoring: code-exec
     tests_file: cases/code-gen/tests/bag-counter-capacity.py
     tier: T1
+    dimension: class-level-stateful
+  - id: booking-ledger-accumulate
+    prompt_file: cases/code-gen/booking-ledger-accumulate.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/booking-ledger-accumulate.py
+    tier: T2
     dimension: class-level-stateful
   - id: budget-envelope-soft-hard
     prompt_file: cases/code-gen/budget-envelope-soft-hard.txt
@@ -51,12 +131,129 @@ cases:
     tests_file: cases/code-gen/tests/hold-board-confirm-cancel.py
     tier: T3
     dimension: class-level-stateful
+  - id: patch-journal-undo-redo
+    prompt_file: cases/code-gen/patch-journal-undo-redo.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/patch-journal-undo-redo.py
+    tier: T3
+    dimension: class-level-stateful
+  - id: windowed-rate-limiter-slide
+    prompt_file: cases/code-gen/windowed-rate-limiter-slide.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/windowed-rate-limiter-slide.py
+    tier: T3
+    dimension: class-level-stateful
   - id: span-pool-first-fit-coalesce
     prompt_file: cases/code-gen/span-pool-first-fit-coalesce.txt
     scoring: code-exec
     tests_file: cases/code-gen/tests/span-pool-first-fit-coalesce.py
     tier: T4
     dimension: class-level-stateful
+  - id: tree-tally-hierarchical
+    prompt_file: cases/code-gen/tree-tally-hierarchical.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/tree-tally-hierarchical.py
+    tier: T4
+    dimension: class-level-stateful
+  # --- complexity-constrained ---
+  - id: first-viable-cargo-window
+    prompt_file: cases/code-gen/first-viable-cargo-window.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/first-viable-cargo-window.py
+    tier: T2
+    dimension: complexity-constrained
+  - id: coalesce-half-open-ranges
+    prompt_file: cases/code-gen/coalesce-half-open-ranges.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/coalesce-half-open-ranges.py
+    tier: T3
+    dimension: complexity-constrained
+  - id: first-rate-limit-half-open
+    prompt_file: cases/code-gen/first-rate-limit-half-open.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/first-rate-limit-half-open.py
+    tier: T3
+    dimension: complexity-constrained
+  - id: max-stable-sensor-span
+    prompt_file: cases/code-gen/max-stable-sensor-span.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/max-stable-sensor-span.py
+    tier: T4
+    dimension: complexity-constrained
+  # --- data-text-munging ---
+  - id: split-manifest-pipe-codes
+    prompt_file: cases/code-gen/split-manifest-pipe-codes.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/split-manifest-pipe-codes.py
+    tier: T1
+    dimension: data-text-munging
+  - id: duration-token-seconds
+    prompt_file: cases/code-gen/duration-token-seconds.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/duration-token-seconds.py
+    tier: T2
+    dimension: data-text-munging
+  - id: expand-warehouse-lane-tokens
+    prompt_file: cases/code-gen/expand-warehouse-lane-tokens.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/expand-warehouse-lane-tokens.py
+    tier: T2
+    dimension: data-text-munging
+  - id: escaped-dot-kv-nest
+    prompt_file: cases/code-gen/escaped-dot-kv-nest.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/escaped-dot-kv-nest.py
+    tier: T3
+    dimension: data-text-munging
+  - id: manifest-byte-suffix-total
+    prompt_file: cases/code-gen/manifest-byte-suffix-total.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/manifest-byte-suffix-total.py
+    tier: T3
+    dimension: data-text-munging
+  - id: parse-shift-clock-log
+    prompt_file: cases/code-gen/parse-shift-clock-log.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/parse-shift-clock-log.py
+    tier: T3
+    dimension: data-text-munging
+  - id: log-peak-day-eu-dates
+    prompt_file: cases/code-gen/log-peak-day-eu-dates.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/log-peak-day-eu-dates.py
+    tier: T4
+    dimension: data-text-munging
+  - id: split-quoted-pipe-record
+    prompt_file: cases/code-gen/split-quoted-pipe-record.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/split-quoted-pipe-record.py
+    tier: T4
+    dimension: data-text-munging
+  # --- execution-prediction ---
+  - id: fold-skip-double-trace
+    prompt_file: cases/code-gen/fold-skip-double-trace.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/fold-skip-double-trace.py
+    tier: T1
+    dimension: execution-prediction
+  - id: seat-run-cap-trace
+    prompt_file: cases/code-gen/seat-run-cap-trace.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/seat-run-cap-trace.py
+    tier: T2
+    dimension: execution-prediction
+  - id: half-open-span-merge-trace
+    prompt_file: cases/code-gen/half-open-span-merge-trace.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/half-open-span-merge-trace.py
+    tier: T3
+    dimension: execution-prediction
+  - id: tank-pump-spill-trace
+    prompt_file: cases/code-gen/tank-pump-spill-trace.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/tank-pump-spill-trace.py
+    tier: T4
+    dimension: execution-prediction
   # --- multi-function ---
   - id: sku-normalize-aggregate
     prompt_file: cases/code-gen/sku-normalize-aggregate.txt
@@ -76,6 +273,31 @@ cases:
     tests_file: cases/code-gen/tests/severity-alert-windows.py
     tier: T3
     dimension: multi-function
+  # --- robustness-contracts ---
+  - id: seat-token-range-contracts
+    prompt_file: cases/code-gen/seat-token-range-contracts.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/seat-token-range-contracts.py
+    tier: T1
+    dimension: robustness-contracts
+  - id: stock-delta-key-nonneg
+    prompt_file: cases/code-gen/stock-delta-key-nonneg.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/stock-delta-key-nonneg.py
+    tier: T2
+    dimension: robustness-contracts
+  - id: weight-band-gap-error
+    prompt_file: cases/code-gen/weight-band-gap-error.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/weight-band-gap-error.py
+    tier: T3
+    dimension: robustness-contracts
+  - id: cabin-claim-overbook
+    prompt_file: cases/code-gen/cabin-claim-overbook.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/cabin-claim-overbook.py
+    tier: T4
+    dimension: robustness-contracts
   # --- stdlib-api-use ---
   - id: filled-sections-textwrap
     prompt_file: cases/code-gen/filled-sections-textwrap.txt
@@ -125,5 +347,49 @@ cases:
     tests_file: cases/code-gen/tests/rank-ready-parcels-csv-dt.py
     tier: T4
     dimension: stdlib-api-use
+  # --- surface-constraints ---
+  - id: clamp-stock-levels-inplace
+    prompt_file: cases/code-gen/clamp-stock-levels-inplace.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/clamp-stock-levels-inplace.py
+    tier: T1
+    dimension: surface-constraints
+  - id: glyph-run-length-generator
+    prompt_file: cases/code-gen/glyph-run-length-generator.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/glyph-run-length-generator.py
+    tier: T2
+    dimension: surface-constraints
+  - id: sensor-sliding-windows-lazy-copy
+    prompt_file: cases/code-gen/sensor-sliding-windows-lazy-copy.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/sensor-sliding-windows-lazy-copy.py
+    tier: T4
+    dimension: surface-constraints
+  # --- test-authoring ---
+  - id: reconcile-stock-zero-omit-tests
+    prompt_file: cases/code-gen/reconcile-stock-zero-omit-tests.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/reconcile-stock-zero-omit-tests.py
+    tier: T2
+    dimension: test-authoring
+  - id: coalesce-windows-grace-tests
+    prompt_file: cases/code-gen/coalesce-windows-grace-tests.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/coalesce-windows-grace-tests.py
+    tier: T3
+    dimension: test-authoring
+  - id: free-seat-blocks-offbyone-tests
+    prompt_file: cases/code-gen/free-seat-blocks-offbyone-tests.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/free-seat-blocks-offbyone-tests.py
+    tier: T3
+    dimension: test-authoring
+  - id: progressive-fee-bands-tests
+    prompt_file: cases/code-gen/progressive-fee-bands-tests.txt
+    scoring: code-exec
+    tests_file: cases/code-gen/tests/progressive-fee-bands-tests.py
+    tier: T4
+    dimension: test-authoring
 
 weights: { quality: 1.0 }
