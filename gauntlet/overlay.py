@@ -22,13 +22,14 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from gauntlet import vram
+from gauntlet import telemetry, vram
 from gauntlet.runstatus import DEFAULT_STATUS_PATH, RunStatus, read_status
 
 __all__ = ["IN_USE", "IDLE", "FREE", "IndicatorState", "indicator_state",
            "run_overlay", "existing_overlay_pid"]
 
-POLL_MS = 2000
+POLL_MS = 2000          # status file: a cheap local read
+TELEMETRY_EVERY = 5     # nvidia-smi is a subprocess -- every 5th tick, not every tick
 POSITION_PATH = Path("scorecards") / ".overlay.json"
 LOCK_PATH = Path("scorecards") / ".overlay.pid"
 
@@ -115,6 +116,25 @@ def release_overlay_lock() -> None:
         pass
 
 
+def format_load(gpu: "telemetry.GpuLoad | None") -> str:
+    """The physical readout: temperature, fan, VRAM.
+
+    These are the numbers Kevin judges by -- he hears the fan and feels the
+    heat long before he reads a log. A missing field is omitted rather than
+    shown as zero.
+    """
+    if gpu is None:
+        return ""
+    parts = []
+    if gpu.temperature_c is not None:
+        parts.append(f"{gpu.temperature_c}°C")
+    if gpu.fan_pct is not None:
+        parts.append(f"fan {gpu.fan_pct}%")
+    if gpu.vram_used_mib and gpu.vram_total_mib:
+        parts.append(f"{gpu.vram_used_mib / 1024:.1f}/{gpu.vram_total_mib / 1024:.0f}GB")
+    return "  ".join(parts)
+
+
 def read_position() -> tuple[int, int] | None:
     try:
         data = json.loads(POSITION_PATH.read_text(encoding="utf-8"))
@@ -159,6 +179,8 @@ def run_overlay(status_path: str | Path = DEFAULT_STATUS_PATH) -> None:
     label.pack(side="left", padx=(7, 5))
     detail = tk.Label(frame, text="", bg=bg, fg="#9aa0a6", font=("Segoe UI", 8))
     detail.pack(side="left", padx=(0, 6))
+    load = tk.Label(frame, text="", bg=bg, fg="#9aa0a6", font=("Segoe UI", 8))
+    load.pack(side="left", padx=(0, 6))
 
     close = tk.Label(frame, text="✕", bg=bg, fg="#6b7178",
                      font=("Segoe UI", 9, "bold"), cursor="hand2")
@@ -187,11 +209,28 @@ def run_overlay(status_path: str | Path = DEFAULT_STATUS_PATH) -> None:
         root.update_idletasks()
         root.geometry(f"+{root.winfo_screenwidth() - root.winfo_width() - 24}+24")
 
+    # Subprocess-backed readings are cached between ticks. The first version of
+    # this polled `lms ps` every 2s and two copies were running at once -- a
+    # process spawn about once a second, forever. An indicator built to reduce
+    # annoyance has no business being a load of its own.
+    cache: dict = {"n": 0, "loaded": None, "gpu": None}
+
     def tick() -> None:
-        state = indicator_state(read_status(status_path), vram.loaded_models())
+        if cache["n"] % TELEMETRY_EVERY == 0:
+            cache["loaded"] = vram.loaded_models()
+            cache["gpu"] = telemetry.gpu_load()
+        cache["n"] += 1
+
+        state = indicator_state(read_status(status_path), cache["loaded"])
+        gpu = cache["gpu"]
         dot.itemconfig(blob, fill=state.level.colour)
         label.config(text=state.level.label, fg=state.level.colour)
         detail.config(text=state.detail)
+
+        # Heat and fan are how Kevin actually notices a run, so they get their
+        # own readout and turn amber past the point they become audible.
+        load.config(text=format_load(gpu),
+                    fg="#f39c12" if (gpu and gpu.is_stressed) else "#9aa0a6")
         root.after(POLL_MS, tick)
 
     def _shutdown(win: "tk.Tk") -> None:

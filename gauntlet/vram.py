@@ -19,6 +19,7 @@ import shutil
 import subprocess
 
 _TIMEOUT_S = 60
+_LOAD_TIMEOUT_S = 600  # a 30B model off a cold cache is not quick
 # Header and separator rows in `lms ps` output, which we must not read as models.
 _SKIP_PREFIXES = ("IDENTIFIER", "---", "===")
 
@@ -138,6 +139,31 @@ def release_after_run(before: list[str] | None, ran: list[str]) -> list[str]:
     if resident is not None:
         candidates = [m for m in candidates if m in resident]
     return [m for m in candidates if unload(m)]
+
+
+def load(model: str, *, context: int, ttl_s: int = 3600) -> bool:
+    """Load a model at exactly the context Gauntlet will use, one slot only.
+
+    Left to itself LM Studio JIT-loads at *its* defaults, which on this box was
+    24000 context x 4 parallel slots. Gauntlet issues one request at a time at
+    8192, so that allocated a KV cache for ~96k tokens to serve 8k -- about 12x
+    the memory actually needed. It overflowed VRAM into system RAM and brought
+    the machine to a crawl, and it also made the scorecard lie: cells recorded
+    `context: 8192` while the model was really running at 24000.
+
+    A TTL is set as a backstop so a hard-killed run cannot strand the model
+    resident forever, since a SIGKILLed process never reaches its unload.
+    """
+    if not lms_available():
+        return False
+    try:
+        proc = subprocess.run(
+            ["lms", "load", model, "--context-length", str(context),
+             "--parallel", "1", "--ttl", str(ttl_s), "--yes"],
+            capture_output=True, text=True, timeout=_LOAD_TIMEOUT_S, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return proc.returncode == 0
 
 
 def unload(model: str) -> bool:

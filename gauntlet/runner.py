@@ -299,6 +299,11 @@ def execute_plan(
                         write_status(status_path, status)
                     if model not in ran_models:
                         ran_models.append(model)
+                        # Load explicitly at the context we actually use.
+                        # Otherwise LM Studio JIT-loads at its own defaults and
+                        # sizes the KV cache for many times the work in hand.
+                        if exclusive_vram:
+                            vram.load(model, context=context)
                         if status_path:
                             status.models_ran = list(ran_models)
                             write_status(status_path, status)

@@ -99,6 +99,20 @@ def status() -> None:
                       if st.cases_total else "")
             typer.echo(f"  current: {st.model}  [{st.capability}]{within}")
 
+    from gauntlet import telemetry
+    from gauntlet.overlay import format_load
+
+    gpu = telemetry.gpu_load()
+    if gpu is not None:
+        flag = "  <-- audible" if gpu.is_stressed else ""
+        typer.echo(f"\nGPU: {format_load(gpu)}"
+                   f"{f'  util {gpu.utilisation_pct}%' if gpu.utilisation_pct is not None else ''}"
+                   f"{flag}")
+    mem = telemetry.system_memory()
+    if mem is not None:
+        typer.echo(f"RAM: {mem.used_gb:.1f}/{mem.total_gb:.0f} GB "
+                   f"({mem.used_pct:.0f}%)")
+
     loaded = vram.loaded_models()
     if loaded is None:
         typer.echo("\nVRAM: unknown (`lms` not available).")

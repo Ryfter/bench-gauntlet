@@ -95,6 +95,14 @@ class OpenAIClient:
             raise errors.Unreachable(f"{self.base_url}: {exc}") from exc
         except httpx.HTTPStatusError as exc:
             raise errors.ModelLoadFailed(f"{model}: HTTP {exc.response.status_code}") from exc
+        except (httpx.RemoteProtocolError, httpx.ReadError, httpx.WriteError,
+                httpx.TimeoutException) as exc:
+            # The stream died part-way. Opening the LM Studio UI is enough to do
+            # this, and it killed a 51-cell run outright. Per the error taxonomy
+            # a transport failure is a *cell outcome*, not a reason to abandon
+            # hours of completed work -- the runner records it and carries on.
+            raise errors.Unreachable(
+                f"{self.base_url}: stream interrupted ({type(exc).__name__}: {exc})") from exc
         latency = time.monotonic() - start
         return ChatResult(
             text="".join(chunks),
