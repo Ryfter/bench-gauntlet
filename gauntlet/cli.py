@@ -70,6 +70,46 @@ def report(
 
 
 @app.command()
+def status() -> None:
+    """Is Gauntlet using the GPU right now? Also shows what is resident in VRAM.
+
+    Exists so the answer to "why is my machine loud?" never requires reading a
+    log file or hunting for a process.
+    """
+    from gauntlet import vram
+    from gauntlet.runstatus import DEFAULT_STATUS_PATH, read_status
+
+    st = read_status(DEFAULT_STATUS_PATH)
+    if st is None:
+        typer.echo("Gauntlet: idle — no run in progress.")
+    elif not st.is_alive:
+        typer.echo(f"Gauntlet: idle — run {st.run_id} left a stale marker "
+                   f"(pid {st.pid} is gone; it was killed or crashed).")
+        typer.echo(f"  last seen: {st.updated_at}  "
+                   f"cells: {st.cells_done}/{st.cells_total or '?'}")
+        typer.echo(f"  resume with: gauntlet run --resume {st.run_id}")
+    else:
+        pct = "" if st.progress is None else f" ({st.progress * 100:.0f}%)"
+        typer.echo(f"Gauntlet: RUNNING — run {st.run_id} (pid {st.pid})")
+        typer.echo(f"  started: {st.started_at}   updated: {st.updated_at}")
+        typer.echo(f"  cells:   {st.cells_done}/{st.cells_total or '?'}{pct}")
+        if st.model:
+            typer.echo(f"  current: {st.model}  [{st.capability}]")
+
+    loaded = vram.loaded_models()
+    if loaded is None:
+        typer.echo("\nVRAM: unknown (`lms` not available).")
+    elif not loaded:
+        typer.echo("\nVRAM: no models loaded.")
+    else:
+        typer.echo(f"\nVRAM: {len(loaded)} model(s) loaded:")
+        for m in loaded:
+            typer.echo(f"  - {m}")
+        typer.echo("  (Gauntlet frees only the models it loaded; anything else "
+                   "is another session's.)")
+
+
+@app.command()
 def run(
     config: str = typer.Option(None, "--config", "-c", help="Path to targets.yaml"),
     batteries: str = typer.Option("batteries", "--batteries", help="Directory of battery YAML files"),
@@ -90,6 +130,7 @@ def run(
     from gauntlet.config import load_config
     from gauntlet.models import RunMeta
     from gauntlet.runner import RunPaths, assemble_scorecard, execute_plan, write_meta
+    from gauntlet.runstatus import DEFAULT_STATUS_PATH
     from gauntlet.scorecard import render_markdown, write_json
 
     cfg = load_config(config)
@@ -105,9 +146,13 @@ def run(
         import os
         return OpenAIClient(base_url=base_url, api_key=os.environ.get("GAUNTLET_API_KEY"))
 
+    typer.echo(f"Starting run {rid}: this holds the GPU at sustained load until "
+               f"it finishes. Check progress from another shell with "
+               f"`gauntlet status`; the card is released at the end.")
     cells = execute_plan(cfg, bats, paths, base_dir=prompts, client_factory=factory,
                          only_models=list(models) if models else None,
-                         resume=bool(resume_id))
+                         resume=bool(resume_id),
+                         status_path=DEFAULT_STATUS_PATH)
 
     meta = RunMeta(id=rid, date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
                    gauntlet_version=__version__)

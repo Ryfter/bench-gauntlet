@@ -6,13 +6,15 @@ NEVER aborts: unreachable / load-fail / busy become typed cell outcomes."""
 from __future__ import annotations
 
 import json
+import os
 import re
 import statistics
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
-from gauntlet import errors
+from gauntlet import errors, vram
 from gauntlet.models import CaseResult, Cell, RunMeta, Scorecard
+from gauntlet.runstatus import RunStatus, clear_status, now_iso, write_status
 from gauntlet.scorecard import aggregate_cell
 from gauntlet.scoring import NEEDS_JUDGE, score_case
 from gauntlet.scoring.judge import score_with_judge, select_judge
@@ -226,6 +228,8 @@ def execute_plan(
     footprints: dict[str, int] | None = None,
     only_models: list[str] | None = None,
     resume: bool = False,
+    status_path: str | Path | None = None,
+    release_gpu: bool = True,
 ) -> list[Cell]:
     """Drive the sequenced plan to completion. Opens one client per target (lazily,
     via client_factory), runs each cell, and appends it to cells.jsonl immediately.
@@ -234,6 +238,15 @@ def execute_plan(
     done = read_completed(paths) if resume else set()
     plan = plan_run(config, batteries, footprints=footprints, only_models=only_models)
     battery_by_cap = {b.capability: b for b in batteries}
+
+    total_cells = sum(len(g.cells) for g in plan.groups)
+    status = RunStatus(run_id=paths.root.name, pid=os.getpid(),
+                       started_at=now_iso(), cells_total=total_cells)
+    if status_path:
+        write_status(status_path, status)
+    # Snapshot before the first load so we can tell our models from Kevin's.
+    vram_before = vram.loaded_models() if release_gpu else None
+    ran_models: list[str] = []
 
     clients: dict[str, object] = {}
     produced: list[Cell] = []
@@ -246,6 +259,12 @@ def execute_plan(
                     key = (target, model, context, cell_plan.capability)
                     if key in done:
                         continue
+                    if status_path:
+                        status.model = model
+                        status.capability = cell_plan.capability
+                        write_status(status_path, status)
+                    if model not in ran_models:
+                        ran_models.append(model)
                     tgt = config.target_by_name(target)
                     client = clients.get(target)
                     if client is None:
@@ -262,9 +281,18 @@ def execute_plan(
                     append_cell(paths, cell)
                     done.add(key)
                     produced.append(cell)
+                    if status_path:
+                        status.cells_done = len(produced)
+                        write_status(status_path, status)
     finally:
         for client in clients.values():
             client.close()
+        # Hand the GPU back. A loaded-but-idle model costs power for nothing,
+        # and this runs on a desktop. Only models we caused to load are freed.
+        if release_gpu:
+            vram.release_after_run(vram_before, ran_models)
+        if status_path:
+            clear_status(status_path)
     return produced
 
 
