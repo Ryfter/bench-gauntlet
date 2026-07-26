@@ -32,7 +32,12 @@ class OpenAIClient:
         self,
         base_url: str,
         api_key: str | None = None,
-        timeout: float = 120.0,
+        # Per-chunk on a stream, not per-request, so this is the longest silence
+        # tolerated rather than a cap on generation. A reasoning model can think
+        # for minutes before its first content token; 120s was cutting those off
+        # as transport errors, which reads as an unreachable box rather than a
+        # slow model.
+        timeout: float = 600.0,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
