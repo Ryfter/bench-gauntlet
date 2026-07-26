@@ -59,6 +59,13 @@ class RunStatus(BaseModel):
     capability: str | None = None
     cells_done: int = 0
     cells_total: int = 0
+    # Progress *within* the current cell. A cell is one battery against one
+    # model, which for 108 code-gen cases against a verbose reasoning model runs
+    # for hours -- so cell-granularity alone leaves the indicator looking frozen
+    # for the whole of it, and an indicator that looks frozen is one you stop
+    # believing. These are the heartbeat.
+    cases_done: int = 0
+    cases_total: int = 0
     # Recorded so cleanup survives a hard kill. `finally` does not run when the
     # process is SIGKILLed, which is exactly how an interrupted run tends to
     # end -- and then VRAM stays occupied with no in-memory record of what was

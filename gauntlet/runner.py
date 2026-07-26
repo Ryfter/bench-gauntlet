@@ -79,6 +79,24 @@ def attribute_truncation(result: CaseResult, *, truncated: bool) -> CaseResult:
     })
 
 
+def _case_heartbeat(status_path, status: RunStatus | None):
+    """A per-case tick for the run indicator, or None when nothing is watching.
+
+    Cheap by design -- one small file rewrite per case -- because the
+    alternative is an indicator that sits unchanged for the hours a single
+    108-case cell can take, which is indistinguishable from a hung run.
+    """
+    if not status_path or status is None:
+        return None
+
+    def tick(done: int, total: int) -> None:
+        status.cases_done = done
+        status.cases_total = total
+        write_status(status_path, status)
+
+    return tick
+
+
 def append_case_rows(
     paths: RunPaths,
     *,
@@ -139,6 +157,7 @@ def run_cell(
     base_dir,
     judge_pool: list[tuple[str, str]] | None = None,
     case_sink: "Callable[[list[CaseResult]], None] | None" = None,
+    on_case: "Callable[[int, int], None] | None" = None,
 ) -> Cell:
     """Fire every case of one battery against one loaded profile, score, and
     aggregate into a Cell. Per-case transport failures are counted as errors and
@@ -151,7 +170,10 @@ def run_cell(
     error_count = 0
     judge_used: str | None = None
 
-    for case in battery.cases:
+    total_cases = len(battery.cases)
+    for index, case in enumerate(battery.cases):
+        if on_case is not None:
+            on_case(index, total_cases)
         prompt = load_prompt(case, base_dir)
         try:
             reply = client.chat(model=model, prompt=prompt,
@@ -285,7 +307,8 @@ def execute_plan(
                                     case_sink=lambda results, _t=target, _m=model, _c=context,
                                                      _cap=cell_plan.capability: append_case_rows(
                                         paths, model=_m, target=_t, context=_c,
-                                        capability=_cap, results=results))
+                                        capability=_cap, results=results),
+                                    on_case=_case_heartbeat(status_path, status))
                     append_cell(paths, cell)
                     done.add(key)
                     produced.append(cell)

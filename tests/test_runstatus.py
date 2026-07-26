@@ -62,7 +62,8 @@ def test_status_carries_no_endpoint(tmp_path):
     assert "http" not in raw
     assert set(json.loads(raw)) == {
         "run_id", "pid", "started_at", "updated_at", "model", "capability",
-        "cells_done", "cells_total", "vram_before", "models_ran",
+        "cells_done", "cells_total", "cases_done", "cases_total",
+        "vram_before", "models_ran",
     }
 
 

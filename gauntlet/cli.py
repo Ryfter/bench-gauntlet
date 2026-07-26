@@ -1,3 +1,4 @@
+import os
 import sys
 
 import typer
@@ -94,7 +95,9 @@ def status() -> None:
         typer.echo(f"  started: {st.started_at}   updated: {st.updated_at}")
         typer.echo(f"  cells:   {st.cells_done}/{st.cells_total or '?'}{pct}")
         if st.model:
-            typer.echo(f"  current: {st.model}  [{st.capability}]")
+            within = (f"  case {st.cases_done}/{st.cases_total}"
+                      if st.cases_total else "")
+            typer.echo(f"  current: {st.model}  [{st.capability}]{within}")
 
     loaded = vram.loaded_models()
     if loaded is None:
@@ -107,6 +110,71 @@ def status() -> None:
             typer.echo(f"  - {m}")
         typer.echo("  (Gauntlet frees only the models it loaded; anything else "
                    "is another session's.)")
+
+
+def _spawn_overlay():
+    """Launch the lamp beside a run, or return None if it cannot start.
+
+    Detached and best-effort on purpose: an indicator that fails must never take
+    the benchmark down with it. A headless box has no display and simply gets no
+    lamp.
+    """
+    import subprocess
+    import sys as _sys
+
+    from gauntlet.overlay import existing_overlay_pid
+
+    if existing_overlay_pid() is not None:
+        return None  # one is already up; it reads the same marker
+
+    try:
+        kwargs: dict = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+        if os.name == "nt":
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+        return subprocess.Popen([_sys.executable, "-m", "gauntlet.cli", "overlay"], **kwargs)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def _stop_overlay(proc) -> None:
+    """Close the lamp when the run ends, so a finished run leaves nothing behind."""
+    import subprocess
+
+    try:
+        proc.terminate()
+        proc.wait(timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        try:
+            proc.kill()
+        except OSError:
+            pass
+
+
+@app.command()
+def overlay() -> None:
+    """Show a small draggable always-on-top lamp for local-model GPU use.
+
+    green = inference running, yellow = a model is resident but idle (power
+    spent for nothing), red = nothing loaded. Drag it anywhere; click ✕ or press
+    Escape to close. Position is remembered.
+
+    Runs as its own process polling the run marker, so it can never slow down or
+    interfere with a benchmark.
+    """
+    from gauntlet.overlay import existing_overlay_pid, run_overlay
+
+    already = existing_overlay_pid()
+    if already is not None:
+        typer.echo(f"An overlay is already on screen (pid {already}). "
+                   f"A second one would stack invisibly on top of it.")
+        raise typer.Exit(code=0)
+
+    try:
+        run_overlay()
+    except ImportError:
+        typer.echo("The overlay needs tkinter, which this Python was built "
+                   "without. `gauntlet status` gives the same information.")
+        raise typer.Exit(code=1) from None
 
 
 @app.command()
@@ -157,6 +225,8 @@ def run(
     resume_id: str = typer.Option(None, "--resume", help="Resume an existing run id (skip completed cells)"),
     run_id: str = typer.Option(None, "--run-id", help="Run id (default: timestamp)"),
     share: bool = typer.Option(False, "--share", help="Drop hostname labels in the written scorecard"),
+    overlay: bool = typer.Option(True, "--overlay/--no-overlay",
+                                 help="Show the on-screen GPU-use lamp for the duration of the run"),
 ) -> None:
     """Run the gauntlet: sequence the work matrix and execute it against live targets."""
     from datetime import datetime, timezone
@@ -187,10 +257,15 @@ def run(
     typer.echo(f"Starting run {rid}: this holds the GPU at sustained load until "
                f"it finishes. Check progress from another shell with "
                f"`gauntlet status`; the card is released at the end.")
+
+    lamp = _spawn_overlay() if overlay else None
     cells = execute_plan(cfg, bats, paths, base_dir=prompts, client_factory=factory,
                          only_models=list(models) if models else None,
                          resume=bool(resume_id),
                          status_path=DEFAULT_STATUS_PATH)
+
+    if lamp is not None:
+        _stop_overlay(lamp)
 
     meta = RunMeta(id=rid, date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
                    gauntlet_version=__version__)
