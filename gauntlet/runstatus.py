@@ -16,11 +16,38 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # Beside the run directories, not inside one, so it is findable without knowing
 # the run id -- which is the whole point when you are asking "what is running?"
 DEFAULT_STATUS_PATH = Path("scorecards") / ".running.json"
+
+
+_STILL_ACTIVE = 259  # Windows STILL_ACTIVE exit code
+_PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+
+
+def _win_pid_alive(pid: int) -> bool:
+    """Liveness on Windows, without signalling the process.
+
+    Opens the process for query only and reads its exit code; `STILL_ACTIVE`
+    means running. A failed open means it is gone (or not ours to inspect,
+    which for our own run marker amounts to the same thing).
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    handle = kernel32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+    if not handle:
+        return False
+    try:
+        code = wintypes.DWORD()
+        if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+            return False
+        return code.value == _STILL_ACTIVE
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 class RunStatus(BaseModel):
@@ -32,6 +59,13 @@ class RunStatus(BaseModel):
     capability: str | None = None
     cells_done: int = 0
     cells_total: int = 0
+    # Recorded so cleanup survives a hard kill. `finally` does not run when the
+    # process is SIGKILLed, which is exactly how an interrupted run tends to
+    # end -- and then VRAM stays occupied with no in-memory record of what was
+    # already resident. Persisting both halves of the snapshot-diff lets
+    # `gauntlet release` finish the job from the file alone.
+    vram_before: list[str] | None = None
+    models_ran: list[str] = Field(default_factory=list)
 
     @property
     def progress(self) -> float | None:
@@ -47,15 +81,22 @@ class RunStatus(BaseModel):
         A killed run leaves its status file behind, and a stale file that reads
         as "running" is worse than none -- it is exactly the wrong answer to the
         question the file exists to answer.
+
+        **Never use `os.kill(pid, 0)` here.** That is the POSIX idiom for
+        probing liveness, but on Windows CPython routes any signal other than
+        CTRL_C_EVENT/CTRL_BREAK_EVENT straight to `TerminateProcess` -- so the
+        "harmless" probe would kill the very run it is asking about.
         """
+        if self.pid <= 0:
+            return False
+        if os.name == "nt":
+            return _win_pid_alive(self.pid)
         try:
             os.kill(self.pid, 0)
         except (ProcessLookupError, ValueError):
             return False
         except PermissionError:
             return True  # exists, owned by someone else
-        except OSError:
-            return True
         return True
 
 

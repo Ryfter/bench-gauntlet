@@ -110,6 +110,44 @@ def status() -> None:
 
 
 @app.command()
+def release() -> None:
+    """Free VRAM left behind by a killed run.
+
+    A run releases the GPU itself on a clean exit, but `finally` does not run
+    when the process is SIGKILLed -- which is how an interrupted run usually
+    ends. This finishes the job from the status file, which records both halves
+    of the snapshot-diff so a model from another session is still never touched.
+    """
+    from gauntlet import vram
+    from gauntlet.runstatus import DEFAULT_STATUS_PATH, clear_status, read_status
+
+    st = read_status(DEFAULT_STATUS_PATH)
+    if st is None:
+        typer.echo("Nothing to release — no run marker found.")
+        raise typer.Exit(code=0)
+    if st.is_alive:
+        typer.echo(f"Run {st.run_id} is still going (pid {st.pid}). "
+                   f"Stop it first; it frees the GPU on a clean exit.")
+        raise typer.Exit(code=1)
+
+    if st.vram_before is None:
+        typer.echo("Refusing to unload: the run never recorded what was already "
+                   "loaded, so anything resident might not be ours.")
+        typer.echo("Unload by hand with `lms unload <model>` if you are sure.")
+        raise typer.Exit(code=1)
+
+    freed = vram.release_after_run(st.vram_before, st.models_ran)
+    if freed:
+        typer.echo(f"Released {len(freed)} model(s) from run {st.run_id}:")
+        for m in freed:
+            typer.echo(f"  - {m}")
+    else:
+        typer.echo(f"Nothing to release from run {st.run_id} — everything still "
+                   f"loaded was already there before it started.")
+    clear_status(DEFAULT_STATUS_PATH)
+
+
+@app.command()
 def run(
     config: str = typer.Option(None, "--config", "-c", help="Path to targets.yaml"),
     batteries: str = typer.Option("batteries", "--batteries", help="Directory of battery YAML files"),

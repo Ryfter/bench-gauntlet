@@ -240,13 +240,18 @@ def execute_plan(
     battery_by_cap = {b.capability: b for b in batteries}
 
     total_cells = sum(len(g.cells) for g in plan.groups)
-    status = RunStatus(run_id=paths.root.name, pid=os.getpid(),
-                       started_at=now_iso(), cells_total=total_cells)
-    if status_path:
-        write_status(status_path, status)
+    # Count cells finished by an earlier attempt too. A resumed run reporting
+    # 0/63 when 23 are on disk understates progress at exactly the moment
+    # someone is looking at it to decide whether to wait.
+    resumed_cells = len(done)
     # Snapshot before the first load so we can tell our models from Kevin's.
     vram_before = vram.loaded_models() if release_gpu else None
     ran_models: list[str] = []
+    status = RunStatus(run_id=paths.root.name, pid=os.getpid(),
+                       started_at=now_iso(), cells_total=total_cells,
+                       cells_done=resumed_cells, vram_before=vram_before)
+    if status_path:
+        write_status(status_path, status)
 
     clients: dict[str, object] = {}
     produced: list[Cell] = []
@@ -265,6 +270,9 @@ def execute_plan(
                         write_status(status_path, status)
                     if model not in ran_models:
                         ran_models.append(model)
+                        if status_path:
+                            status.models_ran = list(ran_models)
+                            write_status(status_path, status)
                     tgt = config.target_by_name(target)
                     client = clients.get(target)
                     if client is None:
@@ -282,7 +290,7 @@ def execute_plan(
                     done.add(key)
                     produced.append(cell)
                     if status_path:
-                        status.cells_done = len(produced)
+                        status.cells_done = resumed_cells + len(produced)
                         write_status(status_path, status)
     finally:
         for client in clients.values():

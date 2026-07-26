@@ -8,6 +8,11 @@ because a loaded-but-idle model is wasted power.
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
+
+import pytest
 
 from gauntlet import vram
 from gauntlet.runstatus import RunStatus, clear_status, read_status, write_status
@@ -57,14 +62,69 @@ def test_status_carries_no_endpoint(tmp_path):
     assert "http" not in raw
     assert set(json.loads(raw)) == {
         "run_id", "pid", "started_at", "updated_at", "model", "capability",
-        "cells_done", "cells_total",
+        "cells_done", "cells_total", "vram_before", "models_ran",
     }
+
+
+def test_the_snapshot_survives_a_hard_kill(tmp_path):
+    """`finally` does not run on SIGKILL, which is how an interrupted run
+    usually ends. Both halves of the snapshot-diff must be on disk so cleanup
+    can still tell our models from someone else's."""
+    path = tmp_path / ".running.json"
+    write_status(path, RunStatus(run_id="r", pid=1, started_at="t",
+                                 vram_before=["theirs"], models_ran=["ours"]))
+    got = read_status(path)
+    assert got.vram_before == ["theirs"]
+    assert got.models_ran == ["ours"]
+    assert models_to_unload(before=got.vram_before, ran=got.models_ran) == ["ours"]
+
+
+def test_progress_counts_cells_finished_by_an_earlier_attempt():
+    """A resumed run must not report 0% when most of the work is already on
+    disk -- that is the number someone reads to decide whether to wait."""
+    assert RunStatus(run_id="r", pid=1, started_at="t",
+                     cells_done=23, cells_total=63).progress == pytest.approx(23 / 63)
 
 
 def test_progress_fraction_is_none_without_a_total():
     assert RunStatus(run_id="r", pid=1, started_at="t").progress is None
     assert RunStatus(run_id="r", pid=1, started_at="t",
                      cells_done=3, cells_total=12).progress == 0.25
+
+
+# --- liveness ------------------------------------------------------------------
+
+def test_our_own_pid_reads_as_alive():
+    assert RunStatus(run_id="r", pid=os.getpid(), started_at="t").is_alive
+
+
+def test_a_dead_pid_reads_as_not_alive():
+    """The bug this pins: on Windows the POSIX idiom `os.kill(pid, 0)` routes to
+    TerminateProcess, so probing liveness would kill the run being probed --
+    and a failed probe was being reported as 'alive', leaving `release`
+    permanently convinced a dead run was still going."""
+    proc = subprocess.Popen([sys.executable, "-c", "pass"])
+    proc.wait()
+    assert not RunStatus(run_id="r", pid=proc.pid, started_at="t").is_alive
+
+
+def test_probing_liveness_does_not_kill_the_process():
+    """The probe must be read-only. If this regresses, `gauntlet status` becomes
+    a way to kill the run you were asking about."""
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        status = RunStatus(run_id="r", pid=proc.pid, started_at="t")
+        assert status.is_alive
+        assert status.is_alive  # probe twice — still must be running
+        assert proc.poll() is None, "the liveness probe terminated the process"
+    finally:
+        proc.kill()
+        proc.wait(timeout=10)
+
+
+def test_a_nonsense_pid_reads_as_not_alive():
+    assert not RunStatus(run_id="r", pid=0, started_at="t").is_alive
+    assert not RunStatus(run_id="r", pid=-1, started_at="t").is_alive
 
 
 # --- what to unload ------------------------------------------------------------
