@@ -87,6 +87,15 @@ def test_progress_counts_cells_finished_by_an_earlier_attempt():
                      cells_done=23, cells_total=63).progress == pytest.approx(23 / 63)
 
 
+def test_progress_never_exceeds_the_total():
+    """A resume that narrows the model list must not count cells outside its own
+    plan. Reporting 51/14 (364%) is worse than reporting nothing."""
+    status = RunStatus(run_id="r", pid=1, started_at="t",
+                       cells_done=12, cells_total=14)
+    assert status.progress is not None
+    assert 0 <= status.progress <= 1
+
+
 def test_progress_fraction_is_none_without_a_total():
     assert RunStatus(run_id="r", pid=1, started_at="t").progress is None
     assert RunStatus(run_id="r", pid=1, started_at="t",

@@ -79,6 +79,30 @@ def attribute_truncation(result: CaseResult, *, truncated: bool) -> CaseResult:
     })
 
 
+_DEAD_ENDPOINT_HINT = (
+    "unscored: target not serving when the run reached it. If this is LM Studio, "
+    "opening the desktop app stops its headless server (`lms server start`)."
+)
+
+
+def _unreachable_cell(*, model: str, target: str, box: str, context: int,
+                      battery: "Battery") -> Cell:
+    """A cell for a target that was not serving, without calling it case by case.
+
+    Recorded rather than skipped so the gap is visible in the scorecard, and
+    `unscored` rather than 0.0 because a dead endpoint says nothing whatever
+    about the model. Building it up front also avoids the failure mode this
+    exists to prevent: hammering a refused port once per case and calling the
+    result a measurement.
+    """
+    results = [CaseResult(case_id=case.id, method=case.scoring, score=None,
+                          passed=False, detail=_DEAD_ENDPOINT_HINT)
+               for case in battery.cases]
+    return aggregate_cell(model=model, target=target, box=box, context=context,
+                          capability=battery.capability, results=results,
+                          errors=len(results))
+
+
 def _case_heartbeat(status_path, status: RunStatus | None):
     """A per-case tick for the run indicator, or None when nothing is watching.
 
@@ -266,7 +290,14 @@ def execute_plan(
     # Count cells finished by an earlier attempt too. A resumed run reporting
     # 0/63 when 23 are on disk understates progress at exactly the moment
     # someone is looking at it to decide whether to wait.
-    resumed_cells = len(done)
+    #
+    # Only those inside *this* plan, though. `done` holds every cell in the run
+    # directory, so when a resume narrows the model list -- rerunning two models
+    # out of nine -- counting all of them reports 51/14, which is worse than no
+    # number at all.
+    planned = {(c.target, c.model, c.context, c.capability)
+               for g in plan.groups for c in g.cells}
+    resumed_cells = len(done & planned)
     # Exclusive-VRAM: start from an empty card. A model sharing VRAM spills
     # layers to CPU, and the number that comes out then describes the
     # contention rather than the model -- which is not a benchmark result. One
@@ -283,6 +314,7 @@ def execute_plan(
         write_status(status_path, status)
 
     clients: dict[str, object] = {}
+    dead_targets: set[str] = set()
     produced: list[Cell] = []
     try:
         for group in plan.groups:
@@ -312,6 +344,23 @@ def execute_plan(
                     if client is None:
                         client = client_factory(tgt.base_url)
                         clients[target] = client
+                        # Check the endpoint is serving before committing a
+                        # model's worth of work to it. A dead server refuses
+                        # every request instantly, so without this a whole
+                        # battery burns through in seconds and lands as cells
+                        # that look measured. The run still continues -- an
+                        # unreachable target is a cell outcome, never an abort.
+                        if not client.ping():
+                            dead_targets.add(target)
+                    if target in dead_targets:
+                        battery = battery_by_cap[cell_plan.capability]
+                        cell = _unreachable_cell(
+                            model=model, target=target, box=cell_plan.box_hardware,
+                            context=context, battery=battery)
+                        append_cell(paths, cell)
+                        done.add(key)
+                        produced.append(cell)
+                        continue
                     cell = run_cell(client, model=model, target=target,
                                     box=cell_plan.box_hardware, context=context,
                                     battery=battery_by_cap[cell_plan.capability], base_dir=base_dir,

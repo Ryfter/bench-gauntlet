@@ -20,6 +20,14 @@ import subprocess
 
 _TIMEOUT_S = 60
 _LOAD_TIMEOUT_S = 600  # a 30B model off a cold cache is not quick
+
+# `text=True` alone decodes with the locale codec, which on this box is cp1252,
+# and `lms` writes UTF-8 progress output. The mismatch kills subprocess's reader
+# thread mid-read: the command appears to run, returns nothing usable, and the
+# model is never actually loaded. That silently voided 223 calls across the last
+# two models of the 2026-07-26 fleet run. Decode explicitly, and never let an
+# undecodable byte in a progress spinner take down a benchmark.
+_TEXT = {"encoding": "utf-8", "errors": "replace"}
 # Header and separator rows in `lms ps` output, which we must not read as models.
 _SKIP_PREFIXES = ("IDENTIFIER", "---", "===")
 
@@ -99,7 +107,7 @@ def _lms_ps_output() -> str | None:
     if not lms_available():
         return None
     try:
-        proc = subprocess.run(["lms", "ps"], capture_output=True, text=True,
+        proc = subprocess.run(["lms", "ps"], capture_output=True, **_TEXT,
                               timeout=_TIMEOUT_S, check=False)
     except (OSError, subprocess.SubprocessError):
         return None
@@ -160,7 +168,7 @@ def load(model: str, *, context: int, ttl_s: int = 3600) -> bool:
         proc = subprocess.run(
             ["lms", "load", model, "--context-length", str(context),
              "--parallel", "1", "--ttl", str(ttl_s), "--yes"],
-            capture_output=True, text=True, timeout=_LOAD_TIMEOUT_S, check=False)
+            capture_output=True, **_TEXT, timeout=_LOAD_TIMEOUT_S, check=False)
     except (OSError, subprocess.SubprocessError):
         return False
     return proc.returncode == 0
@@ -176,7 +184,7 @@ def unload(model: str) -> bool:
         return False
     try:
         proc = subprocess.run(["lms", "unload", model], capture_output=True,
-                              text=True, timeout=_TIMEOUT_S, check=False)
+                              **_TEXT, timeout=_TIMEOUT_S, check=False)
     except (OSError, subprocess.SubprocessError):
         return False
     return proc.returncode == 0

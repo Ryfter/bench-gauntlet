@@ -113,6 +113,22 @@ class OpenAIClient:
             finish_reason=finish_reason,
         )
 
+    def ping(self) -> bool:
+        """Is the endpoint actually serving? Cheap, no model load.
+
+        Worth a call before a run because the failure it catches is silent and
+        expensive: opening the LM Studio desktop app stops its headless server,
+        and `lms load` keeps working afterwards because that talks to the app
+        rather than the server. So VRAM fills, the indicator shows a model
+        resident, and every request is refused. On 2026-07-26 that produced 223
+        errored cases and twelve unscored cells before anyone noticed.
+        """
+        try:
+            resp = self._http.get("/v1/models", timeout=15.0)
+        except httpx.HTTPError:
+            return False
+        return resp.status_code == 200
+
     def embeddings(self, model: str, inputs: list[str]) -> list[list[float]]:
         payload = {"model": model, "input": inputs}
         try:

@@ -91,7 +91,8 @@ def gpu_load() -> GpuLoad | None:
     try:
         proc = subprocess.run(
             ["nvidia-smi", f"--query-gpu={QUERY}", "--format=csv,noheader"],
-            capture_output=True, text=True, timeout=_TIMEOUT_S, check=False)
+            capture_output=True, encoding="utf-8", errors="replace",
+            timeout=_TIMEOUT_S, check=False)
     except (OSError, subprocess.SubprocessError):
         return None
     if proc.returncode != 0:
