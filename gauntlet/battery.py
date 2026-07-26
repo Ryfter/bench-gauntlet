@@ -40,6 +40,13 @@ class Case(BaseModel):
 class Battery(BaseModel):
     capability: str
     context_floor: int = 0
+    # Generation budget per case. Reasoning models spend thousands of tokens
+    # thinking before their first line of answer, so a budget tuned for
+    # short-answer batteries scores them at zero for running out of room
+    # rather than for being unable to do the task. Set it per battery: the
+    # answer to "classify this in one word" needs a fraction of what "write
+    # this function" does.
+    max_tokens: int = 512
     cases: list[Case] = Field(default_factory=list)
     weights: dict[str, float] = Field(default_factory=lambda: {"quality": 1.0})
 

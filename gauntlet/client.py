@@ -15,6 +15,14 @@ class ChatResult(BaseModel):
     completion_tokens: int | None = None
     latency_s: float = 0.0
     ttft_s: float | None = None  # time to first token; populated via SSE streaming
+    # Why generation stopped. "length" means the token budget ran out mid-reply,
+    # which for a reasoning model can mean it never reached its answer at all --
+    # a fact about our configuration, not about the model.
+    finish_reason: str | None = None
+
+    @property
+    def truncated(self) -> bool:
+        return self.finish_reason == "length"
 
 
 class OpenAIClient:
@@ -54,6 +62,7 @@ class OpenAIClient:
                 ttft_s: float | None = None
                 chunks: list[str] = []
                 usage: dict = {}
+                finish_reason: str | None = None
                 for line in resp.iter_lines():
                     if not line.startswith("data: "):
                         continue
@@ -69,6 +78,8 @@ class OpenAIClient:
                     choices = obj.get("choices") or []
                     if not choices:
                         continue
+                    if choices[0].get("finish_reason"):
+                        finish_reason = choices[0]["finish_reason"]
                     delta = choices[0].get("delta") or {}
                     content = delta.get("content")
                     if content:
@@ -86,6 +97,7 @@ class OpenAIClient:
             completion_tokens=usage.get("completion_tokens"),
             latency_s=latency,
             ttft_s=ttft_s,
+            finish_reason=finish_reason,
         )
 
     def embeddings(self, model: str, inputs: list[str]) -> list[list[float]]:

@@ -110,6 +110,7 @@ FailureMode = Literal[
     "wrong_answer",    # ran clean, but some hidden asserts failed
     "timeout",         # exceeded the sandbox wall clock
     "no_code_emitted",  # model returned prose/nothing — no code to run
+    "truncated",       # cut off by the token budget before finishing -> unscored
     "integrity_violation",  # tried to read the benchmark tree / reach the net
     "harness_error",   # OUR bug, not the candidate's -> unscored
 ]

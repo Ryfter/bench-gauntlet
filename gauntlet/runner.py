@@ -47,6 +47,36 @@ def append_cell(paths: RunPaths, cell: Cell) -> None:
         fh.write(cell.model_dump_json() + "\n")
 
 
+# Failures that a mid-sentence cut is a sufficient explanation for. Anything
+# else -- the code ran and was wrong, it hung, it reached for the answers --
+# happened before the budget mattered and keeps its result.
+_TRUNCATION_EXCUSES = frozenset({"no_code_emitted", "syntax_error"})
+
+
+def attribute_truncation(result: CaseResult, *, truncated: bool) -> CaseResult:
+    """Re-attribute a failure that the token budget, not the model, caused.
+
+    A reasoning model can spend its entire budget thinking and be cut off before
+    writing a line. Scored naively that is `no_code_emitted` at 0.0 -- the
+    benchmark measuring its own configuration and reporting it as a property of
+    the model. We cannot tell whether it could not do the task or was not
+    allowed to finish, so the honest answer is `unscored` (scoring-honesty
+    invariant: never silently 0).
+
+    This does not soften a real failure: a model that emits prose *within* its
+    budget genuinely failed, and a `wrong_answer` ran to completion, so the
+    defect in it is real regardless of what was cut off afterwards.
+    """
+    if not truncated or result.failure_mode not in _TRUNCATION_EXCUSES:
+        return result
+    return result.model_copy(update={
+        "score": None,
+        "passed": False,
+        "failure_mode": "truncated",
+        "detail": f"unscored: reply truncated by the token budget ({result.failure_mode})",
+    })
+
+
 def append_case_rows(
     paths: RunPaths,
     *,
@@ -122,7 +152,8 @@ def run_cell(
     for case in battery.cases:
         prompt = load_prompt(case, base_dir)
         try:
-            reply = client.chat(model=model, prompt=prompt)
+            reply = client.chat(model=model, prompt=prompt,
+                                max_tokens=battery.max_tokens)
         except errors.GauntletError as exc:
             # Transport/load failure: count the error AND record the case as an
             # unscored failure so it still counts toward `cases` (never silently 0).
@@ -156,7 +187,7 @@ def run_cell(
                                              case_id=case.id))
         else:
             result.case_id = case.id
-            results.append(result)
+            results.append(attribute_truncation(result, truncated=reply.truncated))
 
     # Checkpoint the raw per-case detail before the summary, so a crash between
     # the two loses the cell (which resume re-runs) rather than the detail.

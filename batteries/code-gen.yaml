@@ -1,5 +1,10 @@
 capability: code-gen
 context_floor: 0
+# Reasoning models routinely spend 1500-3000 tokens thinking before their first
+# line of code. At the 512 default, seven of nine models in the 2026-07-26 fleet
+# run never reached an answer and scored ~0.00 -- the benchmark measuring its own
+# budget. gemma-4-12b writes correct code here given room to finish.
+max_tokens: 4096
 
 # Cases are execution-scored: the candidate's code is run against hidden
 # asserts in a subprocess sandbox and scored on the FRACTION passed, not on
