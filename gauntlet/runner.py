@@ -252,6 +252,7 @@ def execute_plan(
     resume: bool = False,
     status_path: str | Path | None = None,
     release_gpu: bool = True,
+    exclusive_vram: bool = True,
 ) -> list[Cell]:
     """Drive the sequenced plan to completion. Opens one client per target (lazily,
     via client_factory), runs each cell, and appends it to cells.jsonl immediately.
@@ -266,7 +267,13 @@ def execute_plan(
     # 0/63 when 23 are on disk understates progress at exactly the moment
     # someone is looking at it to decide whether to wait.
     resumed_cells = len(done)
-    # Snapshot before the first load so we can tell our models from Kevin's.
+    # Exclusive-VRAM: start from an empty card. A model sharing VRAM spills
+    # layers to CPU, and the number that comes out then describes the
+    # contention rather than the model -- which is not a benchmark result. One
+    # model resident at a time also keeps power draw to what the work needs.
+    if exclusive_vram:
+        vram.unload_all_local()
+    # Snapshot after clearing, so the diff still only ever claims our own loads.
     vram_before = vram.loaded_models() if release_gpu else None
     ran_models: list[str] = []
     status = RunStatus(run_id=paths.root.name, pid=os.getpid(),
@@ -315,6 +322,10 @@ def execute_plan(
                     if status_path:
                         status.cells_done = resumed_cells + len(produced)
                         write_status(status_path, status)
+                # Every battery for this model is done; free it before the next
+                # one loads rather than holding it for the rest of the run.
+                if exclusive_vram:
+                    vram.unload(model)
     finally:
         for client in clients.values():
             client.close()

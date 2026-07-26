@@ -184,9 +184,29 @@ def test_an_empty_snapshot_does_release_what_we_ran(monkeypatch):
     """The counterpart: `[]` is real knowledge that the machine was clear, so
     everything we loaded is ours to free."""
     monkeypatch.setattr(vram, "unload", lambda m: True)
+    monkeypatch.setattr(vram, "loaded_models", lambda: ["a", "b"])
     assert vram.release_after_run([], ["b", "a"]) == ["a", "b"]
 
 
 def test_a_failed_unload_is_not_reported_as_released(monkeypatch):
     monkeypatch.setattr(vram, "unload", lambda m: m != "stuck")
+    monkeypatch.setattr(vram, "loaded_models", lambda: ["stuck", "ok"])
     assert vram.release_after_run([], ["stuck", "ok"]) == ["ok"]
+
+
+def test_a_model_that_is_no_longer_resident_is_not_claimed_as_released(monkeypatch):
+    """`lms unload` exits 0 for a model that was never loaded, so without an
+    is-it-actually-there check the report credits itself with freeing memory
+    that was already free."""
+    monkeypatch.setattr(vram, "unload", lambda m: True)
+    monkeypatch.setattr(vram, "loaded_models", lambda: ["still-here"])
+    assert vram.release_after_run([], ["still-here", "long-gone"]) == ["still-here"]
+
+
+def test_an_unqueryable_snapshot_still_attempts_the_unload(monkeypatch):
+    """If we cannot list what is resident we fall back to trying, because the
+    diff already proved these are ours -- the check is about honest reporting,
+    not about permission."""
+    monkeypatch.setattr(vram, "unload", lambda m: True)
+    monkeypatch.setattr(vram, "loaded_models", lambda: None)
+    assert vram.release_after_run([], ["a"]) == ["a"]

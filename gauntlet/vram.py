@@ -27,6 +27,47 @@ def lms_available() -> bool:
     return shutil.which("lms") is not None
 
 
+def parse_lms_ps_rows(output: str) -> list[tuple[str, bool]]:
+    """(identifier, is_local) for each loaded model.
+
+    Locality matters: `lms ps` also lists models held by linked instances on
+    other machines. Unloading one of those frees nothing on this card and
+    interrupts a different box, so anything not `Local` is off limits.
+
+    Detected by the presence of a bare `Local` token rather than by column
+    index, because the SIZE column ("14.19 GB") contains a space and shifts
+    every field after it.
+    """
+    rows: list[tuple[str, bool]] = []
+    for line in output.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith(_SKIP_PREFIXES):
+            continue
+        fields = stripped.split()
+        rows.append((fields[0], "Local" in fields[1:]))
+    return rows
+
+
+def local_loaded_models() -> list[str] | None:
+    """Models resident on *this* machine's GPU, or None if we cannot tell."""
+    output = _lms_ps_output()
+    if output is None:
+        return None
+    return [name for name, is_local in parse_lms_ps_rows(output) if is_local]
+
+
+def unload_all_local() -> list[str]:
+    """Clear this machine's GPU before a run. Returns what was freed.
+
+    Exclusive-VRAM mode: a benchmark measures a model badly when it is sharing
+    the card, because layers spill to CPU and the number that comes out
+    describes the contention rather than the model. Starting from an empty card
+    makes every model in a run comparable to every other one.
+    """
+    resident = local_loaded_models() or []
+    return [m for m in resident if unload(m)]
+
+
 def parse_lms_ps(output: str) -> list[str]:
     """Identifiers of the currently-loaded models, from `lms ps` output.
 
@@ -53,6 +94,17 @@ def models_to_unload(*, before: list[str], ran: list[str]) -> list[str]:
     return sorted({m for m in ran if m not in already})
 
 
+def _lms_ps_output() -> str | None:
+    if not lms_available():
+        return None
+    try:
+        proc = subprocess.run(["lms", "ps"], capture_output=True, text=True,
+                              timeout=_TIMEOUT_S, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return proc.stdout if proc.returncode == 0 else None
+
+
 def loaded_models() -> list[str] | None:
     """Currently-loaded models. `None` means we could not find out.
 
@@ -63,16 +115,8 @@ def loaded_models() -> list[str] | None:
     empty machine. Same principle as unscored-is-not-zero: absence of knowledge
     is not knowledge of absence.
     """
-    if not lms_available():
-        return None
-    try:
-        proc = subprocess.run(["lms", "ps"], capture_output=True, text=True,
-                              timeout=_TIMEOUT_S, check=False)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    if proc.returncode != 0:
-        return None
-    return parse_lms_ps(proc.stdout)
+    output = _lms_ps_output()
+    return None if output is None else parse_lms_ps(output)
 
 
 def release_after_run(before: list[str] | None, ran: list[str]) -> list[str]:
@@ -85,7 +129,15 @@ def release_after_run(before: list[str] | None, ran: list[str]) -> list[str]:
     """
     if before is None:
         return []
-    return [m for m in models_to_unload(before=before, ran=ran) if unload(m)]
+    candidates = models_to_unload(before=before, ran=ran)
+    # Only act on what is actually resident. `lms unload` exits 0 for a model
+    # that was never loaded, so without this the report claims to have freed
+    # models that were already gone -- and a tool whose entire job is reporting
+    # machine state does not get to overstate what it did.
+    resident = loaded_models()
+    if resident is not None:
+        candidates = [m for m in candidates if m in resident]
+    return [m for m in candidates if unload(m)]
 
 
 def unload(model: str) -> bool:

@@ -227,6 +227,9 @@ def run(
     share: bool = typer.Option(False, "--share", help="Drop hostname labels in the written scorecard"),
     overlay: bool = typer.Option(True, "--overlay/--no-overlay",
                                  help="Show the on-screen GPU-use lamp for the duration of the run"),
+    exclusive_vram: bool = typer.Option(True, "--exclusive-vram/--shared-vram",
+                                        help="Clear the GPU first and keep one model resident at a time "
+                                             "(--shared-vram leaves other models loaded)"),
 ) -> None:
     """Run the gauntlet: sequence the work matrix and execute it against live targets."""
     from datetime import datetime, timezone
@@ -254,15 +257,18 @@ def run(
         import os
         return OpenAIClient(base_url=base_url, api_key=os.environ.get("GAUNTLET_API_KEY"))
 
-    typer.echo(f"Starting run {rid}: this holds the GPU at sustained load until "
-               f"it finishes. Check progress from another shell with "
+    mode = ("clearing the GPU first and keeping one model resident at a time"
+            if exclusive_vram else "sharing the GPU with whatever else is loaded")
+    typer.echo(f"Starting run {rid}: {mode}. This holds the GPU at sustained "
+               f"load until it finishes. Check progress from another shell with "
                f"`gauntlet status`; the card is released at the end.")
 
     lamp = _spawn_overlay() if overlay else None
     cells = execute_plan(cfg, bats, paths, base_dir=prompts, client_factory=factory,
                          only_models=list(models) if models else None,
                          resume=bool(resume_id),
-                         status_path=DEFAULT_STATUS_PATH)
+                         status_path=DEFAULT_STATUS_PATH,
+                         exclusive_vram=exclusive_vram)
 
     if lamp is not None:
         _stop_overlay(lamp)
