@@ -10,11 +10,15 @@ no committed IPs, the single `OpenAIClient` HTTP boundary, resource safety, scor
 honesty). Architecture decisions: **[docs/decisions.md](docs/decisions.md)**. Build
 history: **[CHANGELOG.md](CHANGELOG.md)**.
 
-## In flight (2026-07-25)
+## In flight (2026-07-26)
 
-Branch **`feat/codegen-execution-scorer`**, open as **draft PR #1**, 12 commits
+Branch **`feat/codegen-execution-scorer`**, open as **draft PR #1**, 16 commits
 ahead of master and **not merged** — it is awaiting review. Do not branch new work
 off master without accounting for it.
+
+The **first real fleet run** is underway on firefly (9 LM Studio models × 7
+batteries = 63 cells) into `scorecards/fleet-0726/`. Analyse a finished run with
+`scripts/analyze_fleet.py <run_dir>`.
 
 It completes item #1 of
 **[the discriminative scoring v2 roadmap](docs/superpowers/plans/2026-07-04-discriminative-scoring-v2-plan.md)**:
@@ -43,7 +47,14 @@ Two rules that are easy to violate by accident:
 2. **Test on Windows, not just Linux.** Kevin runs Gauntlet on Windows. An earlier
    cloud-authored change shipped POSIX-only process teardown (`os.killpg`/`SIGKILL`)
    that broke every sandbox timeout on his box while passing CI on Linux.
+3. **A scorer bug looks exactly like a model failure.** `_strip_fences` only
+   unwrapped replies that *started* with a fence, so every "Here's the solution:"
+   preamble went to `ast.parse` and came back `syntax_error` — 62 of 108 cases on
+   llama-3.2-1b, quality 0.139 instead of 0.338. Nothing about the output said
+   "harness bug"; it read as a weak model. Before believing a surprising number,
+   check the extraction path. `code-exec` now uses `extract_code`; the other
+   batteries deliberately still don't, because their prompts say "Output ONLY …"
+   and prose there is a real instruction-following failure worth measuring.
 
 Items #2–5 (v2 spec, raw-vs-scaffolded, pipeline economics, ToC scheduler) need
 local inference and/or design sign-off — not autonomously actionable.
-
