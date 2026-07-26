@@ -49,6 +49,10 @@ class Cell(BaseModel):
     # than the mean — clearing T1-T2 then collapsing at T3 is a different
     # proposition from scoring evenly across all four.
     quality_by_tier: dict[str, float] | None = None
+    # Capability profile: mean quality per dimension. This is the axis Baton
+    # routes on -- "best at bug-fix" is an actionable claim in a way that
+    # "best at code-gen" is not.
+    quality_by_dimension: dict[str, float] | None = None
     # Why cases failed, counted by structured failure mode. Distinguishes a
     # capability gap (no_code_emitted / syntax_error) from a defect in
     # otherwise-plausible code (wrong_answer) — only the latter is worth

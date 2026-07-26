@@ -40,6 +40,7 @@ def aggregate_cell(
         prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
         cases=len(results), errors=errors,
         quality_by_tier=quality_by_tier(results),
+        quality_by_dimension=quality_by_dimension(results),
         failure_modes=failure_mode_counts(results),
         integrity=integrity_counts(results),
     )
@@ -77,6 +78,24 @@ def quality_by_tier(results: list[CaseResult]) -> dict[str, float] | None:
     if not buckets:
         return None
     return {tier: sum(v) / len(v) for tier, v in sorted(buckets.items())}
+
+
+def quality_by_dimension(results: list[CaseResult]) -> dict[str, float] | None:
+    """Mean quality per capability axis (bug-fix, multi-function, …).
+
+    Where the tier profile says how hard a model can go, this says what it is
+    good *at* — and that is the axis Baton actually routes on. A single
+    code-gen number cannot distinguish a model that fixes bugs well but cannot
+    hold a multi-file refactor from its exact opposite. Unscored cases are
+    excluded rather than counted as 0.
+    """
+    buckets: dict[str, list[float]] = {}
+    for r in results:
+        if r.dimension and r.score is not None:
+            buckets.setdefault(r.dimension, []).append(r.score)
+    if not buckets:
+        return None
+    return {dim: sum(v) / len(v) for dim, v in sorted(buckets.items())}
 
 
 def failure_mode_counts(results: list[CaseResult]) -> dict[str, int] | None:

@@ -5,10 +5,11 @@ checkpoints immediately so `--resume` loses at most the in-flight cell. The run
 NEVER aborts: unreachable / load-fail / busy become typed cell outcomes."""
 from __future__ import annotations
 
+import json
 import re
 import statistics
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from gauntlet import errors
 from gauntlet.models import CaseResult, Cell, RunMeta, Scorecard
@@ -30,6 +31,7 @@ class RunPaths:
     def __init__(self, root: str | Path) -> None:
         self.root = Path(root)
         self.cells = self.root / "cells.jsonl"
+        self.cases = self.root / "cases.jsonl"
         self.meta = self.root / "meta.json"
 
     def ensure(self) -> None:
@@ -43,6 +45,34 @@ def cell_key(cell: Cell) -> tuple[str | None, str, int, str]:
 def append_cell(paths: RunPaths, cell: Cell) -> None:
     with paths.cells.open("a", encoding="utf-8") as fh:
         fh.write(cell.model_dump_json() + "\n")
+
+
+def append_case_rows(
+    paths: RunPaths,
+    *,
+    model: str,
+    target: str | None,
+    context: int,
+    capability: str,
+    results: list[CaseResult],
+) -> None:
+    """Persist one row per individual case beside the aggregated cell.
+
+    A cell is a summary, and a summary can only answer the questions it was
+    designed for. A full fleet run costs hours of GPU time, so throwing away
+    the per-case detail means the next question — "which cases did every model
+    miss?", "is this dimension too hard?" — costs another whole run. `score`
+    stays `None` for unscored cases; it must never reach disk as 0.0.
+    """
+    with paths.cases.open("a", encoding="utf-8") as fh:
+        for r in results:
+            fh.write(json.dumps({
+                "model": model, "target": target, "context": context,
+                "capability": capability, "case_id": r.case_id,
+                "tier": r.tier, "dimension": r.dimension,
+                "score": r.score, "passed": r.passed,
+                "failure_mode": r.failure_mode,
+            }) + "\n")
 
 
 def read_completed(paths: RunPaths) -> set[tuple]:
@@ -76,6 +106,7 @@ def run_cell(
     battery: "Battery",
     base_dir,
     judge_pool: list[tuple[str, str]] | None = None,
+    case_sink: "Callable[[list[CaseResult]], None] | None" = None,
 ) -> Cell:
     """Fire every case of one battery against one loaded profile, score, and
     aggregate into a Cell. Per-case transport failures are counted as errors and
@@ -126,6 +157,11 @@ def run_cell(
         else:
             result.case_id = case.id
             results.append(result)
+
+    # Checkpoint the raw per-case detail before the summary, so a crash between
+    # the two loses the cell (which resume re-runs) rather than the detail.
+    if case_sink is not None:
+        case_sink(results)
 
     p50 = statistics.median(latencies) if latencies else None
     ttft_p50 = statistics.median(ttfts) if ttfts else None
@@ -187,7 +223,11 @@ def execute_plan(
                     cell = run_cell(client, model=model, target=target,
                                     box=cell_plan.box_hardware, context=context,
                                     battery=battery_by_cap[cell_plan.capability], base_dir=base_dir,
-                                    judge_pool=_judge_pool_for(config, target))
+                                    judge_pool=_judge_pool_for(config, target),
+                                    case_sink=lambda results, _t=target, _m=model, _c=context,
+                                                     _cap=cell_plan.capability: append_case_rows(
+                                        paths, model=_m, target=_t, context=_c,
+                                        capability=_cap, results=results))
                     append_cell(paths, cell)
                     done.add(key)
                     produced.append(cell)
