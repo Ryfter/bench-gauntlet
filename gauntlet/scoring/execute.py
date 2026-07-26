@@ -155,6 +155,40 @@ def _sandbox_env() -> dict[str, str]:
     return {"PATH": "/usr/bin:/bin"}
 
 
+# A fenced block: ``` or ~~~, an optional language tag, then the body. The body
+# is lazy and the closer optional so a reply truncated mid-block still yields
+# what the model managed to write.
+_BLOCK_RE = re.compile(
+    r"(?P<f>```|~~~)[ \t]*[A-Za-z0-9_+-]*[ \t]*\r?\n(?P<body>.*?)(?:\r?\n(?P=f)|\Z)",
+    re.DOTALL,
+)
+
+
+def extract_code(output: str) -> str:
+    """Pull the candidate program out of a chat reply.
+
+    Models wrap code in prose — "Here's the solution:" before, "Hope this
+    helps!" after — and an extractor that only unwraps a reply *starting* with
+    a fence hands all of that to `ast.parse`. The result is a `syntax_error`
+    that says nothing about the model's code and everything about how chatty it
+    is, which is a bias dressed as a measurement.
+
+    Where a reply holds several blocks, the longest wins: a usage example
+    beside the implementation is not the submission.
+
+    A reply with no fence is returned as-is. Deciding whether that is code or a
+    refusal belongs to `_looks_like_code`, not here — this function must never
+    invent a code block that the model did not write.
+    """
+    blocks = [m.group("body") for m in _BLOCK_RE.finditer(output)]
+    blocks = [b for b in blocks if b.strip()]
+    if not blocks:
+        return output.strip()
+    # `strip()` only at the ends — never reflow the body. Python is whitespace
+    # significant, so touching interior indentation would break working code.
+    return max(blocks, key=lambda b: len(b.strip())).strip("\r\n").rstrip()
+
+
 def _looks_like_code(src: str) -> bool:
     """Did the model attempt Python at all?
 
@@ -266,7 +300,7 @@ def code_execution_match(output: str, tests_path: str | Path,
             failure_mode="integrity_violation",
             integrity_violations=[{"kind": "canary", "detail": echoed[0]}])
 
-    candidate_src = _strip_fences(output)
+    candidate_src = extract_code(output)
     if not _looks_like_code(candidate_src):
         # The model returned nothing, a refusal, or plain prose. That is a real
         # (and common) small-model failure and a *different* one from writing
