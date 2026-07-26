@@ -252,3 +252,71 @@ full v2 roadmap this is item 1 of.
 to 11 (5 `compilable-code` + 6 `code-exec`). New module
 `gauntlet/scoring/execute.py`, 12 new tests in `tests/test_scoring_execute.py`
 plus dispatch tests in `tests/test_scoring_dispatch.py`; test suite 130 → 144.
+
+
+---
+
+## D-2026-07-25 — Discriminative code-gen: 108-case battery + integrity layer
+
+**Supersedes parts of the 2026-07-04 `code-exec` record above.** That entry says
+the battery grows to 11 cases and that the sandbox "does not block direct network
+syscalls or filesystem access outside cwd". Both statements are now out of date.
+
+**Context.** The first `code-exec` pass proved the mechanism but left the axis
+nearly as blunt as before: 6 execution-scored cases, several of them classic
+shapes, alongside 5 memorised classics still on `compilable-code`.
+
+**Decisions.**
+
+1. **A difficulty ladder, not merely harder cases.** Every case carries a tier
+   T1-T4 (target 15/35/35/15). The fleet is 1B-30B local models: a battery where
+   everything scores 1.0 is non-discriminative, but so is one where everything
+   scores 0.0. T3 does most of the discriminating; T4 is deliberate headroom
+   against saturation. *Alternative rejected:* simply raising difficulty, which
+   would have produced an all-zeros scorecard just as useless as all-ones.
+
+2. **Twelve capability dimensions**, adapted from EvalPlus, BigCodeBench,
+   ClassEval, CRUXEval, EffiBench/BigO(Bench), DS-1000, SWE-bench and TREAT.
+   Breadth is what keeps a benchmark honest once any single axis saturates --
+   HumanEval sits at 96-98% at the frontier largely through contamination.
+
+3. **Retire the contaminated classics.** `fizzbuzz`, `palindrome`,
+   `binary-search`, `lru-cache`, `csv-parse` dropped from the battery, plus four
+   classic-shaped `code-exec` cases from the first pass (`run-length-encode`,
+   `matrix-transpose`, `safe-divide`, `factorial-strict`). Files remain in the
+   tree. They measured memorisation, not capability.
+
+4. **Every case must prove itself.** A case enters the battery only if its
+   reference solution scores exactly 1.0 and a deliberately-wrong solution scores
+   below it. An unsatisfiable case scores every model 0.0 and a toothless one
+   scores every model 1.0 -- both look like data and are noise. The gate rejected
+   5 of 113 drafted cases. This is also what made it safe to delegate drafting to
+   a cheap fleet model: quality rests on the harness, not on trusting the drafter.
+
+5. **Structured `failure_mode` over prose.** Distinguishes `no_code_emitted` from
+   `syntax_error` from `wrong_answer` from `timeout`, aggregated per cell. This is
+   the capability-gap vs working-memory signal Baton needs (D-2026-06-30c);
+   scaffolding helps the second and does nothing for the first.
+
+6. **Integrity layer, scoped honestly.** Five vectors covered (prompt leakage,
+   filesystem, network, inference-time tool use, canaries). Explicitly **not** a
+   security boundary: a Python-level guard falls to `ctypes`/re-exec, and
+   in-process grading is structurally reachable because `check(ns)` must call the
+   candidate's own functions. *Alternative deferred:* out-of-process grading,
+   which is incompatible with calling arbitrary candidate functions -- revisit
+   before ranking models with anything at stake. Violations and unavailable
+   controls both yield `unscored`, never `0.0`: zero is a claim about the model,
+   unscored is an admission of ignorance.
+
+**Two holes were found by attack rather than reasoning**, and the method matters
+more than the specifics: `os.system` copying the hidden tests to an allowed
+filename defeated a guard that reasoned about paths, and `gc.get_objects()`
+reached the grader's own expected values. Prefer blocking a *class* of access
+over a specific path, and test controls with real attacks before trusting them.
+
+**Consequences.** Battery 11 -> 108 cases across 12 dimensions. New modules
+`gauntlet/integrity.py`, `gauntlet/scoring/_guard.py`,
+`gauntlet/scoring/constraints.py`. Scorecard gains `quality_by_tier`,
+`failure_modes`, `integrity`. Test suite 144 -> 611. Red-team corpus at
+`tests/redteam/`; authoring pipeline at `scripts/battery-authoring/`. A full
+9-model run is ~970 cells.
