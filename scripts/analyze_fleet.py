@@ -375,6 +375,31 @@ def section_run_summary(
     return "\n".join(lines)
 
 
+def coverage(cell: Mapping[str, Any]) -> float | None:
+    """Fraction of a cell's cases that actually produced a score.
+
+    The number that decides whether a quality figure is comparable at all. A
+    mean over 62% of the battery and a mean over 100% of it are different
+    quantities, and nothing else in the row reveals which one you are reading.
+    """
+    total = as_float_or_none(cell.get("cases"))
+    if not total:
+        return None
+    unscored = 0.0
+    for mode, count in (cell.get("failure_modes") or {}).items():
+        if mode in ("truncated", "integrity_violation", "harness_error"):
+            unscored += as_float_or_none(count) or 0
+    return max(0.0, (total - unscored) / total)
+
+
+def format_coverage(cell: Mapping[str, Any]) -> str:
+    cov = coverage(cell)
+    if cov is None:
+        return EM_DASH
+    flag = " ⚠" if cov < 0.9 else ""
+    return f"{cov * 100:.0f}%{flag}"
+
+
 def section_leaderboard(
     cells: Sequence[Mapping[str, Any]],
     capability_filter: str | None,
@@ -397,10 +422,15 @@ def section_leaderboard(
     for cap in sorted(caps):
         ranked = sorted(caps[cap], key=quality_sort_key)
         rows = []
+        low_coverage = False
         for c in ranked:
+            cov = coverage(c)
+            if cov is not None and cov < 0.9:
+                low_coverage = True
             rows.append([
                 c.get("model") or EM_DASH,
                 fmt_quality(c.get("quality")),
+                format_coverage(c),
                 fmt_quality(c.get("pass_rate")),
                 fmt_toks(c.get("tokens_per_s")),
                 fmt_ttft(c.get("ttft_p50_s")),
@@ -408,10 +438,21 @@ def section_leaderboard(
         lines.append(f"### `{cap}`")
         lines.append("")
         lines.append(md_table(
-            ["model", "quality", "pass_rate", "tok/s", "ttft"],
+            ["model", "quality", "scored", "pass_rate", "tok/s", "ttft"],
             rows,
         ))
         lines.append("")
+        if low_coverage:
+            lines.append(
+                "**Coverage warning.** A quality figure is a mean over the cases "
+                "that produced a score; unscored cases are excluded, never counted "
+                "as 0. Where `scored` is well under 100% the comparison is not "
+                "like-for-like — and because truncation rises with difficulty, "
+                "the excluded cases are disproportionately the hard ones, so a "
+                "low-coverage score is biased *upward*. Read those rows as a "
+                "ceiling, not a measurement."
+            )
+            lines.append("")
 
     return "\n".join(lines).rstrip()
 

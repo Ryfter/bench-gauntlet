@@ -143,6 +143,42 @@ def test_throughput_uses_a_case_weighted_mean_not_the_models_best_capability(tmp
     assert "1.00" not in report.split("## Quality per unit time")[1]
 
 
+# --- coverage: is this quality figure even comparable? --------------------------
+
+def test_coverage_is_the_fraction_of_cases_that_produced_a_score(tmp_path):
+    cell = _cell("m", cases=108, failure_modes={"truncated": 24, "wrong_answer": 3})
+    assert analyze.coverage(cell) == pytest.approx((108 - 24) / 108)
+
+
+def test_scored_failures_do_not_reduce_coverage(tmp_path):
+    """A wrong answer IS a measurement. Only outcomes that yield no score --
+    truncation, integrity blocks, harness faults -- shrink the denominator."""
+    cell = _cell("m", cases=100, failure_modes={"wrong_answer": 60, "syntax_error": 20})
+    assert analyze.coverage(cell) == 1.0
+
+
+def test_low_coverage_is_flagged_in_the_row_and_explained(tmp_path):
+    """gemma-4-12b scored 0.98 over 84 of 108 cases while tulu scored 0.66 over
+    all 108. Presenting those in one ranked table without saying so invites
+    exactly the wrong conclusion."""
+    cells = [_cell("thorough", quality=0.66, cases=108, failure_modes={"wrong_answer": 60}),
+             _cell("truncating", quality=0.98, cases=108,
+                   failure_modes={"truncated": 24, "wrong_answer": 3})]
+    report = _report(tmp_path, cells)
+    # Split on "\n## " with the trailing space: the section contains "### `cap`"
+    # subheadings, and "\n##" alone truncates at the first of those.
+    section = report.split("## Leaderboard")[1].split("\n## ")[0]
+    assert "78%" in section          # 84/108
+    assert "100%" in section
+    assert "⚠" in section
+    assert "biased" in section.lower()
+
+
+def test_no_warning_when_every_model_was_fully_measured(tmp_path):
+    report = _report(tmp_path, [_cell("m", cases=108, failure_modes={"wrong_answer": 9})])
+    assert "Coverage warning" not in report
+
+
 # --- robustness ----------------------------------------------------------------
 
 def test_missing_cases_file_degrades_instead_of_crashing(tmp_path):
