@@ -61,6 +61,13 @@ def test_nothing_loaded_and_no_run_is_red():
     assert state.level is FREE
 
 
+def test_a_model_on_another_box_does_not_make_this_card_look_busy():
+    """The caller passes *local* models only. A linked instance on another
+    machine showed as '1 model loaded' beside '2.7/32GB' -- a warning about
+    someone else's GPU, which is just a false alarm here."""
+    assert indicator_state(None, loaded=[]).level is FREE
+
+
 def test_a_stale_marker_is_not_treated_as_running():
     """A killed run leaves its marker behind. Showing green then would be the
     indicator telling the exact lie it was built to prevent."""

@@ -278,11 +278,19 @@ def run(
                f"`gauntlet status`; the card is released at the end.")
 
     lamp = _spawn_overlay() if overlay else None
-    cells = execute_plan(cfg, bats, paths, base_dir=prompts, client_factory=factory,
-                         only_models=list(models) if models else None,
-                         resume=bool(resume_id),
-                         status_path=DEFAULT_STATUS_PATH,
-                         exclusive_vram=exclusive_vram)
+    try:
+        cells = execute_plan(cfg, bats, paths, base_dir=prompts, client_factory=factory,
+                             only_models=list(models) if models else None,
+                             resume=bool(resume_id),
+                             status_path=DEFAULT_STATUS_PATH,
+                             exclusive_vram=exclusive_vram)
+    except BaseException:
+        # Close the lamp on Ctrl-C or a crash too, not just on the happy path.
+        # Every interrupted run today orphaned its overlay, and they stack
+        # invisibly -- three were on screen before anyone noticed.
+        if lamp is not None:
+            _stop_overlay(lamp)
+        raise
 
     if lamp is not None:
         _stop_overlay(lamp)

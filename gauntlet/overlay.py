@@ -81,7 +81,7 @@ def indicator_state(status: RunStatus | None, loaded: list[str] | None) -> Indic
     if loaded:
         plural = "s" if len(loaded) > 1 else ""
         return IndicatorState(IDLE, f"{len(loaded)} model{plural} loaded, nothing running")
-    return IndicatorState(FREE, "no models loaded")
+    return IndicatorState(FREE, "GPU free")
 
 
 def existing_overlay_pid() -> int | None:
@@ -110,6 +110,17 @@ def claim_overlay_lock() -> None:
 
 
 def release_overlay_lock() -> None:
+    """Drop the lock, but only if it is still ours.
+
+    Deleting it unconditionally is how three lamps ended up on screen: an
+    orphaned overlay exiting would clear a lock held by the *current* one, and
+    the next run would then happily start another.
+    """
+    try:
+        if LOCK_PATH.read_text(encoding="utf-8").strip() != str(os.getpid()):
+            return
+    except (OSError, ValueError):
+        return
     try:
         LOCK_PATH.unlink(missing_ok=True)
     except OSError:
@@ -154,6 +165,13 @@ def save_position(x: int, y: int) -> None:
 def run_overlay(status_path: str | Path = DEFAULT_STATUS_PATH) -> None:
     """Show the lamp until it is closed. Blocks; run it in its own process."""
     import tkinter as tk
+
+    # Last line of defence. `gauntlet run` checks before spawning, but a
+    # SIGKILLed run leaves its lamp behind, so the check has to hold here too --
+    # a borderless window has no title bar, and a stacked one is invisible.
+    peer = existing_overlay_pid()
+    if peer is not None and peer != os.getpid():
+        return
 
     claim_overlay_lock()
     root = tk.Tk()
@@ -217,7 +235,12 @@ def run_overlay(status_path: str | Path = DEFAULT_STATUS_PATH) -> None:
 
     def tick() -> None:
         if cache["n"] % TELEMETRY_EVERY == 0:
-            cache["loaded"] = vram.loaded_models()
+            # Local models only. `lms ps` also lists models held by a linked
+            # instance on another box, and counting those turned the lamp
+            # yellow -- "1 model loaded" -- while this card sat at 2.7/32GB
+            # with nothing on it. A warning about someone else's machine is
+            # just a false alarm here.
+            cache["loaded"] = vram.local_loaded_models()
             cache["gpu"] = telemetry.gpu_load()
         cache["n"] += 1
 
