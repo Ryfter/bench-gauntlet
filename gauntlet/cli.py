@@ -113,17 +113,24 @@ def status() -> None:
         typer.echo(f"RAM: {mem.used_gb:.1f}/{mem.total_gb:.0f} GB "
                    f"({mem.used_pct:.0f}%)")
 
-    loaded = vram.loaded_models()
-    if loaded is None:
+    by_device = vram.loaded_models_by_device()
+    if by_device is None:
         typer.echo("\nVRAM: unknown (`lms` not available).")
-    elif not loaded:
+    elif not by_device:
         typer.echo("\nVRAM: no models loaded.")
     else:
-        typer.echo(f"\nVRAM: {len(loaded)} model(s) loaded:")
-        for m in loaded:
-            typer.echo(f"  - {m}")
-        typer.echo("  (Gauntlet frees only the models it loaded; anything else "
-                   "is another session's.)")
+        from collections import defaultdict
+
+        groups: dict[str, list[str]] = defaultdict(list)
+        for model, device in by_device:
+            groups[device or "Local"].append(model)
+        typer.echo("\nVRAM by device:")
+        for device in sorted(groups, key=lambda d: (not vram.is_local_device(d), d)):
+            models = ", ".join(groups[device])
+            note = "" if vram.is_local_device(device) else " (other box — not this run)"
+            typer.echo(f"  {device}: {models}{note}")
+        typer.echo("  (Gauntlet frees only the models it loaded on this box; "
+                   "remote linked instances are never touched.)")
 
 
 def _spawn_overlay():

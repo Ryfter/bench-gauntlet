@@ -15,6 +15,7 @@ Unloading shells out to the `lms` CLI rather than issuing HTTP, which keeps the
 """
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 
@@ -30,39 +31,98 @@ _LOAD_TIMEOUT_S = 600  # a 30B model off a cold cache is not quick
 _TEXT = {"encoding": "utf-8", "errors": "replace"}
 # Header and separator rows in `lms ps` output, which we must not read as models.
 _SKIP_PREFIXES = ("IDENTIFIER", "---", "===")
+# Column names we expect in a header-aware `lms ps` table.
+_HEADER_COLS = ("IDENTIFIER", "MODEL", "STATUS", "SIZE", "CONTEXT",
+                "PARALLEL", "DEVICE", "TTL")
+# Soft default when GAUNTLET_LMS_DEVICE is unset: Kevin's 5090 LMS instance name
+# plus the legacy bare token from older `lms ps` output.
+_LOCAL_DEVICE_DEFAULTS = frozenset({"Local", "Firefly"})
 
 
 def lms_available() -> bool:
     return shutil.which("lms") is not None
 
 
-def parse_lms_ps_rows(output: str) -> list[tuple[str, bool]]:
-    """(identifier, is_local) for each loaded model.
+def is_local_device(device: str) -> bool:
+    """Whether *device* is this bench box's GPU for unload purposes.
 
-    Locality matters: `lms ps` also lists models held by linked instances on
-    other machines. Unloading one of those frees nothing on this card and
-    interrupts a different box, so anything not `Local` is off limits.
-
-    Detected by the presence of a bare `Local` token rather than by column
-    index, because the SIZE column ("14.19 GB") contains a space and shifts
-    every field after it.
+    ITSCM-* hostnames are always treated as remote (Kevin's work PC). When
+    ``GAUNTLET_LMS_DEVICE`` is set, only that exact name matches; otherwise
+    ``Local`` and ``Firefly`` (the 5090 LMS name) are accepted.
     """
-    rows: list[tuple[str, bool]] = []
-    for line in output.splitlines():
+    if device.startswith("ITSCM"):
+        return False
+    target = os.environ.get("GAUNTLET_LMS_DEVICE")
+    if target:
+        return device == target
+    return device in _LOCAL_DEVICE_DEFAULTS
+
+
+def _column_slices(header: str) -> dict[str, tuple[int, int | None]]:
+    """Map column name to (start, end) slice positions in a fixed-width row."""
+    positions: list[tuple[str, int]] = []
+    for name in _HEADER_COLS:
+        idx = header.find(name)
+        if idx >= 0:
+            positions.append((name, idx))
+    positions.sort(key=lambda item: item[1])
+    slices: dict[str, tuple[int, int | None]] = {}
+    for i, (name, start) in enumerate(positions):
+        end = positions[i + 1][1] if i + 1 < len(positions) else None
+        slices[name] = (start, end)
+    return slices
+
+
+def _field(line: str, start: int, end: int | None) -> str:
+    chunk = line[start:end] if end is not None else line[start:]
+    return chunk.strip()
+
+
+def parse_lms_ps_rows(output: str) -> list[tuple[str, str]]:
+    """(identifier, device) for each loaded model.
+
+    Header-aware: reads the DEVICE column when present. Falls back to scanning
+    for a bare ``Local`` token in the row (older linked-instance output).
+    """
+    lines = output.splitlines()
+    header = next((ln for ln in lines if ln.strip().startswith("IDENTIFIER")), "")
+    cols = _column_slices(header) if header else {}
+    has_device_col = "DEVICE" in cols
+    id_slice = cols.get("IDENTIFIER")
+    dev_slice = cols.get("DEVICE")
+
+    rows: list[tuple[str, str]] = []
+    for line in lines:
         stripped = line.strip()
         if not stripped or stripped.startswith(_SKIP_PREFIXES):
             continue
-        fields = stripped.split()
-        rows.append((fields[0], "Local" in fields[1:]))
+        if id_slice:
+            identifier = _field(line, id_slice[0], id_slice[1])
+        else:
+            identifier = stripped.split()[0]
+        if not identifier:
+            continue
+
+        if has_device_col and dev_slice:
+            device = _field(line, dev_slice[0], dev_slice[1])
+        else:
+            fields = stripped.split()
+            device = "Local" if "Local" in fields[1:] else ""
+        rows.append((identifier, device))
     return rows
 
 
 def local_loaded_models() -> list[str] | None:
-    """Models resident on *this* machine's GPU, or None if we cannot tell."""
+    """Models resident on *this* machine's GPU, or None if we cannot tell.
+
+    Filters by ``GAUNTLET_LMS_DEVICE`` when set; otherwise keeps rows whose
+    device is ``Local`` or ``Firefly``. Never includes ITSCM-* remote hosts.
+    """
     output = _lms_ps_output()
     if output is None:
         return None
-    return [name for name, is_local in parse_lms_ps_rows(output) if is_local]
+    return [name for name, device in parse_lms_ps_rows(output)
+            if is_local_device(device)]
 
 
 def unload_all_local() -> list[str]:
@@ -84,13 +144,7 @@ def parse_lms_ps(output: str) -> list[str]:
     unrecognisable line is skipped rather than guessed at: over-reporting a
     loaded model would make us unload something that is not ours.
     """
-    models: list[str] = []
-    for line in output.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith(_SKIP_PREFIXES):
-            continue
-        models.append(stripped.split()[0])
-    return models
+    return [name for name, _device in parse_lms_ps_rows(output)]
 
 
 def models_to_unload(*, before: list[str], ran: list[str]) -> list[str]:
@@ -126,6 +180,14 @@ def loaded_models() -> list[str] | None:
     """
     output = _lms_ps_output()
     return None if output is None else parse_lms_ps(output)
+
+
+def loaded_models_by_device() -> list[tuple[str, str]] | None:
+    """(model, device) pairs for every loaded model, or None if unqueryable."""
+    output = _lms_ps_output()
+    if output is None:
+        return None
+    return parse_lms_ps_rows(output)
 
 
 def release_after_run(before: list[str] | None, ran: list[str]) -> list[str]:
