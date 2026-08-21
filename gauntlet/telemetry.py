@@ -141,10 +141,37 @@ def system_memory() -> SystemMemory | None:
         return SystemMemory(used_gb=total - status.ullAvailPhys / 1024**3,
                             total_gb=total)
 
-    try:  # POSIX
+    # Linux exposes SC_AVPHYS_PAGES; macOS does not — Darwin needs sysctl/vm_stat.
+    try:
+        import sys
         page_size = os.sysconf("SC_PAGE_SIZE")
         total = os.sysconf("SC_PHYS_PAGES") * page_size / 1024**3
+        if sys.platform == "darwin":
+            return _system_memory_darwin(total_gb=total, page_size=page_size)
         avail = os.sysconf("SC_AVPHYS_PAGES") * page_size / 1024**3
         return SystemMemory(used_gb=total - avail, total_gb=total)
     except (ValueError, OSError, AttributeError):
         return None
+
+
+def _system_memory_darwin(*, total_gb: float, page_size: int) -> SystemMemory | None:
+    """Approximate used RAM from `vm_stat` free+inactive+speculative pages."""
+    import re
+    import subprocess
+
+    try:
+        out = subprocess.check_output(["vm_stat"], text=True, timeout=2)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    pages: dict[str, int] = {}
+    for line in out.splitlines():
+        m = re.match(r"(.+?):\s+(\d+)", line)
+        if m:
+            pages[m.group(1).strip().lower()] = int(m.group(2).rstrip("."))
+    # Prefer pages that are reclaimable / free — matches Activity Monitor-ish "available"
+    free = pages.get("pages free", 0)
+    speculative = pages.get("pages speculative", 0)
+    inactive = pages.get("pages inactive", 0)
+    avail_gb = (free + speculative + inactive) * page_size / 1024**3
+    used = max(0.0, total_gb - avail_gb)
+    return SystemMemory(used_gb=used, total_gb=total_gb)
