@@ -1,0 +1,16 @@
+Implement two functions for detecting conflicting work shifts.
+
+def intervals_overlap(a_start, a_end, b_start, b_end):
+  Times are integers (e.g. minutes from midnight). Intervals are half-open: [start, end).
+  Return True if the two intervals share any point in common; otherwise False.
+  If either interval is empty or inverted (start >= end), return False.
+  Intervals that only touch at an endpoint do NOT overlap (e.g. [0, 10) and [10, 20) are disjoint).
+
+def find_conflicts(shifts):
+  shifts is a list of dicts, each with keys "id" (str), "start" (int), and "end" (int).
+  Return a list of 2-tuples (id_a, id_b) for every pair of distinct shifts whose intervals overlap, using intervals_overlap.
+  Each pair appears once with ids in ascending lexicographic order (id_a < id_b).
+  The returned list must be sorted ascending by the pair tuples.
+  Empty input or a single shift yields [].
+
+Both functions must be defined at module level with these exact names.

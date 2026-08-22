@@ -1,0 +1,12 @@
+Implement coalesce_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]].
+
+Each tuple is a half-open integer interval [start, end). Merge all intervals into the minimal list of sorted, non-overlapping half-open intervals.
+
+Rules:
+- Discard empty/inverted intervals where start >= end.
+- Overlapping intervals merge.
+- Touching intervals also merge: [a, b) and [b, c) become [a, c).
+- Input may be unsorted and may contain duplicates.
+- Output must be sorted by start ascending; each interval as a tuple (start, end).
+
+Complexity: O(n log n) time dominated by sorting is acceptable; the merge pass must be O(n). Quadratic pairwise merging will not survive large inputs.

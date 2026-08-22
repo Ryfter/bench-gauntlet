@@ -39,7 +39,80 @@ def aggregate_cell(
         tokens_per_s=tokens_per_s, ttft_p50_s=ttft_p50_s,
         prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
         cases=len(results), errors=errors,
+        quality_by_tier=quality_by_tier(results),
+        quality_by_dimension=quality_by_dimension(results),
+        failure_modes=failure_mode_counts(results),
+        integrity=integrity_counts(results),
     )
+
+
+def integrity_counts(results: list[CaseResult]) -> dict[str, int] | None:
+    """Count integrity violations by kind across a cell.
+
+    `None` means clean. Anything else means the cell contains cases that were
+    marked unscored because the candidate reached for the answers or the
+    network — and that the surrounding numbers deserve scrutiny. Surfacing this
+    is the difference between a scorecard that reports results and one that
+    reports results it can vouch for.
+    """
+    counts: dict[str, int] = {}
+    for r in results:
+        for violation in r.integrity_violations or ():
+            kind = violation.get("kind", "unknown")
+            counts[kind] = counts.get(kind, 0) + 1
+    return dict(sorted(counts.items())) or None
+
+
+def quality_by_tier(results: list[CaseResult]) -> dict[str, float] | None:
+    """Mean quality per difficulty tier.
+
+    The *shape* of a tier profile carries more information than the mean: a
+    model that clears T1-T2 and collapses at T3 is a different proposition from
+    one scoring evenly across all four, and a single averaged number hides that
+    completely. Unscored cases are excluded rather than counted as 0.
+    """
+    buckets: dict[str, list[float]] = {}
+    for r in results:
+        if r.tier and r.score is not None:
+            buckets.setdefault(r.tier, []).append(r.score)
+    if not buckets:
+        return None
+    return {tier: sum(v) / len(v) for tier, v in sorted(buckets.items())}
+
+
+def quality_by_dimension(results: list[CaseResult]) -> dict[str, float] | None:
+    """Mean quality per capability axis (bug-fix, multi-function, …).
+
+    Where the tier profile says how hard a model can go, this says what it is
+    good *at* — and that is the axis Baton actually routes on. A single
+    code-gen number cannot distinguish a model that fixes bugs well but cannot
+    hold a multi-file refactor from its exact opposite. Unscored cases are
+    excluded rather than counted as 0.
+    """
+    buckets: dict[str, list[float]] = {}
+    for r in results:
+        if r.dimension and r.score is not None:
+            buckets.setdefault(r.dimension, []).append(r.score)
+    if not buckets:
+        return None
+    return {dim: sum(v) / len(v) for dim, v in sorted(buckets.items())}
+
+
+def failure_mode_counts(results: list[CaseResult]) -> dict[str, int] | None:
+    """How many cases failed each way (`none` — i.e. clean passes — excluded).
+
+    This is what lets Baton distinguish a capability gap from a working-memory
+    problem: `no_code_emitted` and `syntax_error` say the model cannot engage
+    with the task at all, while `wrong_answer` says it produced plausible code
+    with a defect. Only the latter is a candidate for scaffolding
+    (selective-offload principle, D-2026-06-30c).
+    """
+    counts: dict[str, int] = {}
+    for r in results:
+        mode = r.failure_mode
+        if mode and mode != "none":
+            counts[mode] = counts.get(mode, 0) + 1
+    return dict(sorted(counts.items())) or None
 
 
 def to_dict(scorecard: Scorecard, share: bool = False) -> dict:

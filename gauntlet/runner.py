@@ -5,13 +5,16 @@ checkpoints immediately so `--resume` loses at most the in-flight cell. The run
 NEVER aborts: unreachable / load-fail / busy become typed cell outcomes."""
 from __future__ import annotations
 
+import json
+import os
 import re
 import statistics
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
-from gauntlet import errors
+from gauntlet import errors, vram
 from gauntlet.models import CaseResult, Cell, RunMeta, Scorecard
+from gauntlet.runstatus import RunStatus, clear_status, now_iso, write_status
 from gauntlet.scorecard import aggregate_cell
 from gauntlet.scoring import NEEDS_JUDGE, score_case
 from gauntlet.scoring.judge import score_with_judge, select_judge
@@ -30,6 +33,7 @@ class RunPaths:
     def __init__(self, root: str | Path) -> None:
         self.root = Path(root)
         self.cells = self.root / "cells.jsonl"
+        self.cases = self.root / "cases.jsonl"
         self.meta = self.root / "meta.json"
 
     def ensure(self) -> None:
@@ -43,6 +47,106 @@ def cell_key(cell: Cell) -> tuple[str | None, str, int, str]:
 def append_cell(paths: RunPaths, cell: Cell) -> None:
     with paths.cells.open("a", encoding="utf-8") as fh:
         fh.write(cell.model_dump_json() + "\n")
+
+
+# Failures that a mid-sentence cut is a sufficient explanation for. Anything
+# else -- the code ran and was wrong, it hung, it reached for the answers --
+# happened before the budget mattered and keeps its result.
+_TRUNCATION_EXCUSES = frozenset({"no_code_emitted", "syntax_error"})
+
+
+def attribute_truncation(result: CaseResult, *, truncated: bool) -> CaseResult:
+    """Re-attribute a failure that the token budget, not the model, caused.
+
+    A reasoning model can spend its entire budget thinking and be cut off before
+    writing a line. Scored naively that is `no_code_emitted` at 0.0 -- the
+    benchmark measuring its own configuration and reporting it as a property of
+    the model. We cannot tell whether it could not do the task or was not
+    allowed to finish, so the honest answer is `unscored` (scoring-honesty
+    invariant: never silently 0).
+
+    This does not soften a real failure: a model that emits prose *within* its
+    budget genuinely failed, and a `wrong_answer` ran to completion, so the
+    defect in it is real regardless of what was cut off afterwards.
+    """
+    if not truncated or result.failure_mode not in _TRUNCATION_EXCUSES:
+        return result
+    return result.model_copy(update={
+        "score": None,
+        "passed": False,
+        "failure_mode": "truncated",
+        "detail": f"unscored: reply truncated by the token budget ({result.failure_mode})",
+    })
+
+
+_DEAD_ENDPOINT_HINT = (
+    "unscored: target not serving when the run reached it. If this is LM Studio, "
+    "opening the desktop app stops its headless server (`lms server start`)."
+)
+
+
+def _unreachable_cell(*, model: str, target: str, box: str, context: int,
+                      battery: "Battery") -> Cell:
+    """A cell for a target that was not serving, without calling it case by case.
+
+    Recorded rather than skipped so the gap is visible in the scorecard, and
+    `unscored` rather than 0.0 because a dead endpoint says nothing whatever
+    about the model. Building it up front also avoids the failure mode this
+    exists to prevent: hammering a refused port once per case and calling the
+    result a measurement.
+    """
+    results = [CaseResult(case_id=case.id, method=case.scoring, score=None,
+                          passed=False, detail=_DEAD_ENDPOINT_HINT)
+               for case in battery.cases]
+    return aggregate_cell(model=model, target=target, box=box, context=context,
+                          capability=battery.capability, results=results,
+                          errors=len(results))
+
+
+def _case_heartbeat(status_path, status: RunStatus | None):
+    """A per-case tick for the run indicator, or None when nothing is watching.
+
+    Cheap by design -- one small file rewrite per case -- because the
+    alternative is an indicator that sits unchanged for the hours a single
+    108-case cell can take, which is indistinguishable from a hung run.
+    """
+    if not status_path or status is None:
+        return None
+
+    def tick(done: int, total: int) -> None:
+        status.cases_done = done
+        status.cases_total = total
+        write_status(status_path, status)
+
+    return tick
+
+
+def append_case_rows(
+    paths: RunPaths,
+    *,
+    model: str,
+    target: str | None,
+    context: int,
+    capability: str,
+    results: list[CaseResult],
+) -> None:
+    """Persist one row per individual case beside the aggregated cell.
+
+    A cell is a summary, and a summary can only answer the questions it was
+    designed for. A full fleet run costs hours of GPU time, so throwing away
+    the per-case detail means the next question — "which cases did every model
+    miss?", "is this dimension too hard?" — costs another whole run. `score`
+    stays `None` for unscored cases; it must never reach disk as 0.0.
+    """
+    with paths.cases.open("a", encoding="utf-8") as fh:
+        for r in results:
+            fh.write(json.dumps({
+                "model": model, "target": target, "context": context,
+                "capability": capability, "case_id": r.case_id,
+                "tier": r.tier, "dimension": r.dimension,
+                "score": r.score, "passed": r.passed,
+                "failure_mode": r.failure_mode,
+            }) + "\n")
 
 
 def read_completed(paths: RunPaths) -> set[tuple]:
@@ -76,6 +180,8 @@ def run_cell(
     battery: "Battery",
     base_dir,
     judge_pool: list[tuple[str, str]] | None = None,
+    case_sink: "Callable[[list[CaseResult]], None] | None" = None,
+    on_case: "Callable[[int, int], None] | None" = None,
 ) -> Cell:
     """Fire every case of one battery against one loaded profile, score, and
     aggregate into a Cell. Per-case transport failures are counted as errors and
@@ -88,10 +194,14 @@ def run_cell(
     error_count = 0
     judge_used: str | None = None
 
-    for case in battery.cases:
+    total_cases = len(battery.cases)
+    for index, case in enumerate(battery.cases):
+        if on_case is not None:
+            on_case(index, total_cases)
         prompt = load_prompt(case, base_dir)
         try:
-            reply = client.chat(model=model, prompt=prompt)
+            reply = client.chat(model=model, prompt=prompt,
+                                max_tokens=battery.max_tokens)
         except errors.GauntletError as exc:
             # Transport/load failure: count the error AND record the case as an
             # unscored failure so it still counts toward `cases` (never silently 0).
@@ -125,7 +235,12 @@ def run_cell(
                                              case_id=case.id))
         else:
             result.case_id = case.id
-            results.append(result)
+            results.append(attribute_truncation(result, truncated=reply.truncated))
+
+    # Checkpoint the raw per-case detail before the summary, so a crash between
+    # the two loses the cell (which resume re-runs) rather than the detail.
+    if case_sink is not None:
+        case_sink(results)
 
     p50 = statistics.median(latencies) if latencies else None
     ttft_p50 = statistics.median(ttfts) if ttfts else None
@@ -159,6 +274,9 @@ def execute_plan(
     footprints: dict[str, int] | None = None,
     only_models: list[str] | None = None,
     resume: bool = False,
+    status_path: str | Path | None = None,
+    release_gpu: bool = True,
+    exclusive_vram: bool = True,
 ) -> list[Cell]:
     """Drive the sequenced plan to completion. Opens one client per target (lazily,
     via client_factory), runs each cell, and appends it to cells.jsonl immediately.
@@ -168,7 +286,35 @@ def execute_plan(
     plan = plan_run(config, batteries, footprints=footprints, only_models=only_models)
     battery_by_cap = {b.capability: b for b in batteries}
 
+    total_cells = sum(len(g.cells) for g in plan.groups)
+    # Count cells finished by an earlier attempt too. A resumed run reporting
+    # 0/63 when 23 are on disk understates progress at exactly the moment
+    # someone is looking at it to decide whether to wait.
+    #
+    # Only those inside *this* plan, though. `done` holds every cell in the run
+    # directory, so when a resume narrows the model list -- rerunning two models
+    # out of nine -- counting all of them reports 51/14, which is worse than no
+    # number at all.
+    planned = {(c.target, c.model, c.context, c.capability)
+               for g in plan.groups for c in g.cells}
+    resumed_cells = len(done & planned)
+    # Exclusive-VRAM: start from an empty card. A model sharing VRAM spills
+    # layers to CPU, and the number that comes out then describes the
+    # contention rather than the model -- which is not a benchmark result. One
+    # model resident at a time also keeps power draw to what the work needs.
+    if exclusive_vram:
+        vram.unload_all_local()
+    # Snapshot after clearing, so the diff still only ever claims our own loads.
+    vram_before = vram.loaded_models() if release_gpu else None
+    ran_models: list[str] = []
+    status = RunStatus(run_id=paths.root.name, pid=os.getpid(),
+                       started_at=now_iso(), cells_total=total_cells,
+                       cells_done=resumed_cells, vram_before=vram_before)
+    if status_path:
+        write_status(status_path, status)
+
     clients: dict[str, object] = {}
+    dead_targets: set[str] = set()
     produced: list[Cell] = []
     try:
         for group in plan.groups:
@@ -179,21 +325,70 @@ def execute_plan(
                     key = (target, model, context, cell_plan.capability)
                     if key in done:
                         continue
+                    if status_path:
+                        status.model = model
+                        status.capability = cell_plan.capability
+                        write_status(status_path, status)
+                    if model not in ran_models:
+                        ran_models.append(model)
+                        # Load explicitly at the context we actually use.
+                        # Otherwise LM Studio JIT-loads at its own defaults and
+                        # sizes the KV cache for many times the work in hand.
+                        if exclusive_vram:
+                            vram.load(model, context=context)
+                        if status_path:
+                            status.models_ran = list(ran_models)
+                            write_status(status_path, status)
                     tgt = config.target_by_name(target)
                     client = clients.get(target)
                     if client is None:
                         client = client_factory(tgt.base_url)
                         clients[target] = client
+                        # Check the endpoint is serving before committing a
+                        # model's worth of work to it. A dead server refuses
+                        # every request instantly, so without this a whole
+                        # battery burns through in seconds and lands as cells
+                        # that look measured. The run still continues -- an
+                        # unreachable target is a cell outcome, never an abort.
+                        if not client.ping():
+                            dead_targets.add(target)
+                    if target in dead_targets:
+                        battery = battery_by_cap[cell_plan.capability]
+                        cell = _unreachable_cell(
+                            model=model, target=target, box=cell_plan.box_hardware,
+                            context=context, battery=battery)
+                        append_cell(paths, cell)
+                        done.add(key)
+                        produced.append(cell)
+                        continue
                     cell = run_cell(client, model=model, target=target,
                                     box=cell_plan.box_hardware, context=context,
                                     battery=battery_by_cap[cell_plan.capability], base_dir=base_dir,
-                                    judge_pool=_judge_pool_for(config, target))
+                                    judge_pool=_judge_pool_for(config, target),
+                                    case_sink=lambda results, _t=target, _m=model, _c=context,
+                                                     _cap=cell_plan.capability: append_case_rows(
+                                        paths, model=_m, target=_t, context=_c,
+                                        capability=_cap, results=results),
+                                    on_case=_case_heartbeat(status_path, status))
                     append_cell(paths, cell)
                     done.add(key)
                     produced.append(cell)
+                    if status_path:
+                        status.cells_done = resumed_cells + len(produced)
+                        write_status(status_path, status)
+                # Every battery for this model is done; free it before the next
+                # one loads rather than holding it for the rest of the run.
+                if exclusive_vram:
+                    vram.unload(model)
     finally:
         for client in clients.values():
             client.close()
+        # Hand the GPU back. A loaded-but-idle model costs power for nothing,
+        # and this runs on a desktop. Only models we caused to load are freed.
+        if release_gpu:
+            vram.release_after_run(vram_before, ran_models)
+        if status_path:
+            clear_status(status_path)
     return produced
 
 

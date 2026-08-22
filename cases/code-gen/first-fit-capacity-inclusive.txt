@@ -1,0 +1,27 @@
+The function first_fit_assign(weights, capacity) performs online first-fit bin assignment.
+
+- weights: list of positive ints; every weight satisfies 1 <= weight <= capacity.
+- capacity: positive int, the maximum total weight per bin.
+- Process weights left to right. For each weight, place it in the lowest-index existing bin whose remaining capacity is greater than or equal to the weight (remaining starts at capacity for a new bin). If no existing bin can take it, open a new bin at the next index.
+- A bin may be filled exactly to capacity (remaining becomes 0); a later weight of size equal to some bin's remaining capacity must still fit that bin.
+- Return a list of bin indices (0-based ints), one per input weight, in input order. Empty weights yields [].
+
+This implementation rejects exact fills:
+
+def first_fit_assign(weights, capacity):
+    remaining = []
+    assign = []
+    for w in weights:
+        placed = False
+        for i in range(len(remaining)):
+            if remaining[i] > w:
+                remaining[i] -= w
+                assign.append(i)
+                placed = True
+                break
+        if not placed:
+            remaining.append(capacity - w)
+            assign.append(len(remaining) - 1)
+    return assign
+
+Symptom: when a weight exactly matches a bin's remaining capacity it opens a new bin instead of filling that bin; sequences that should pack tightly get too many bins / wrong indices. Untouched cases (loose fits, empty input) should stay correct. Provide a corrected first_fit_assign with the same signature. Standard library only; no I/O.

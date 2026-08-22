@@ -1,0 +1,73 @@
+Refactor the following working but ugly sensor debounce state machine without changing its behaviour.
+
+Ugly original:
+
+def debounce_sensor_stream(readings, debounce_n, hold_min):
+    if readings is None:
+        return None
+    if debounce_n is None:
+        return None
+    if hold_min is None:
+        return None
+    if debounce_n < 1:
+        return None
+    if hold_min < 0:
+        return None
+    events = []
+    confirmed = None
+    hold_until = 0
+    run_val = None
+    run_len = 0
+    i = 0
+    while i < len(readings):
+        v = readings[i]
+        if i < hold_until:
+            run_val = None
+            run_len = 0
+            i = i + 1
+        else:
+            if run_val is None:
+                run_val = v
+                run_len = 1
+            else:
+                if v == run_val:
+                    run_len = run_len + 1
+                else:
+                    run_val = v
+                    run_len = 1
+            entered = False
+            if run_len >= debounce_n:
+                if confirmed is None:
+                    entered = True
+                else:
+                    if v != confirmed:
+                        entered = True
+                    else:
+                        entered = False
+            else:
+                entered = False
+            if entered == True:
+                events.append((i, "enter", v))
+                confirmed = v
+                hold_until = i + 1 + hold_min
+                run_val = None
+                run_len = 0
+            i = i + 1
+    return events
+
+Produce a clean function with the exact same name and signature:
+
+    debounce_sensor_stream(readings, debounce_n, hold_min) -> list[tuple] | None
+
+Behaviour (must match the original exactly):
+- If readings, debounce_n, or hold_min is None, return None.
+- If debounce_n < 1 or hold_min < 0, return None.
+- Process readings left-to-right with 0-based indices.
+- Track a run of identical consecutive values that are eligible for counting.
+- A level becomes confirmed when the current eligible run length reaches debounce_n and that level differs from the currently confirmed level (initially no level is confirmed).
+- On confirmation at index i, append (i, "enter", level) and set hold_until = i + 1 + hold_min.
+- While index < hold_until, ignore readings for run counting and clear any partial run.
+- After an enter, clear the run so a fresh debounce_n streak is required after the hold window.
+- Re-confirming the already-confirmed level must not emit another enter.
+- Return the list of events (possibly empty). Empty readings with valid params yield [].
+- No I/O, no randomness, stdlib only.

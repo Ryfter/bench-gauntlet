@@ -1,0 +1,22 @@
+The function expand_seat_range(spec) expands an airline seat specifier into a list of seat labels.
+
+Rules:
+- A single seat looks like a letter followed by an integer, e.g. "K9" or "B12". Return a one-element list containing that exact string.
+- A range looks like "A1-A3" (start, hyphen, end). Both sides use the same letter. Expand inclusively by seat number, formatting each label as the letter plus the decimal number with no zero-padding (so numbers are written like 9, 10, 11 ΓÇö never 09).
+- If the end number is less than the start number, return [].
+- If the two sides use different letters, return [].
+
+Buggy implementation:
+
+def expand_seat_range(spec):
+    if "-" not in spec:
+        return [spec]
+    left, right = spec.split("-", 1)
+    letter = left[0]
+    start = int(left[1:])
+    end = int(right[1:])
+    return [f"{letter}{n}" for n in range(start, end)]
+
+Failing symptom: expand_seat_range("A1-A3") returns ["A1", "A2"], missing the inclusive end seat "A3". Also expand_seat_range("C7-C7") returns [] instead of ["C7"].
+
+Fix expand_seat_range. Keep the function name expand_seat_range.

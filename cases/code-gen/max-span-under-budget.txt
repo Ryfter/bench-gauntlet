@@ -1,0 +1,7 @@
+Write a function max_span_under(values, limit) -> int.
+
+values is a list of non-negative integers (zeros allowed). limit is a non-negative integer.
+
+Return the maximum length of any contiguous subarray whose sum is at most limit. If values is empty, return 0. If no contiguous subarray has sum <= limit (for example every single element exceeds limit), return 0. Runs of zeros always sum to 0 and are valid whenever limit >= 0; the answer is the longest such run when only zeros fit.
+
+Your solution must run in O(n) time where n = len(values). Quadratic scans will not pass the large-input check. Use only the Python standard library; no files, network, or clocks.

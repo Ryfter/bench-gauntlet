@@ -1,0 +1,1 @@
+Write a Python function safe_divide(a: float, b: float) -> float | None that returns a / b, or None if b == 0 (never raise ZeroDivisionError). Output ONLY a Python code block.

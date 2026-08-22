@@ -1,0 +1,11 @@
+Implement a function peak_day_totals(text: str) -> list that aggregates signed event counts from a pipe-delimited log and ranks calendar days by activity.
+
+Each non-empty line has exactly three fields separated by '|': datetime|category|count. category must be non-empty and must not itself contain '|'. count is a base-10 integer that may be negative (reversals/refunds) or zero.
+
+The datetime field is either DD/MM/YYYY or DD/MM/YYYY HH:MM (exactly one space between date and time). Dates always use day/month/year order with a four-digit year ΓÇö never month/day/year. Day must be 1..31 and month 1..12 (no further calendar validation required). When present, HH must be 00..23 and MM 00..59, each two digits. Aggregation keys are calendar dates only: optional times are validated then discarded for bucketing.
+
+Sum count values per calendar day. Days whose summed total is exactly 0 are omitted. Malformed lines (wrong field count, empty category, unparsable count, bad date/time shape, month/day out of range) are skipped. Blank lines are skipped.
+
+Return a list of [iso_date, total] pairs where iso_date is 'YYYY-MM-DD'. Sort by total descending; break ties by iso_date ascending. Return [] when no non-zero days remain.
+
+Use only the Python standard library; no files, network, or clock.

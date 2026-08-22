@@ -1,0 +1,11 @@
+Implement a Python class BagCounter that tracks named guests against a fixed capacity.
+
+Constructor and methods (exact names and signatures):
+- __init__(self, capacity: int) ΓÇö capacity must be an int >= 1; otherwise raise ValueError.
+- check_in(self, name: str) -> bool ΓÇö admit a guest. Return False (and change nothing) if name is not a non-empty str, if that name is already checked in, or if the counter is at capacity. Otherwise add the name and return True.
+- check_out(self, name: str) -> bool ΓÇö remove a guest. Return False (and change nothing) if name is not currently checked in. Otherwise remove it and return True.
+- count(self) -> int ΓÇö number of guests currently checked in.
+- contains(self, name: str) -> bool ΓÇö True iff name is currently checked in.
+- remaining(self) -> int ΓÇö capacity minus current count.
+
+Invariants across any sequence of calls: count is always between 0 and capacity inclusive; remaining == capacity - count; a name appears at most once; empty string is never admitted.

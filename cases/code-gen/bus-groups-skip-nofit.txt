@@ -1,0 +1,16 @@
+Write a function bus_boarding(capacity, groups) that simulates boarding passenger groups onto a bus without splitting groups.
+
+capacity is a non-negative int: seats remaining when boarding begins.
+groups is a list of ints, each >= 1, the size of each group in queue order (front at index 0).
+
+Process groups from left to right:
+- If a group's size is <= seats remaining, board it fully and reduce remaining seats by that size.
+- If a group does not fit, SKIP it and continue with the next group (do not stop the queue; later smaller groups may still board).
+- Groups larger than the original capacity never board, but still do not block later groups.
+
+Return the number of groups that boarded (an int), not the number of seats used.
+
+Edge rules:
+- groups empty -> 0
+- capacity == 0 -> 0 (all groups skipped)
+- Do not mutate the caller's list.

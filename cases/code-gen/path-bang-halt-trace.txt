@@ -1,0 +1,36 @@
+Trace the function below and predict the return value of each numbered call.
+
+def step_count(path):
+    x = 0
+    for ch in path:
+        if ch == '>':
+            x += 1
+        elif ch == '<':
+            x -= 1
+        elif ch == '!':
+            return x
+    return abs(x)
+
+Calls:
+1. step_count(">>>")
+2. step_count("><>")
+3. step_count("")
+4. step_count("!!!")
+5. step_count(">>!>")
+6. step_count("abc")
+7. step_count("<!>")
+8. step_count("<<>")
+9. step_count("!>>>")
+10. step_count(">>><<<!")
+
+Reply with ONLY these 10 lines and nothing else:
+ANSWER_1 = <value>
+ANSWER_2 = <value>
+ANSWER_3 = <value>
+ANSWER_4 = <value>
+ANSWER_5 = <value>
+ANSWER_6 = <value>
+ANSWER_7 = <value>
+ANSWER_8 = <value>
+ANSWER_9 = <value>
+ANSWER_10 = <value>

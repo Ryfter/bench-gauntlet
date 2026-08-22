@@ -1,0 +1,104 @@
+Refactor the following working but ugly duty-block compressor without changing its behaviour.
+
+Ugly original:
+
+def compress_duty_blocks(blocks, max_gap):
+    if max_gap is None:
+        return None
+    if max_gap < 0:
+        return None
+    if blocks is None:
+        return None
+    cleaned = []
+    i = 0
+    while i < len(blocks):
+        b = blocks[i]
+        i = i + 1
+        if isinstance(b, list) or isinstance(b, tuple):
+            if len(b) == 3:
+                s = b[0]
+                e = b[1]
+                r = b[2]
+                if s is None:
+                    pass
+                else:
+                    if e is None:
+                        pass
+                    else:
+                        if r is None:
+                            pass
+                        else:
+                            if type(s) is int:
+                                if type(e) is int:
+                                    if s < e:
+                                        cleaned.append((s, e, r))
+                                    else:
+                                        pass
+                                else:
+                                    pass
+                            else:
+                                pass
+            else:
+                pass
+        else:
+            pass
+    n = len(cleaned)
+    a = list(cleaned)
+    for x in range(n):
+        for y in range(0, n - 1):
+            left = a[y]
+            right = a[y + 1]
+            swap = False
+            if left[0] > right[0]:
+                swap = True
+            else:
+                if left[0] == right[0]:
+                    if left[1] > right[1]:
+                        swap = True
+                    else:
+                        if left[1] == right[1]:
+                            if str(left[2]) > str(right[2]):
+                                swap = True
+            if swap:
+                tmp = a[y]
+                a[y] = a[y + 1]
+                a[y + 1] = tmp
+    if len(a) == 0:
+        return []
+    out = []
+    out.append([a[0][0], a[0][1], a[0][2]])
+    k = 1
+    while k < len(a):
+        s = a[k][0]
+        e = a[k][1]
+        r = a[k][2]
+        pe = out[-1][1]
+        pr = out[-1][2]
+        if r == pr:
+            if s <= pe + max_gap:
+                if e > pe:
+                    out[-1][1] = e
+                else:
+                    out[-1][1] = pe
+            else:
+                out.append([s, e, r])
+        else:
+            out.append([s, e, r])
+        k = k + 1
+    final = []
+    for item in out:
+        final.append((item[0], item[1], item[2]))
+    return final
+
+Produce a clean function with the exact same name and signature:
+
+    compress_duty_blocks(blocks, max_gap) -> list[tuple] | None
+
+Behaviour (must match the original exactly):
+- If max_gap is None or max_gap < 0, return None.
+- If blocks is None, return None.
+- Each block is a 3-item sequence (start, end, role). Skip entries that are not length-3 sequences, have any None field, have non-int start/end, or have start >= end (zero-length and inverted intervals are dropped).
+- Sort surviving blocks by (start ascending, end ascending, str(role) ascending).
+- Merge consecutive blocks when they share the same role and the next start is <= previous end + max_gap. When merging, the combined end is max(previous end, next end).
+- Return a list of (start, end, role) tuples in order; return [] if nothing remains after filtering.
+- No I/O, no randomness, stdlib only.

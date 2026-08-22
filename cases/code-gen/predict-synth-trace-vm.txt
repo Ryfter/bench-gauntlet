@@ -1,0 +1,52 @@
+Below is a Python function. Trace its execution for each call and predict the return value.
+
+def synth_trace(cmds):
+    reg = 0
+    i = 0
+    while i < len(cmds):
+        parts = cmds[i].split()
+        op = parts[0]
+        if op == "SET":
+            reg = int(parts[1])
+            i += 1
+        elif op == "ADD":
+            reg = reg + int(parts[1])
+            i += 1
+        elif op == "MUL":
+            reg = reg * int(parts[1])
+            i += 1
+        elif op == "DIV":
+            x = int(parts[1])
+            if x != 0:
+                reg = reg // x
+            i += 1
+        elif op == "NEG":
+            reg = -reg
+            i += 1
+        elif op == "JMP":
+            n = int(parts[1])
+            if reg > 0:
+                i += 1 + n
+            else:
+                i += 1
+        else:
+            i += 1
+    return reg
+
+Predict the result of each call:
+1. synth_trace(["SET 5", "ADD 3"])
+2. synth_trace(["SET 10", "DIV 3", "ADD 1"])
+3. synth_trace(["SET 5", "JMP 2", "SET 99", "ADD 1", "ADD 5"])
+4. synth_trace(["SET 8", "DIV 0", "ADD 1"])
+5. synth_trace([])
+6. synth_trace(["SET 7", "NEG", "ADD 1"])
+7. synth_trace(["SET -3", "JMP 1", "ADD 10", "MUL 2"])
+8. synth_trace(["SET 0", "JMP 2", "SET 99", "ADD 1", "ADD 5"])
+9. synth_trace(["SET -8", "DIV 3", "NEG"])
+10. synth_trace(["SET -7", "DIV 2"])
+
+Reply with ONLY these 10 assignment lines and nothing else:
+ANSWER_1 = <value>
+ANSWER_2 = <value>
+...
+ANSWER_10 = <value>

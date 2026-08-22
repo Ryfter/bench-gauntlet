@@ -1,0 +1,11 @@
+The function strip_void_rows(rows) takes a list of strings and must remove every void row in place, then return that same list object. A void row is a string that is empty or contains only whitespace (spaces, tabs, newlines, etc. ΓÇö anything for which str.strip() yields ""). Non-void rows keep their original content and relative order, including internal spaces.
+
+This implementation is buggy:
+
+def strip_void_rows(rows):
+    for r in rows:
+        if r.strip() == "":
+            rows.remove(r)
+    return rows
+
+Symptom: when several void rows appear (especially consecutive ones), some voids remain and/or later non-void rows are skipped. Provide a corrected strip_void_rows with the same signature that mutates rows in place and returns it. Standard library only; no I/O.

@@ -1,0 +1,16 @@
+The function count_filled_slots(row) should count how many cells in a spreadsheet row are considered filled.
+
+A cell is empty only when its value is None or the empty string "". Every other value counts as filled, including 0, False, whitespace-only strings such as " ", empty lists, and any non-empty string.
+
+The current implementation is buggy:
+
+def count_filled_slots(row):
+    n = 0
+    for cell in row:
+        if cell:
+            n += 1
+    return n
+
+Failing symptom: count_filled_slots([0, False, "x"]) returns 1 instead of 3, because the truthiness check treats 0 and False as empty.
+
+Fix count_filled_slots so it matches the empty-cell rule above. Keep the function name count_filled_slots.

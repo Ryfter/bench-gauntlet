@@ -1,0 +1,5 @@
+Write a function zero_sum_slice_count(nums) -> int.
+
+nums is a list of integers (positive, negative, or zero). Count how many contiguous subarrays have element sum exactly 0. Subarrays are non-empty. Overlapping and nested subarrays each count separately. Examples of required behaviour: empty list yields 0; a single zero yields 1; two consecutive zeros yield 3 (each alone and both together).
+
+Your solution must run in O(n) time where n = len(nums). Nested O(n^2) enumeration will not finish on the large-input check. Use only the Python standard library; no files, network, or clocks.

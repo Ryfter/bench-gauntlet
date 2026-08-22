@@ -1,0 +1,27 @@
+The function merge_duty_windows(windows) merges half-open duty intervals for a crew roster.
+
+Each window is a pair (start, end) of integers representing a half-open interval [start, end). Behaviour:
+
+- Drop any window where start >= end (zero-length or inverted).
+- Sort remaining windows by (start, end).
+- Merge any two windows that overlap or touch: if the next start is <= the current merged end, extend the merged end to max(ends). Touching intervals such as (0, 2) and (2, 5) must become (0, 5).
+- Return a list of merged (start, end) tuples in ascending start order.
+- An empty input yields [].
+
+Buggy implementation:
+
+def merge_duty_windows(windows):
+    if not windows:
+        return []
+    windows = sorted(windows)
+    out = [list(windows[0])]
+    for s, e in windows[1:]:
+        if s < out[-1][1]:
+            out[-1][1] = max(out[-1][1], e)
+        else:
+            out.append([s, e])
+    return [tuple(pair) for pair in out]
+
+Failing symptom: merge_duty_windows([(0, 2), (2, 5)]) returns [(0, 2), (2, 5)] instead of [(0, 5)] because adjacent windows are not merged. Also merge_duty_windows([(8, 3)]) returns [(8, 3)] instead of dropping the inverted window.
+
+Fix merge_duty_windows. Keep the function name merge_duty_windows.

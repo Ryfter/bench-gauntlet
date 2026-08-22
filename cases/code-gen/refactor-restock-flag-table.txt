@@ -1,0 +1,34 @@
+Refactor the working function below. Keep the exact name and signature restock_flag(qty, days). Behaviour must stay identical for every input, including the quirks. Replace the deep nesting with data-driven thresholds (constants or small tables) and at most one level of branching for the qty/days matrix. Do not add I/O or third-party imports.
+
+Semantics of the original (must preserve):
+- If qty is None or days is None, return "unknown".
+- Else if qty < 0 or days < 0, return "bad".
+- Else if qty == 0, always return "critical" (days ignored).
+- Else if qty <= 5: days <= 2 -> "critical"; days <= 7 -> "high"; else "medium".
+- Else if qty <= 20: days <= 2 -> "high"; days <= 7 -> "medium"; else "low".
+- Else (qty > 20): days <= 1 -> "medium"; else "low".
+
+Original:
+
+def restock_flag(qty, days):
+    if qty is None or days is None:
+        return "unknown"
+    if qty < 0 or days < 0:
+        return "bad"
+    if qty == 0:
+        return "critical"
+    if qty <= 5:
+        if days <= 2:
+            return "critical"
+        if days <= 7:
+            return "high"
+        return "medium"
+    if qty <= 20:
+        if days <= 2:
+            return "high"
+        if days <= 7:
+            return "medium"
+        return "low"
+    if days <= 1:
+        return "medium"
+    return "low"

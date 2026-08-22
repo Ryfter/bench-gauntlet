@@ -1,0 +1,13 @@
+Implement a class BookingLedger that tracks named seat bookings against a fixed capacity.
+
+BookingLedger(capacity: int) ΓÇö capacity is a non-negative integer total seat count.
+
+book(name: str, seats: int) -> bool ΓÇö If seats < 1, return False and change nothing. If free seats are at least seats, add seats to name's booking (create the name if new) and return True. Otherwise return False and change nothing. Repeated successful books for the same name must accumulate seats.
+
+cancel(name: str) -> int ΓÇö Remove name's entire booking if present and return how many seats were freed. If name has no booking, return 0.
+
+free() -> int ΓÇö Number of seats not currently held by any booking.
+
+held(name: str) -> int ΓÇö Seats currently held by name, or 0 if none.
+
+Use only the Python standard library. No file, network, or clock access.

@@ -1,0 +1,41 @@
+Below is a Python function. Trace its execution for each call and predict the return value.
+
+def fold_digits(n, mode):
+    if n < 0:
+        n = -n
+        sign = -1
+    else:
+        sign = 1
+    digits = []
+    if n == 0:
+        digits = [0]
+    while n > 0:
+        digits.append(n % 10)
+        n //= 10
+    acc = 0
+    for d in digits:
+        if mode == "odd":
+            if d % 2 == 1:
+                acc = acc * 10 + d
+        else:
+            if d % 2 == 0:
+                acc = acc * 10 + d
+    return sign * acc
+
+Predict the result of each call:
+1. fold_digits(1234, "odd")
+2. fold_digits(1234, "even")
+3. fold_digits(0, "odd")
+4. fold_digits(246, "odd")
+5. fold_digits(111, "even")
+6. fold_digits(9, "odd")
+7. fold_digits(-135, "odd")
+8. fold_digits(1002, "even")
+9. fold_digits(1020, "even")
+10. fold_digits(-20, "even")
+
+Reply with ONLY these 10 assignment lines and nothing else:
+ANSWER_1 = <value>
+ANSWER_2 = <value>
+...
+ANSWER_10 = <value>

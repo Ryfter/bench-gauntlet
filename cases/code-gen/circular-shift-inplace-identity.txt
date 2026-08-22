@@ -1,0 +1,11 @@
+Write a function circular_shift_inplace(xs, k) that left-rotates the list xs by k positions **in place** and returns the same list object.
+
+Semantics:
+- A left rotate by k moves each element k slots toward index 0; elements that fall off the front reappear at the end, in order.
+- k may be any int. Normalize by the list length: rotating by k is the same as rotating by k mod len(xs) when len(xs) > 0.
+- Negative k means rotate right by |k| (equivalently left by len(xs) - (|k| mod len(xs)) when non-empty).
+- If xs is empty, leave it empty and return it.
+- If the normalized shift is 0, leave element order unchanged.
+- The returned object must be the identical list instance passed in (id preserved). Mutate xs; do not build and return a different list.
+- Do not call sorted() or list.sort().
+- Elements may be any objects; only reorder positions, never compare element values.

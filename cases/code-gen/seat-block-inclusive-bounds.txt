@@ -1,0 +1,8 @@
+The function seat_in_block(seat, first, last) must return True exactly when seat is inside the closed integer interval [first, last] (both endpoints included), and False otherwise. first <= last is guaranteed. seat/first/last are ints and may be negative.
+
+This implementation is wrong on the endpoints:
+
+def seat_in_block(seat, first, last):
+    return first < seat and seat < last
+
+Symptom: a seat equal to first or equal to last is rejected even though it belongs in the block. Provide a corrected seat_in_block with the same signature. Standard library only; no I/O.

@@ -1,0 +1,11 @@
+Implement first_viable_window(loads: list[int], capacity: int, width: int) -> int.
+
+loads is a sequence of non-negative integers (e.g. per-slot cargo weights). Return the smallest starting index i such that the contiguous window loads[i:i+width] has sum less than or equal to capacity. If no such window exists, return -1.
+
+Rules:
+- If width <= 0 or width > len(loads), return -1.
+- An empty loads list yields -1 for any positive width.
+- Windows are contiguous and of exact length width (not shorter).
+- Equality with capacity counts as viable.
+
+Complexity: O(n) time in n = len(loads) and O(1) extra memory. A quadratic scan over windows will not pass the large-input check.

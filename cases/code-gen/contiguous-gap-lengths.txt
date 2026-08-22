@@ -1,0 +1,7 @@
+Write a function contiguous_gap_lengths(row: str) -> list[int].
+
+The string row represents a single row of parking sensors. The character '.' means an empty bay. Every other character (including '#', letters, digits, spaces, and unicode symbols) is a barrier that breaks a run of empties.
+
+Return the lengths of each maximal contiguous run of '.' characters, in left-to-right order. Do not sort or merge non-adjacent runs.
+
+If row is empty, return []. If there are no '.' characters, return []. A row that is only '.' characters yields a single-element list with that length. Leading and trailing empty runs must be included.

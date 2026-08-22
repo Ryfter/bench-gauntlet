@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Post-v0.6.0 additions — session 1
+
+### Discriminative scoring v2, item 1: execution-based code-gen scorer
+- **`code-exec` scoring method** — runs generated code in an isolated subprocess
+  (fresh process, own process group, wall-clock timeout, scratch tempdir cwd, minimal
+  env) against a hidden, maintainer-authored assert suite; scores functional
+  correctness (fraction of hidden asserts passed) instead of `compilable-code`'s
+  syntax-only check. `compilable-code` stays available for backward compat; scorer is
+  selectable per case via `tests_file`.
+- **6 new `code-gen` cases** (`run-length-encode`, `matrix-transpose`, `safe-divide`,
+  `factorial-strict`, `inventory-tracker`, `prime-pair`) covering edge cases
+  (empty/negative inputs), a stateful class, and a multi-function ask — not memorized
+  toy classics.
+- **Roadmap doc** — `docs/superpowers/plans/2026-07-04-discriminative-scoring-v2-plan.md`
+  sequences the full v2 initiative (this scorer, the full spec, raw-vs-scaffolded,
+  pipeline economics, ToC-aware scheduling).
+- 12 new tests in `tests/test_scoring_execute.py` plus dispatch coverage in
+  `tests/test_scoring_dispatch.py`. Test suite: 130 → 144.
+
 ## v0.6.0 — 2026-06-21
 
 ### Post-v0.5.0 additions — session 3

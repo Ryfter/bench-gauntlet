@@ -1,0 +1,32 @@
+Write a Python function test_suite(fn) that returns a list of booleans evaluating whether callable fn obeys the approve_charges contract below. True means that check passed.
+
+Contract ΓÇö approve_charges(charges, budget) -> tuple[list[int], int]:
+- charges is a list of non-negative ints (requested amounts) in submission order.
+- budget is a non-negative int.
+- Walk charges left to right. Approve a charge only if it is <= remaining budget; then subtract it from remaining.
+- Stop at the first charge that does not fit (do not skip it to approve later smaller charges).
+- Return (approved_list, remaining_budget). approved_list preserves order and uses the original int values.
+- Empty charges returns ([], budget). A first charge larger than budget returns ([], budget).
+- Zero-valued charges fit whenever remaining >= 0 and consume 0.
+- Pure function; do not mutate charges.
+
+A candidate implementation under review (may be wrong):
+
+def approve_charges(charges, budget):
+    kept = []
+    rem = int(budget)
+    for c in charges:
+        c = int(c)
+        if c < rem:
+            kept.append(c)
+            rem -= c
+        else:
+            break
+    return (kept, rem)
+
+Write ONLY:
+def test_suite(fn):
+    ...
+    return [ ... booleans ... ]
+
+Do not implement approve_charges. Encode the contract so a correct impl yields all True and mistakes (strict less-than on the budget edge, or skipping a non-fitting charge) yield at least one False. Stdlib only, no I/O.

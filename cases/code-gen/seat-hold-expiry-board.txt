@@ -1,0 +1,25 @@
+Implement a class SeatHoldBoard that manages temporary seat holds with discrete integer ticks (no wall clock, no sleeping).
+
+Constructor:
+  __init__(self, n_seats: int)
+    Seats are numbered 0 .. n_seats-1 inclusive.
+
+Methods:
+  hold(self, seat: int, hold_id: str, now: int, ttl: int) -> bool
+    Attempt to place a hold on `seat` under unique `hold_id`.
+    - Return False if seat is outside 0..n_seats-1, or ttl < 1, or hold_id is already attached to a still-live hold, or the seat already has a still-live hold.
+    - A hold is live at time `now` when now < expires_at, where expires_at was stored as (placement_now + ttl) when the hold was placed.
+    - At the exact tick now == expires_at the hold is expired and the seat is free again; hold_id may then be reused and the seat may be re-held.
+    - Before deciding, treat any expired holds as gone (purge them).
+    - On success store the hold and return True.
+
+  release(self, hold_id: str) -> bool
+    If hold_id is known (live or not-yet-purged expired record), remove it and return True; otherwise False.
+
+  is_free(self, seat: int, now: int) -> bool
+    Return False if seat is out of range. Otherwise purge expired holds at `now` and return True iff that seat has no live hold.
+
+  free_count(self, now: int) -> int
+    After purging expired holds at `now`, return how many seats are free.
+
+Python stdlib only. No files, network, or real time.

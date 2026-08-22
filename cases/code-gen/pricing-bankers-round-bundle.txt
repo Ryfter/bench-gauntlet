@@ -1,0 +1,18 @@
+Implement two functions for money rounding and multi-line price quotes.
+
+def round_money(amount, places=2):
+  Round amount to the given number of decimal places using banker's rounding (round half to even).
+  If places is negative, treat places as 0.
+  Return a float. Half-to-even means ties go to the nearest even digit (at 0 places: 3.5 -> 4.0 and 4.5 -> 4.0; at 2 places: 2.125 -> 2.12 and 2.135 -> 2.14). Negative amounts use the same rule (e.g. -2.125 -> -2.12).
+
+def price_bundle(lines, tax_rate):
+  lines is a list of 3-tuples (unit_price, qty, discount_pct), all numeric.
+  tax_rate is a percentage (e.g. 10 means 10%).
+  For each line, compute raw = unit_price * qty * (1 - discount_pct / 100), then net = round_money(raw, 2).
+  subtotal = round_money(sum of all net values, 2), or 0.0 if lines is empty.
+  tax = round_money(subtotal * tax_rate / 100, 2).
+  total = round_money(subtotal + tax, 2).
+  Return the 3-tuple (subtotal, tax, total).
+  A 100% discount yields a net of 0.0 for that line.
+
+You may use the decimal module from the standard library. Both functions must be defined at module level with these exact names.

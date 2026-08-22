@@ -1,0 +1,32 @@
+Write test_suite(impl) -> list[bool] checking whether impl meets the progressive_fee contract. True means that particular assertion held for impl.
+
+Contract ΓÇö progressive_fee(weight, brackets) -> int:
+- weight is an int (grams). If weight <= 0, return 0 regardless of brackets.
+- brackets is a list of (capacity, rate) pairs of ints, applied in order as progressive bands.
+- Walk brackets from left to right. For every band except the last, charge min(remaining_weight, max(0, capacity)) * rate and reduce remaining_weight by that amount.
+- The last band always absorbs all remaining_weight (capacity on the last band is ignored for limiting; it may still be present).
+- If brackets is empty, return 0 for any weight.
+- If non-last capacities are 0, those bands contribute nothing and remaining proceeds to later bands.
+- Return the total fee as an int. Pure; no mutation of brackets.
+
+Candidate under review (may be wrong):
+
+def progressive_fee(weight, brackets):
+    if weight <= 0 or not brackets:
+        return 0
+    rem = weight
+    for i, (cap, rate) in enumerate(brackets):
+        if i < len(brackets) - 1:
+            if rem <= cap:
+                return weight * rate
+            rem -= cap
+        else:
+            return weight * rate
+    return 0
+
+Write ONLY:
+def test_suite(impl):
+    ...
+    return [booleans]
+
+Your checks must pass a correct progressive implementation and fail the flat-rate style bug above (and similar bracket mistakes). Stdlib only, no I/O.

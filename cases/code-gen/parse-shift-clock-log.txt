@@ -1,0 +1,21 @@
+Write a function `parse_shift_log(raw: str) -> list[dict]`.
+
+`raw` is a multi-line clock-in/out log. Lines may be separated by `\n`, `\r\n`, or bare `\r` (old Mac-style). Normalize all three to line breaks before parsing.
+
+A valid data line matches this shape after stripping leading/trailing whitespace:
+  `HH:MM NAME ACTION`
+where:
+- `HH:MM` is a 24-hour time with exactly two digits for hour and minute; hour must be 0ΓÇô23 and minute 0ΓÇô59 (reject `24:00`, `10:60`, etc.).
+- `ACTION` is exactly `IN` or `OUT` (final whitespace-separated token).
+- `NAME` is everything between the time and the action, stripped of leading/trailing whitespace; it may contain internal spaces (e.g. `Ada Lovelace`).
+
+Skip (do not raise on):
+- blank lines (after strip)
+- lines whose first non-whitespace character is `#` (comments)
+- lines that do not match the shape or have an out-of-range time
+
+Return a list of dicts in encounter order, each with exactly the keys:
+  `{"time": "HH:MM", "name": <str>, "action": "IN"|"OUT"}`
+using the zero-padded time text from the line.
+
+Use only the Python standard library. No file, network, or clock access.

@@ -1,0 +1,18 @@
+Write two Python functions for a small-parcel shipping desk.
+
+1) pack_weight_band(grams: int) -> str
+Classify a single item by weight in grams using these inclusive bands:
+- grams < 0 -> "invalid"
+- 0 <= grams <= 500 -> "letter"
+- 501 <= grams <= 2000 -> "parcel"
+- 2001 <= grams <= 10000 -> "freight"
+- grams > 10000 -> "oversize"
+
+2) quote_shipment(items_grams: list[int], rates: dict[str, int]) -> int
+- For each weight in items_grams, call pack_weight_band.
+- If the band is "invalid", contribute 0 for that item (skip it).
+- Otherwise add rates.get(band, 0) for that item.
+- Empty items_grams returns 0.
+- Return the integer total.
+
+Use only the Python standard library. No I/O.

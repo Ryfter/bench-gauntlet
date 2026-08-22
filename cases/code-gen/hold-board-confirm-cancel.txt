@@ -1,0 +1,12 @@
+Implement a Python class HoldBoard that manages numbered resource slots with a hold-then-confirm workflow.
+
+Constructor and methods (exact names and signatures):
+- __init__(self, slots: int) ΓÇö slots must be an int >= 1; otherwise raise ValueError. Slots are numbered 0 .. slots-1 and start free.
+- hold(self, slot: int, holder: str) -> bool ΓÇö place a hold. Return False (no change) if slot is out of range, holder is not a non-empty str, holder already has an active hold or booking anywhere on the board, or the slot is not free. Otherwise mark the slot held by holder and return True.
+- confirm(self, holder: str) -> bool ΓÇö convert that holder's current hold into a booking. Return False if holder has no entry, or their slot is not in held state (e.g. already booked). Otherwise mark booked and return True.
+- cancel(self, holder: str) -> bool ΓÇö drop that holder's hold or booking and free the slot. Return False if holder has no active entry; otherwise free the slot, clear the holder's entry, return True. Cancel must work for both held and booked states.
+- status(self, slot: int) -> str | None ΓÇö "free", "held", or "booked" for a valid slot; None if out of range.
+- holder_of(self, slot: int) -> str | None ΓÇö holder string for held/booked slots; None if free or out of range.
+- free_count(self) -> int ΓÇö number of free slots.
+
+Rules: each holder may have at most one active hold or booking at a time; held slots may be confirmed once; cancel works on both held and booked; free slots have no holder.

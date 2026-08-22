@@ -1,0 +1,69 @@
+Refactor the working function below. Keep the exact name and signature compress_slots(slots). Behaviour must stay identical, including skip rules, sort order, and merge condition. Flatten the nested control flow and remove duplicated list/tuple packing; do not change outcomes. Standard library only; no I/O.
+
+Semantics of the original (must preserve):
+- slots is a sequence of triples (start, end, label) or None entries.
+- None slots arg or empty -> [].
+- Skip entries that are None, not length-3, have None fields, non-int-convertible start/end, or end <= start.
+- Remaining intervals sort by (start, end, str(label)).
+- Walk in that order: merge into the previous interval only when labels are equal AND start <= previous_end (touching counts as merge). On merge, previous_end becomes max(previous_end, end).
+- Different labels never merge, even if ranges overlap; both are kept in sorted order.
+- Return a list of (start, end, label) tuples.
+
+Original:
+
+def compress_slots(slots):
+    if slots is None:
+        return []
+    if len(slots) == 0:
+        return []
+    items = []
+    i = 0
+    while i < len(slots):
+        s = slots[i]
+        i = i + 1
+        if s is None:
+            continue
+        try:
+            if len(s) != 3:
+                continue
+        except TypeError:
+            continue
+        a = s[0]
+        b = s[1]
+        lab = s[2]
+        if a is None or b is None or lab is None:
+            continue
+        try:
+            a = int(a)
+            b = int(b)
+        except (TypeError, ValueError):
+            continue
+        if b <= a:
+            continue
+        items.append([a, b, lab])
+    if len(items) == 0:
+        return []
+    items = sorted(items, key=lambda x: (x[0], x[1], str(x[2])))
+    out = []
+    out.append([items[0][0], items[0][1], items[0][2]])
+    j = 1
+    while j < len(items):
+        a = items[j][0]
+        b = items[j][1]
+        lab = items[j][2]
+        ca = out[len(out) - 1][0]
+        cb = out[len(out) - 1][1]
+        cl = out[len(out) - 1][2]
+        if lab == cl:
+            if a <= cb:
+                if b > cb:
+                    out[len(out) - 1][1] = b
+            else:
+                out.append([a, b, lab])
+        else:
+            out.append([a, b, lab])
+        j = j + 1
+    final = []
+    for row in out:
+        final.append((row[0], row[1], row[2]))
+    return final

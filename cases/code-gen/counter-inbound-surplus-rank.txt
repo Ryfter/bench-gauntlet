@@ -1,0 +1,7 @@
+Implement surplus_skus(inbound: list[str], outbound: list[str]) -> list[tuple[str, int]].
+
+inbound and outbound are multisets of SKU strings (duplicates mean multiple units). Compute each SKU's net count as (times it appears in inbound) minus (times it appears in outbound).
+
+Return a list of (sku, net) for every SKU with net strictly greater than 0. Sort by net descending; break ties by sku ascending (Python string order). SKUs that appear only in outbound, or whose net is zero or negative, must be omitted.
+
+Empty inbound and outbound yields []. Matching one-for-one yields []. Preserve exact SKU spelling/case/unicode; do not normalize.

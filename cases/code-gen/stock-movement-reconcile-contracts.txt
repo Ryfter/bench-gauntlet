@@ -1,0 +1,18 @@
+Define exception class StockCorruptError(Exception) and implement reconcile_stock(on_hand, movements).
+
+on_hand is a dict mapping SKU strings to non-negative int quantities. movements is a list of 2-tuples (sku, delta) applied in order. Each delta is a plain int (positive inbound, negative outbound). Return a new dict with final quantities; do not mutate on_hand.
+
+Rules:
+- Every movement SKU must already exist in on_hand (no auto-create).
+- After each individual movement, that SKU's quantity must remain >= 0. If a movement would make it negative, raise ValueError and do not partially return a final state from a failed run (raising is enough).
+- If any initial on_hand quantity is negative, raise StockCorruptError before applying movements.
+
+Exact exception contracts:
+- TypeError if on_hand is not a dict, or movements is not a list.
+- TypeError if any on_hand value is not a plain int (type(x) is int; bool rejected).
+- TypeError if a movement is not a 2-tuple, if sku is not a str, or if delta is not a plain int (bool rejected).
+- KeyError if a movement references a SKU absent from on_hand (KeyError's args should identify the missing sku in the usual way).
+- ValueError if applying a delta would make that SKU negative mid-sequence.
+- StockCorruptError if any starting quantity is negative.
+
+Empty movements returns a shallow copy of on_hand. Standard library only.

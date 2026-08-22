@@ -1,0 +1,11 @@
+Implement parse_seat_token(token) -> tuple[int, int].
+
+Seat tokens use the exact pattern R{row}-C{col} where {row} and {col} are one or more decimal digits (leading zeros allowed). Return (row, col) as ints.
+
+Valid ranges: row in 1..99 inclusive, col in 1..50 inclusive.
+
+Contracts:
+- Raise TypeError if token is not a str.
+- Raise ValueError if the token does not match the pattern, or if row/col are outside the valid ranges (including row 0 or col 0).
+
+Do not accept other separators, missing R/C prefixes, or lowercase letters.

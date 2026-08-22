@@ -1,0 +1,43 @@
+Trace the function below and predict the return value of each numbered call.
+
+def pivot_fold(seq, p):
+    left = []
+    right = []
+    mid = 0
+    for v in seq:
+        if v < p:
+            left.append(v * 2 if v % 2 == 0 else v)
+        elif v > p:
+            right.append(v // 2 if v % 2 == 0 else -v)
+        else:
+            mid += 1
+    acc = mid
+    for x in left:
+        acc = acc + x
+    for y in right:
+        acc = acc - y
+    return (acc, len(left), len(right))
+
+Calls:
+1. pivot_fold([1, 2, 3, 4], 3)
+2. pivot_fold([], 0)
+3. pivot_fold([5, 5, 5], 5)
+4. pivot_fold([4, 6, 8], 1)
+5. pivot_fold([0, 1, 2], 0)
+6. pivot_fold([-3, -2, 4], 0)
+7. pivot_fold([7], 10)
+8. pivot_fold([10, 3, 10], 10)
+9. pivot_fold([2, 2, 2], 2)
+10. pivot_fold([9, 8, 1], 5)
+
+Reply with ONLY these 10 lines and nothing else:
+ANSWER_1 = <value>
+ANSWER_2 = <value>
+ANSWER_3 = <value>
+ANSWER_4 = <value>
+ANSWER_5 = <value>
+ANSWER_6 = <value>
+ANSWER_7 = <value>
+ANSWER_8 = <value>
+ANSWER_9 = <value>
+ANSWER_10 = <value>

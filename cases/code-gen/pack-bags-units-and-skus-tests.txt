@@ -1,0 +1,32 @@
+Write test_suite(fn) -> list[bool] that verifies whether fn satisfies the pack_bags contract. Each True means that check passed for the given fn.
+
+Contract ΓÇö pack_bags(items, max_units, max_skus) -> list[list[str]]:
+- items is a list of SKU strings in packing order (never reorder).
+- max_units and max_skus are positive ints.
+- Pack greedily left to right into bags. Start a new bag when adding the next SKU would make the current bag exceed max_units items OR would make its number of distinct SKUs exceed max_skus.
+- A repeated SKU already present in the current bag does not increase the distinct count.
+- Empty items returns []. Each single item always begins a bag by itself when the previous bag cannot accept it (callers guarantee max_units >= 1 and max_skus >= 1 so a fresh bag can always hold one item).
+- Return the list of bags; each bag is a list of SKU strings in the order packed.
+- Pure; do not mutate items.
+
+Candidate under review (may be buggy):
+
+def pack_bags(items, max_units, max_skus):
+    if not items:
+        return []
+    bags = []
+    cur = []
+    for sku in items:
+        if not cur:
+            cur = [sku]
+            continue
+        if len(cur) + 1 <= max_units:
+            cur.append(sku)
+        else:
+            bags.append(cur)
+            cur = [sku]
+    if cur:
+        bags.append(cur)
+    return bags
+
+Write ONLY def test_suite(fn) returning a list of booleans. Encode both capacity rules so correct code passes every check and implementations that ignore distinct-SKU limits or unit limits fail some. Stdlib only, no I/O.

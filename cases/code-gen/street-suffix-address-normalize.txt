@@ -1,0 +1,23 @@
+Implement two functions for light US-style street-line normalisation.
+
+`expand_suffix(token: str) -> str`
+Map a single street-suffix token to a canonical full form.
+- Matching is case-insensitive on the input token.
+- Recognised abbreviations and their outputs (always this Title Case spelling):
+  - `st`, `str`, `street` -> `Street`
+  - `rd`, `road` -> `Road`
+  - `ave`, `av`, `avenue` -> `Avenue`
+  - `blvd`, `boulevard` -> `Boulevard`
+  - `ln`, `lane` -> `Lane`
+- If `token` is not a recognised suffix (after case-folding), return `token` unchanged, preserving its original characters and casing.
+- If `token` is `""`, return `""`.
+
+`normalize_address(line: str) -> str`
+- Strip leading and trailing whitespace from `line`.
+- If the result is empty, return `""`.
+- Split the remainder on any whitespace runs (collapse internal multi-spaces to single separators).
+- Apply `expand_suffix` only to the final token; leave every earlier token exactly as split (aside from whitespace collapse).
+- Rejoin tokens with a single space.
+- Delegate suffix expansion to `expand_suffix`.
+
+Standard library only. No I/O.

@@ -1,0 +1,14 @@
+Implement two functions for flat-rate tariff lookup.
+
+def lookup_band(bands, quantity):
+  bands is a list of dicts, each with keys "limit" (int or None) and "rate" (float).
+  Bands are sorted by limit ascending; a limit of None means unlimited (must be last if present).
+  Each band covers quantities from just above the previous band's limit up through its own limit (inclusive). The first band covers 0 through its limit inclusive.
+  Return the rate of the band that contains quantity.
+  If quantity is negative, bands is empty, or quantity exceeds every finite limit and there is no unlimited band, return None.
+
+def compute_tariff(bands, quantity):
+  Look up the rate with lookup_band. If the rate is None, return None.
+  Otherwise return quantity * rate (as a float product). quantity 0 in a valid first band yields 0.0.
+
+Both functions must be defined at module level with these exact names.

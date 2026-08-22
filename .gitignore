@@ -24,3 +24,8 @@ dist/
 
 # any local private config that strays into the tree
 targets.local.yaml
+
+# agent scratch (grok-cli workspace, ingest run artifacts)
+_batch_*.py
+_batch_*.json
+scratch_*.json

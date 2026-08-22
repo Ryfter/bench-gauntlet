@@ -1,0 +1,33 @@
+Implement a class PinnedLRUCache: a capacity-bounded string->int cache with LRU eviction, except pinned keys are never evicted.
+
+Constructor:
+  __init__(self, capacity: int)
+    capacity is at least 1. Cache starts empty.
+
+Methods:
+  put(self, key: str, value: int) -> bool
+    Insert or update key.
+    - If key already present: overwrite value, mark key as most-recently-used (MRU), return True. Pin state unchanged.
+    - If key is new and size < capacity: insert as MRU, return True.
+    - If key is new and size == capacity: evict the least-recently-used key that is not pinned, then insert the new key as MRU and return True.
+      If every resident key is pinned, do not insert and return False.
+    - Evicting a key removes it entirely (including any pin on it).
+
+  get(self, key: str):
+    If key missing return None. If present, mark it MRU and return its int value.
+
+  pin(self, key: str) -> bool
+    Pin an existing key so it cannot be evicted. Return False if key is absent; True if already pinned or newly pinned.
+
+  unpin(self, key: str) -> bool
+    Remove pin from key. Return True only if key was pinned; False if key absent or not pinned.
+
+  size(self) -> int
+    Number of resident keys.
+
+  pinned_count(self) -> int
+    Number of currently pinned resident keys.
+
+Recency: both get and put-on-existing refresh MRU. Eviction always chooses the LRU unpinned key among current residents.
+
+Python stdlib only. No files, network, or time.

@@ -1,0 +1,7 @@
+Write a function shortest_k_variety(items, k) -> int.
+
+items is a list of integers (SKU ids; duplicates allowed). k is an integer. If k <= 0, return 0. Otherwise return the length of the shortest contiguous subarray that contains at least k distinct values. If items is empty, or if the whole list has fewer than k distinct values, return 0.
+
+When several subarrays achieve the minimum length, any of them is fine for the length result ΓÇö only the length is required. The window may contain extra duplicates; only distinctness matters.
+
+Must run in O(n) time for n = len(items). Restarting a full scan for every left edge is too slow for the large-input check. Use only the Python standard library; no files, network, or clocks.

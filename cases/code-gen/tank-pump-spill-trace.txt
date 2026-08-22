@@ -1,0 +1,46 @@
+Trace the function below by hand. Do not write a new implementation.
+
+def pump(seq, cap):
+    tank = 0
+    log = []
+    for x in seq:
+        if x < 0:
+            tank += x
+            if tank < 0:
+                tank = 0
+            log.append(tank)
+            continue
+        tank += x
+        if tank > cap:
+            spill = tank - cap
+            tank = cap
+            log.append(-spill)
+            if spill > cap:
+                return log
+        else:
+            log.append(tank)
+    return log
+
+Predict the return value of each call:
+1. pump([1, 2, 3], 10)
+2. pump([5, 5, 5], 10)
+3. pump([], 5)
+4. pump([3, -1, 2], 10)
+5. pump([2, -5, 1], 10)
+6. pump([20], 10)
+7. pump([25], 10)
+8. pump([8, 8, 8], 10)
+9. pump([-3, -3], 5)
+10. pump([6, 6, -20, 4], 10)
+
+Reply with ONLY these 10 lines and nothing else:
+ANSWER_1 = <value>
+ANSWER_2 = <value>
+ANSWER_3 = <value>
+ANSWER_4 = <value>
+ANSWER_5 = <value>
+ANSWER_6 = <value>
+ANSWER_7 = <value>
+ANSWER_8 = <value>
+ANSWER_9 = <value>
+ANSWER_10 = <value>

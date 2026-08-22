@@ -1,0 +1,5 @@
+Implement a function merge_shift_blocks(records: list[str]) -> list[tuple[str, str]].
+Each record is a single-day duty window written as start-end times: optional leading/trailing whitespace, HH:MM or H:MM, a hyphen with optional spaces around it, then another HH:MM or H:MM (24-hour clock). Example accepted forms: '09:00-10:30', '9:00 - 10:30', '  14:05-15:00  '.
+Parse with the re module. Reject (skip) any record that does not match that shape, has hour outside 0..23, has minute outside 0..59, or has end time less than or equal to start time (times are minutes-from-midnight on one day; no overnight spans).
+Sort accepted intervals by start ascending. Merge intervals that overlap or touch: if the next start is less than or equal to the current merged end, extend the end to the max of the two ends. Adjacent windows such as 09:00-10:00 and 10:00-11:00 must become one block 09:00-11:00.
+Return merged blocks as (start, end) strings always zero-padded to HH:MM, ordered by start. Empty input or no valid records yields []. Standard library only.

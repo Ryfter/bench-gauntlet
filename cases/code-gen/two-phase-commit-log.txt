@@ -1,0 +1,31 @@
+Implement a class TwoPhaseCommitLog: an in-memory key/value store with two-phase transactions. Staged writes must not be visible until commit.
+
+Constructor:
+  __init__(self)
+    Empty store; no transactions.
+
+Methods:
+  begin(self, tx_id: str) -> bool
+    Open a new active transaction named tx_id.
+    Return False if tx_id was ever seen before (active, committed, or aborted); True on success.
+
+  prepare(self, tx_id: str, key: str, value: str) -> bool
+    Stage key->value on an active transaction (last prepare for a key wins within that tx).
+    Return False if tx_id is missing or not active; True on success.
+    Must not mutate the committed store.
+
+  commit(self, tx_id: str) -> bool
+    Apply all staged writes from an active tx into the committed store, clear its staging, mark it committed.
+    Return False if missing or not active; True once. A committed tx cannot be committed or prepared again.
+
+  abort(self, tx_id: str) -> bool
+    Discard staging for an active tx and mark it aborted. Return False if missing or not active.
+
+  get(self, key: str):
+    Return the committed value for key, or None if absent.
+    Never return staged (uncommitted) values from any transaction.
+
+  status(self, tx_id: str) -> str
+    "active", "committed", or "aborted" if known; "unknown" if tx_id was never begun.
+
+Python stdlib only. No files, network, or time.

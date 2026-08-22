@@ -1,0 +1,12 @@
+Implement max_stable_span(readings: list[int], max_drift: int) -> int.
+
+readings is a time-ordered sequence of sensor values. Return the length of the longest contiguous subarray in which the difference between the maximum and minimum values is at most max_drift (i.e. max(sub) - min(sub) <= max_drift).
+
+Rules:
+- If readings is empty, return 0.
+- If max_drift < 0, return 0.
+- A single element always has span 0, so it is stable for any max_drift >= 0; the length of a one-element subarray is 1.
+- Stability depends on the true min and max inside the window, not merely the endpoints.
+- Return the length (integer), not the indices.
+
+Complexity: O(n) time and O(n) extra memory is expected (e.g. monotonic deques). O(n^2) double loops will not pass the large-input check.

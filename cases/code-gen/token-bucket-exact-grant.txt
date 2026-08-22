@@ -1,0 +1,21 @@
+Write a function token_bucket_accept(capacity, refill, requests) that simulates a discrete token bucket rate limiter.
+
+- capacity: non-negative int, maximum tokens the bucket can hold.
+- refill: non-negative int, tokens added at the beginning of every tick after the first.
+- requests: list of non-negative ints, one requested token amount per tick (index 0 is the first tick).
+
+State machine:
+1. Before tick 0, tokens = capacity (bucket starts full).
+2. For each tick i in order:
+   a. If i > 0: tokens = min(capacity, tokens + refill)
+   b. If requests[i] <= tokens, ACCEPT: tokens -= requests[i], record True.
+   c. Else REJECT: leave tokens unchanged, record False.
+3. Return the list of booleans, same length as requests.
+
+Boundary rules (must match exactly):
+- Empty requests -> []
+- A request of 0 is always accepted when tokens >= 0 (including when tokens == 0 and capacity == 0).
+- A request that exactly equals the current token count is accepted and drains the bucket to 0.
+- Refill never exceeds capacity (hard cap).
+- Rejected requests do not consume tokens and do not block later ticks.
+- capacity, refill, and request values are ints; no floats. Pure function; no I/O.

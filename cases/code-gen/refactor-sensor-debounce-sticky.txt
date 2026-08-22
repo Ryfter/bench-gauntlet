@@ -1,0 +1,80 @@
+Refactor the working function below. Keep the exact name and signature debounce_series(readings, window, fault_hold). Behaviour must stay identical for all sequences, including sticky fault clearing, None dropouts, and threshold boundaries. Extract helpers for raw classification and parameter clamping; remove duplicated state updates. Standard library only; no I/O or non-determinism.
+
+Semantics of the original (must preserve):
+- readings None -> []. window None or < 1 -> treat as 1. fault_hold None or < 1 -> treat as the (clamped) window.
+- Start state "ok". For each reading emit the state after processing that reading (same length as readings).
+- Raw class: value > 200 -> "fault"; else value > 100 -> "warn"; else "ok". Boundaries: 100 is "ok", 200 is "warn".
+- None reading: emit current state; clear any pending transition counter; do not change state; do not change good_streak used for fault recovery.
+- While state is "fault": only consecutive raw "ok" increments good_streak; any non-ok resets good_streak to 0 and stays "fault". When good_streak reaches fault_hold, state becomes "ok" and pending is cleared. Warn while faulted never clears fault.
+- While not faulted: raw equal to state clears pending. Otherwise accumulate consecutive identical pending raw values; when count reaches window, adopt that raw as state and clear pending. Leaving fault mode does not require a separate windowed transition.
+- Return list of state strings.
+
+Original:
+
+def debounce_series(readings, window, fault_hold):
+    if readings is None:
+        return []
+    if window is None:
+        w = 1
+    else:
+        if window < 1:
+            w = 1
+        else:
+            w = int(window)
+    if fault_hold is None:
+        fh = w
+    else:
+        if fault_hold < 1:
+            fh = w
+        else:
+            fh = int(fault_hold)
+    out = []
+    state = "ok"
+    pending = None
+    pend_count = 0
+    good_streak = 0
+    idx = 0
+    while idx < len(readings):
+        r = readings[idx]
+        idx = idx + 1
+        if r is None:
+            out.append(state)
+            pending = None
+            pend_count = 0
+            continue
+        if r > 200:
+            raw = "fault"
+        else:
+            if r > 100:
+                raw = "warn"
+            else:
+                raw = "ok"
+        if state == "fault":
+            if raw == "ok":
+                good_streak = good_streak + 1
+                if good_streak >= fh:
+                    state = "ok"
+                    good_streak = 0
+                    pending = None
+                    pend_count = 0
+            else:
+                good_streak = 0
+            out.append(state)
+            continue
+        good_streak = 0
+        if raw == state:
+            pending = None
+            pend_count = 0
+            out.append(state)
+            continue
+        if raw == pending:
+            pend_count = pend_count + 1
+        else:
+            pending = raw
+            pend_count = 1
+        if pend_count >= w:
+            state = pending
+            pending = None
+            pend_count = 0
+        out.append(state)
+    return out

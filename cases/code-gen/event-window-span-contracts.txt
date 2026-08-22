@@ -1,0 +1,18 @@
+Define exception class ChronologyError(Exception) and implement window_span(events, i, j).
+
+events is a list of dicts, each with keys "t" (plain int timestamp) and "label" (str). Return a 2-tuple (joined_labels, duration) for the inclusive index range i..j:
+- joined_labels is the labels from events[i] through events[j] joined with a single comma and no extra spaces.
+- duration is events[j]["t"] - events[i]["t"] (integer subtraction).
+
+Timestamps in the selected slice must be non-decreasing in index order; if events[k]["t"] < events[k-1]["t"] for any k in (i, j], raise ChronologyError.
+
+Exact exception contracts:
+- TypeError if events is not a list.
+- TypeError if i is not a plain int or j is not a plain int (type(x) is int; bool rejected).
+- TypeError if any selected element is not a dict, if "t" is not a plain int, or if "label" is not a str.
+- IndexError if i < 0, j < 0, i >= len(events), or j >= len(events).
+- ValueError if i > j (do not swap endpoints).
+- KeyError if a selected event is missing "t" or missing "label" (raise for the missing key name).
+- ChronologyError if the selected timestamps decrease at any step.
+
+A single-event window (i == j) is valid and has duration 0. Standard library only.

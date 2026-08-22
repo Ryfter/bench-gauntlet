@@ -1,0 +1,10 @@
+Implement format_bullet_list(items: list[str], width: int, bullet: str) -> list[str].
+
+Format each string in items as a hanging-indent bullet block and concatenate all lines into one flat list (item order preserved).
+
+Rules:
+- Total line width is width characters, including the bullet. The body width is width - len(bullet). Callers guarantee width > len(bullet) >= 1.
+- Wrap each item's body with textwrap.wrap(item, width=body_width) using textwrap.wrap defaults (including default whitespace handling).
+- If wrap returns no chunks (empty/whitespace-only item), emit exactly one line: the bullet string unchanged.
+- Otherwise the first line is bullet + chunks[0]; each further chunk is a line of (' ' * len(bullet)) + chunk.
+- An empty items list yields []. Do not add blank separator lines between items.

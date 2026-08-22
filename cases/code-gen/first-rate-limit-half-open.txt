@@ -1,0 +1,13 @@
+Implement first_rate_limit_hit(timestamps: list[int], limit: int, window: int) -> int.
+
+timestamps is a non-decreasing list of event times (integers). A breach occurs at the earliest event time t = timestamps[i] such that the number of events falling in the half-open window (t - window, t] is strictly greater than limit.
+
+Rules:
+- Events exactly at time t - window are OUTSIDE the window (not counted).
+- Events at time t are counted.
+- If window <= 0 or limit < 0, return -1 (invalid parameters).
+- If timestamps is empty or no event ever breaches, return -1.
+- limit == 0 means the first event is always a breach (one event exceeds zero allowed).
+- Return the timestamp value of the first breaching event (not its index).
+
+Complexity: O(n) time with a two-pointer / sliding window; O(1) extra memory. Re-scanning the window from scratch for every event will not pass large inputs.

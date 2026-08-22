@@ -1,3 +1,4 @@
+import os
 import sys
 
 import typer
@@ -70,6 +71,172 @@ def report(
 
 
 @app.command()
+def status() -> None:
+    """Is Gauntlet using the GPU right now? Also shows what is resident in VRAM.
+
+    Exists so the answer to "why is my machine loud?" never requires reading a
+    log file or hunting for a process.
+    """
+    from gauntlet import vram
+    from gauntlet.runstatus import DEFAULT_STATUS_PATH, read_status
+
+    st = read_status(DEFAULT_STATUS_PATH)
+    if st is None:
+        typer.echo("Gauntlet: idle — no run in progress.")
+    elif not st.is_alive:
+        typer.echo(f"Gauntlet: idle — run {st.run_id} left a stale marker "
+                   f"(pid {st.pid} is gone; it was killed or crashed).")
+        typer.echo(f"  last seen: {st.updated_at}  "
+                   f"cells: {st.cells_done}/{st.cells_total or '?'}")
+        typer.echo(f"  resume with: gauntlet run --resume {st.run_id}")
+    else:
+        pct = "" if st.progress is None else f" ({st.progress * 100:.0f}%)"
+        typer.echo(f"Gauntlet: RUNNING — run {st.run_id} (pid {st.pid})")
+        typer.echo(f"  started: {st.started_at}   updated: {st.updated_at}")
+        typer.echo(f"  cells:   {st.cells_done}/{st.cells_total or '?'}{pct}")
+        if st.model:
+            within = (f"  case {st.cases_done}/{st.cases_total}"
+                      if st.cases_total else "")
+            typer.echo(f"  current: {st.model}  [{st.capability}]{within}")
+
+    from gauntlet import telemetry
+    from gauntlet.overlay import format_load
+
+    gpu = telemetry.gpu_load()
+    if gpu is not None:
+        flag = "  <-- audible" if gpu.is_stressed else ""
+        typer.echo(f"\nGPU: {format_load(gpu)}"
+                   f"{f'  util {gpu.utilisation_pct}%' if gpu.utilisation_pct is not None else ''}"
+                   f"{flag}")
+    mem = telemetry.system_memory()
+    if mem is not None:
+        typer.echo(f"RAM: {mem.used_gb:.1f}/{mem.total_gb:.0f} GB "
+                   f"({mem.used_pct:.0f}%)")
+
+    by_device = vram.loaded_models_by_device()
+    if by_device is None:
+        typer.echo("\nVRAM: unknown (`lms` not available).")
+    elif not by_device:
+        typer.echo("\nVRAM: no models loaded.")
+    else:
+        from collections import defaultdict
+
+        groups: dict[str, list[str]] = defaultdict(list)
+        for model, device in by_device:
+            groups[device or "Local"].append(model)
+        typer.echo("\nVRAM by device:")
+        for device in sorted(groups, key=lambda d: (not vram.is_local_device(d), d)):
+            models = ", ".join(groups[device])
+            note = "" if vram.is_local_device(device) else " (other box — not this run)"
+            typer.echo(f"  {device}: {models}{note}")
+        typer.echo("  (Gauntlet frees only the models it loaded on this box; "
+                   "remote linked instances are never touched.)")
+
+
+def _spawn_overlay():
+    """Launch the lamp beside a run, or return None if it cannot start.
+
+    Detached and best-effort on purpose: an indicator that fails must never take
+    the benchmark down with it. A headless box has no display and simply gets no
+    lamp.
+    """
+    import subprocess
+    import sys as _sys
+
+    from gauntlet.overlay import existing_overlay_pid
+
+    if existing_overlay_pid() is not None:
+        return None  # one is already up; it reads the same marker
+
+    try:
+        kwargs: dict = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+        if os.name == "nt":
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+        return subprocess.Popen([_sys.executable, "-m", "gauntlet.cli", "overlay"], **kwargs)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def _stop_overlay(proc) -> None:
+    """Close the lamp when the run ends, so a finished run leaves nothing behind."""
+    import subprocess
+
+    try:
+        proc.terminate()
+        proc.wait(timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        try:
+            proc.kill()
+        except OSError:
+            pass
+
+
+@app.command()
+def overlay() -> None:
+    """Show a small draggable always-on-top lamp for local-model GPU use.
+
+    green = inference running, yellow = a model is resident but idle (power
+    spent for nothing), red = nothing loaded. Drag it anywhere; click ✕ or press
+    Escape to close. Position is remembered.
+
+    Runs as its own process polling the run marker, so it can never slow down or
+    interfere with a benchmark.
+    """
+    from gauntlet.overlay import existing_overlay_pid, run_overlay
+
+    already = existing_overlay_pid()
+    if already is not None:
+        typer.echo(f"An overlay is already on screen (pid {already}). "
+                   f"A second one would stack invisibly on top of it.")
+        raise typer.Exit(code=0)
+
+    try:
+        run_overlay()
+    except ImportError:
+        typer.echo("The overlay needs tkinter, which this Python was built "
+                   "without. `gauntlet status` gives the same information.")
+        raise typer.Exit(code=1) from None
+
+
+@app.command()
+def release() -> None:
+    """Free VRAM left behind by a killed run.
+
+    A run releases the GPU itself on a clean exit, but `finally` does not run
+    when the process is SIGKILLed -- which is how an interrupted run usually
+    ends. This finishes the job from the status file, which records both halves
+    of the snapshot-diff so a model from another session is still never touched.
+    """
+    from gauntlet import vram
+    from gauntlet.runstatus import DEFAULT_STATUS_PATH, clear_status, read_status
+
+    st = read_status(DEFAULT_STATUS_PATH)
+    if st is None:
+        typer.echo("Nothing to release — no run marker found.")
+        raise typer.Exit(code=0)
+    if st.is_alive:
+        typer.echo(f"Run {st.run_id} is still going (pid {st.pid}). "
+                   f"Stop it first; it frees the GPU on a clean exit.")
+        raise typer.Exit(code=1)
+
+    if st.vram_before is None:
+        typer.echo("Refusing to unload: the run never recorded what was already "
+                   "loaded, so anything resident might not be ours.")
+        typer.echo("Unload by hand with `lms unload <model>` if you are sure.")
+        raise typer.Exit(code=1)
+
+    freed = vram.release_after_run(st.vram_before, st.models_ran)
+    if freed:
+        typer.echo(f"Released {len(freed)} model(s) from run {st.run_id}:")
+        for m in freed:
+            typer.echo(f"  - {m}")
+    else:
+        typer.echo(f"Nothing to release from run {st.run_id} — everything still "
+                   f"loaded was already there before it started.")
+    clear_status(DEFAULT_STATUS_PATH)
+
+
+@app.command()
 def run(
     config: str = typer.Option(None, "--config", "-c", help="Path to targets.yaml"),
     batteries: str = typer.Option("batteries", "--batteries", help="Directory of battery YAML files"),
@@ -79,6 +246,11 @@ def run(
     resume_id: str = typer.Option(None, "--resume", help="Resume an existing run id (skip completed cells)"),
     run_id: str = typer.Option(None, "--run-id", help="Run id (default: timestamp)"),
     share: bool = typer.Option(False, "--share", help="Drop hostname labels in the written scorecard"),
+    overlay: bool = typer.Option(True, "--overlay/--no-overlay",
+                                 help="Show the on-screen GPU-use lamp for the duration of the run"),
+    exclusive_vram: bool = typer.Option(True, "--exclusive-vram/--shared-vram",
+                                        help="Clear the GPU first and keep one model resident at a time "
+                                             "(--shared-vram leaves other models loaded)"),
 ) -> None:
     """Run the gauntlet: sequence the work matrix and execute it against live targets."""
     from datetime import datetime, timezone
@@ -90,6 +262,7 @@ def run(
     from gauntlet.config import load_config
     from gauntlet.models import RunMeta
     from gauntlet.runner import RunPaths, assemble_scorecard, execute_plan, write_meta
+    from gauntlet.runstatus import DEFAULT_STATUS_PATH
     from gauntlet.scorecard import render_markdown, write_json
 
     cfg = load_config(config)
@@ -105,9 +278,29 @@ def run(
         import os
         return OpenAIClient(base_url=base_url, api_key=os.environ.get("GAUNTLET_API_KEY"))
 
-    cells = execute_plan(cfg, bats, paths, base_dir=prompts, client_factory=factory,
-                         only_models=list(models) if models else None,
-                         resume=bool(resume_id))
+    mode = ("clearing the GPU first and keeping one model resident at a time"
+            if exclusive_vram else "sharing the GPU with whatever else is loaded")
+    typer.echo(f"Starting run {rid}: {mode}. This holds the GPU at sustained "
+               f"load until it finishes. Check progress from another shell with "
+               f"`gauntlet status`; the card is released at the end.")
+
+    lamp = _spawn_overlay() if overlay else None
+    try:
+        cells = execute_plan(cfg, bats, paths, base_dir=prompts, client_factory=factory,
+                             only_models=list(models) if models else None,
+                             resume=bool(resume_id),
+                             status_path=DEFAULT_STATUS_PATH,
+                             exclusive_vram=exclusive_vram)
+    except BaseException:
+        # Close the lamp on Ctrl-C or a crash too, not just on the happy path.
+        # Every interrupted run today orphaned its overlay, and they stack
+        # invisibly -- three were on screen before anyone noticed.
+        if lamp is not None:
+            _stop_overlay(lamp)
+        raise
+
+    if lamp is not None:
+        _stop_overlay(lamp)
 
     meta = RunMeta(id=rid, date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
                    gauntlet_version=__version__)

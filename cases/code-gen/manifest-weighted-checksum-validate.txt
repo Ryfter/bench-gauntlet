@@ -1,0 +1,20 @@
+Implement two functions for shipping-manifest integrity checks.
+
+def item_checksum(sku, qty):
+  sku is a string; qty is an int.
+  Compute sum over each character c at 0-based index i of (i + 1) * ord(c), then add qty, then return that total modulo 1000.
+  An empty sku contributes 0 from the character loop, so item_checksum("", q) == q % 1000 for non-negative q (and follows the same formula for any int q).
+
+def validate_manifest(items, expected_total):
+  items is a list of dicts with keys "sku" (str), "qty" (int), and "checksum" (int).
+  expected_total is an int.
+  Return True only if all of the following hold:
+  - expected_total is not negative;
+  - if items is empty, expected_total is exactly 0;
+  - every sku is a non-empty string and every qty is an int >= 0;
+  - all skus are unique (no duplicates);
+  - for every item, item_checksum(sku, qty) equals the given checksum;
+  - the sum of all qty values equals expected_total.
+  Otherwise return False.
+
+Both functions must be defined at module level with these exact names.
