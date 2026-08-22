@@ -1,6 +1,6 @@
 """Unit tests for ToC placement — no live inference, box ids only."""
 
-from gauntlet.toc_scheduler import TocBox, TocCell, plan_placement
+from gauntlet.toc_scheduler import TocBox, TocCell, cell_cost, plan_placement
 
 
 def _cell(
@@ -94,3 +94,62 @@ def test_weight_field_used_when_estimated_cost_absent():
     plan = plan_placement(boxes, cells)
     assert len(plan.batches) == 1
     assert plan.batches[0].cells[0].model == "m"
+
+
+def test_unknown_affinity_box_defers():
+    boxes = [TocBox(id="known", vram_gb=32, usage_class="broad")]
+    cells = [_cell("orphan", box_id="missing-box", cost=10.0)]
+    plan = plan_placement(boxes, cells)
+    assert plan.batches == []
+    assert len(plan.deferred) == 1
+    assert "unknown" in plan.deferred[0].defer_reason
+
+
+def test_all_boxes_busy_defers_every_cell():
+    boxes = [
+        TocBox(id="a", vram_gb=32, usage_class="broad", busy=True),
+        TocBox(id="b", vram_gb=8, usage_class="tight", busy=True),
+    ]
+    cells = [_cell("m1", cost=3.0), _cell("m2", cost=12.0, critical=True)]
+    plan = plan_placement(boxes, cells)
+    assert plan.batches == []
+    assert len(plan.deferred) == 2
+    assert all(c.deferred for c in plan.deferred)
+    assert all("no available boxes" in c.defer_reason for c in plan.deferred)
+
+
+def test_heavy_non_critical_routes_to_broad_not_tight():
+    boxes = [
+        TocBox(id="tight", vram_gb=8, usage_class="tight"),
+        TocBox(id="broad", vram_gb=32, usage_class="broad"),
+    ]
+    cells = [_cell("heavy", cost=10.0, critical=False, vram_gb=6.0)]
+    plan = plan_placement(boxes, cells)
+    assert len(plan.batches) == 1
+    assert plan.batches[0].box_id == "broad"
+    assert plan.batches[0].exclusive is True
+
+
+def test_default_cost_when_weight_and_estimated_cost_absent():
+    cell = TocCell(model="tiny", context=4096, battery="commit-msg")
+    assert cell_cost(cell) == 1.0
+    boxes = [TocBox(id="laptop", vram_gb=16, usage_class="tight")]
+    plan = plan_placement(boxes, [cell])
+    assert len(plan.batches) == 1
+    assert plan.batches[0].cells[0].model == "tiny"
+
+
+def test_vram_overflow_splits_tight_parallel_batch():
+    boxes = [TocBox(id="laptop", vram_gb=10, usage_class="tight")]
+    cells = [
+        _cell("a", cost=1.0, vram_gb=4.0),
+        _cell("b", cost=1.0, vram_gb=4.0),
+        _cell("c", cost=1.0, vram_gb=4.0),
+    ]
+    plan = plan_placement(boxes, cells)
+    parallel = [b for b in plan.batches if not b.exclusive]
+    exclusive = [b for b in plan.batches if b.exclusive]
+    assert len(parallel) == 1
+    assert {c.model for c in parallel[0].cells} == {"a", "b"}
+    assert len(exclusive) == 1
+    assert exclusive[0].cells[0].model == "c"
