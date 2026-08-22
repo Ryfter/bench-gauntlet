@@ -13,12 +13,14 @@ def _cell(
     critical: bool = False,
     vram_gb: float | None = None,
     box_id: str | None = None,
+    estimated_cost: float | None = None,
 ) -> TocCell:
+    eff_cost = cost if cost is not None else estimated_cost
     return TocCell(
         model=model,
         context=context,
         battery=battery,
-        estimated_cost=cost,
+        estimated_cost=eff_cost,
         weight=weight,
         critical=critical,
         vram_gb=vram_gb,
@@ -203,7 +205,7 @@ def test_no_tight_boxes_cheap_uses_weakest_available_exclusive():
 
 
 def test_affinity_on_tight_box_respects_vram_packing():
-    boxes = [TocBox(id="pin", vram_gb=12, usage_class="tight")]
+    boxes = [TocBox(id="pin", vram_gb=10, usage_class="tight")]
     cells = [
         _cell("a", box_id="pin", cost=1.0, vram_gb=4.0),
         _cell("b", box_id="pin", cost=1.0, vram_gb=4.0),
@@ -214,6 +216,7 @@ def test_affinity_on_tight_box_respects_vram_packing():
     exclusive = [b for b in plan.batches if b.exclusive]
     assert len(parallel) == 1
     assert parallel[0].box_id == "pin"
+    assert {c.model for c in parallel[0].cells} == {"a", "b"}
     assert len(exclusive) == 1
     assert exclusive[0].cells[0].model == "c"
 
