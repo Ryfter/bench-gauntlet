@@ -1,11 +1,13 @@
 # Discriminative Scoring v2 — multi-axis contract
 
-**Status:** design draft — awaiting Kevin sign-off before items #3–5 proceed beyond pure algorithms.
+**Status:** **STAMPED** — Kevin approved 2026-08-22 (choice `ch-c5d002f8232e`).
 **Roadmap item:** #2 of
 [`2026-07-04-discriminative-scoring-v2-plan.md`](../plans/2026-07-04-discriminative-scoring-v2-plan.md).
-**Gates:** raw-vs-scaffolded (#3), pipeline economics (#4), ToC scheduler (#5).
+**Gates:** raw-vs-scaffolded (#3), pipeline economics (#4), ToC scheduler (#5) — **unblocked for implementation beyond pure algorithms.**
 **Related:** [seed](../../2026-06-30-discriminative-scoring-v2-seed.md),
 [RvS slice](./2026-07-26-raw-vs-scaffolded-design.md) (normative for #3 arms — reference only).
+**Signed:** Kevin · **Date:** 2026-08-22
+**Notes:** Stamp adopts §2–§3 contract shape. §4.1–§4.4 defaults may still be refined on first RvS report without unstamping the core.
 
 ## 1. Stable fields (unchanged semantics)
 

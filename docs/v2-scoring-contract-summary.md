@@ -1,7 +1,7 @@
 # Discriminative Scoring v2 — Kevin sign-off summary
 
 **Branch:** `feat/codegen-execution-scorer` · **Full spec:** [`docs/superpowers/specs/2026-08-21-discriminative-scoring-v2-contract.md`](superpowers/specs/2026-08-21-discriminative-scoring-v2-contract.md)  
-**Status:** design draft — **your sign-off gates items #3–#5 beyond pure algorithms/tests.**
+**Status:** **STAMPED** — Kevin approved 2026-08-22. Items #3–#5 may proceed beyond pure algorithms/tests.
 
 ---
 
@@ -53,10 +53,10 @@ A **multi-axis scorecard contract** that keeps today's JSON loading unchanged wh
 
 ## Sign-off checklist
 
-- [ ] **Approve §2–§3** — stable fields, additive extensions, Baton read/refuse rules, routing-brief shape.
-- [ ] **Resolve #1–#4** above (delta storage, pipeline scope, frontier alias, brief emitter).
+- [x] **Approve §2–§3** — stable fields, additive extensions, Baton read/refuse rules, routing-brief shape.
+- [ ] **Resolve #1–#4** above (delta storage, pipeline scope, frontier alias, brief emitter) — may refine on first RvS.
 - [ ] **Note #5–#7** — can defer ToC sidecar choice, thresholds, and multi-arm scope to first RvS report if needed.
 
-**Signed:** _________________________ **Date:** _____________
+**Signed:** Kevin **Date:** 2026-08-22
 
-**Notes:**
+**Notes:** Stamped via choices queue `ch-c5d002f8232e`. Core contract locked; §4 defaults remain tunable.
