@@ -229,3 +229,159 @@ def test_weight_beats_default_cost_for_scheduling_order():
     ]
     plan = plan_placement(boxes, cells)
     assert [b.cells[0].model for b in plan.batches] == ["heavy-weight", "light-weight"]
+
+
+def test_empty_cell_list_yields_empty_plan():
+    boxes = [TocBox(id="desktop", vram_gb=32, usage_class="broad")]
+    plan = plan_placement(boxes, [])
+    assert plan.batches == []
+    assert plan.deferred == []
+
+
+def test_cell_cost_prefers_weight_over_estimated_cost():
+    cell = TocCell(
+        model="dual",
+        context=8192,
+        battery="code-gen",
+        weight=99.0,
+        estimated_cost=1.0,
+    )
+    assert cell_cost(cell) == 99.0
+
+
+def test_cost_ceiling_boundary_heavy_at_five():
+    boxes = [
+        TocBox(id="tight", vram_gb=16, usage_class="tight"),
+        TocBox(id="broad", vram_gb=32, usage_class="broad"),
+    ]
+    heavy = _cell("at-ceiling", cost=5.0, vram_gb=2.0)
+    cheap = _cell("under-ceiling", cost=4.99, vram_gb=2.0)
+    heavy_plan = plan_placement(boxes, [heavy])
+    cheap_plan = plan_placement(boxes, [cheap])
+    assert heavy_plan.batches[0].box_id == "broad"
+    assert heavy_plan.batches[0].exclusive is True
+    assert cheap_plan.batches[0].box_id == "tight"
+    # First cheap cell opens a tight batch (exclusive until a second joins).
+    assert cheap_plan.batches[0].exclusive is True
+
+
+def test_cost_ceiling_boundary_cheap_packs_in_parallel_on_tight():
+    boxes = [
+        TocBox(id="tight", vram_gb=16, usage_class="tight"),
+        TocBox(id="broad", vram_gb=32, usage_class="broad"),
+    ]
+    cells = [
+        _cell("cheap-a", cost=4.99, vram_gb=2.0),
+        _cell("cheap-b", cost=4.5, vram_gb=2.0),
+    ]
+    plan = plan_placement(boxes, cells)
+    parallel = [b for b in plan.batches if not b.exclusive]
+    assert len(parallel) == 1
+    assert parallel[0].box_id == "tight"
+    assert {c.model for c in parallel[0].cells} == {"cheap-a", "cheap-b"}
+
+
+def test_critical_with_affinity_uses_pinned_box():
+    boxes = [
+        TocBox(id="weak", vram_gb=8, usage_class="tight"),
+        TocBox(id="pin", vram_gb=16, usage_class="tight"),
+        TocBox(id="strong", vram_gb=32, usage_class="broad"),
+    ]
+    cells = [_cell("crit-pinned", cost=40.0, critical=True, box_id="pin")]
+    plan = plan_placement(boxes, cells)
+    assert len(plan.batches) == 1
+    assert plan.batches[0].box_id == "pin"
+    assert plan.batches[0].cells[0].model == "crit-pinned"
+
+
+def test_heavy_routes_to_highest_vram_broad():
+    boxes = [
+        TocBox(id="broad-small", vram_gb=24, usage_class="broad"),
+        TocBox(id="broad-big", vram_gb=48, usage_class="broad"),
+    ]
+    cells = [_cell("heavy", cost=20.0, vram_gb=10.0)]
+    plan = plan_placement(boxes, cells)
+    assert plan.batches[0].box_id == "broad-big"
+
+
+def test_heavy_when_only_tight_boxes_uses_strongest_available():
+    boxes = [
+        TocBox(id="tight-a", vram_gb=8, usage_class="tight"),
+        TocBox(id="tight-b", vram_gb=16, usage_class="tight"),
+    ]
+    cells = [_cell("heavy", cost=12.0, vram_gb=6.0)]
+    plan = plan_placement(boxes, cells)
+    assert len(plan.batches) == 1
+    assert plan.batches[0].box_id == "tight-b"
+    assert plan.batches[0].exclusive is True
+
+
+def test_affinity_to_broad_is_always_exclusive():
+    boxes = [TocBox(id="broad", vram_gb=32, usage_class="broad")]
+    cells = [
+        _cell("pinned", box_id="broad", cost=1.0, vram_gb=4.0),
+        _cell("pinned-2", box_id="broad", cost=1.5, vram_gb=4.0),
+    ]
+    plan = plan_placement(boxes, cells)
+    assert len(plan.batches) == 2
+    assert all(b.exclusive for b in plan.batches)
+    assert all(b.box_id == "broad" for b in plan.batches)
+
+
+def test_second_cheap_joins_open_tight_batch():
+    boxes = [TocBox(id="laptop", vram_gb=20, usage_class="tight")]
+    cells = [
+        _cell("first", cost=1.0, vram_gb=5.0),
+        _cell("second", cost=2.0, vram_gb=5.0),
+    ]
+    plan = plan_placement(boxes, cells)
+    parallel = [b for b in plan.batches if not b.exclusive]
+    assert len(parallel) == 1
+    assert {c.model for c in parallel[0].cells} == {"first", "second"}
+
+
+def test_tight_cell_without_vram_footprint_is_exclusive():
+    boxes = [TocBox(id="laptop", vram_gb=16, usage_class="tight")]
+    cells = [_cell("no-vram", cost=1.0, vram_gb=None)]
+    plan = plan_placement(boxes, cells)
+    assert len(plan.batches) == 1
+    assert plan.batches[0].exclusive is True
+
+
+def test_critical_skips_busy_strongest_uses_next_available():
+    boxes = [
+        TocBox(id="strong", vram_gb=32, usage_class="broad", busy=True),
+        TocBox(id="backup", vram_gb=16, usage_class="tight"),
+    ]
+    cells = [_cell("crit", cost=30.0, critical=True)]
+    plan = plan_placement(boxes, cells)
+    assert len(plan.batches) == 1
+    assert plan.batches[0].box_id == "backup"
+
+
+def test_mixed_queue_respects_critical_then_heavy_then_cheap():
+    boxes = [
+        TocBox(id="tight", vram_gb=16, usage_class="tight"),
+        TocBox(id="broad", vram_gb=32, usage_class="broad"),
+    ]
+    cells = [
+        _cell("cheap", cost=1.0, vram_gb=3.0),
+        _cell("heavy", cost=10.0, vram_gb=8.0),
+        _cell("crit", cost=25.0, critical=True, vram_gb=6.0),
+    ]
+    plan = plan_placement(boxes, cells)
+    order = [b.cells[0].model for b in plan.batches if len(b.cells) == 1]
+    # critical first (exclusive on broad), heavy second, cheap may pack on tight
+    assert plan.batches[0].cells[0].model == "crit"
+    assert plan.batches[0].box_id == "broad"
+    models_scheduled = {c.model for b in plan.batches for c in b.cells}
+    assert models_scheduled == {"cheap", "heavy", "crit"}
+
+
+def test_deferred_cell_is_copy_not_mutating_input():
+    boxes = [TocBox(id="only", vram_gb=8, usage_class="tight", busy=True)]
+    original = _cell("x", cost=2.0)
+    plan = plan_placement(boxes, [original])
+    assert original.deferred is False
+    assert plan.deferred[0].deferred is True
+    assert plan.deferred[0] is not original
