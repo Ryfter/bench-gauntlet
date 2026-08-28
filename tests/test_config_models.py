@@ -56,6 +56,18 @@ def test_config_rejects_unresolved_target_and_box_references(data):
         GauntletConfig.model_validate(data)
 
 
+def test_orchestrate_rejects_empty_model_fleet():
+    from gauntlet.orchestrate import orchestrate
+
+    cfg = GauntletConfig.model_validate({
+        "targets": [{"name": "t", "base_url": "http://localhost", "box": "x"}],
+        "boxes": [{"id": "x", "hardware": "h", "vram_gb": 8}],
+        "models": [],
+    })
+    with pytest.raises(errors.GauntletError, match="model"):
+        orchestrate(cfg, batteries=[], run_id="r1", base_dir=".", api_key=None)
+
+
 def test_require_runnable_target_fails_closed_for_busy_box():
     cfg = _cfg()
     cfg.boxes[0].busy = True
