@@ -3,6 +3,7 @@ import json
 from typer.testing import CliRunner
 
 from gauntlet.cli import app
+from tests.helpers import sse
 
 runner = CliRunner()
 
@@ -88,8 +89,7 @@ def test_baseline_with_key_runs_and_writes_gaps(tmp_path, monkeypatch):
 
     def fake_client(base_url, api_key=None):
         def handler(request):
-            return httpx.Response(200, json={"choices": [{"message": {"content": "feat: add x"}}],
-                                             "usage": {"completion_tokens": 4}})
+            return httpx.Response(200, text=sse("feat: add x", completion_tokens=4))
         from gauntlet.client import OpenAIClient
         return OpenAIClient(base_url=base_url, transport=httpx.MockTransport(handler))
     monkeypatch.setattr(cli_mod, "_frontier_client", fake_client, raising=False)
