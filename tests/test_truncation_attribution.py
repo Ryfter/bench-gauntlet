@@ -76,10 +76,11 @@ def test_an_untruncated_reply_is_returned_unchanged(mode):
     assert result.failure_mode == mode
 
 
-def test_a_non_code_exec_result_is_left_alone():
-    """Only code-exec carries a failure_mode. A judge or exact-match result has
-    none, and must pass through untouched rather than acquiring one."""
+def test_truncated_exact_match_failure_is_unscored():
+    """A cut-off exact/regex/schema reply is configuration-caused, not a
+    scored capability miss — rewriting the previous pin of score 0.0."""
     plain = CaseResult(case_id="c", method="exact", score=0.0, passed=False)
     result = attribute_truncation(plain, truncated=True)
-    assert result.score == 0.0
-    assert result.failure_mode is None
+    assert result.score is None
+    assert result.failure_mode == "truncated"
+    assert not result.passed

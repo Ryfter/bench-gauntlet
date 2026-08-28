@@ -130,6 +130,9 @@ def append_cell(paths: RunPaths, cell: Cell) -> None:
 # else -- the code ran and was wrong, it hung, it reached for the answers --
 # happened before the budget mattered and keeps its result.
 _TRUNCATION_EXCUSES = frozenset({"no_code_emitted", "syntax_error"})
+_TRUNCATION_METHODS = frozenset({
+    "exact", "regex", "json-schema", "conventional-commit", "compilable-code",
+})
 
 
 def attribute_truncation(result: CaseResult, *, truncated: bool) -> CaseResult:
@@ -146,13 +149,22 @@ def attribute_truncation(result: CaseResult, *, truncated: bool) -> CaseResult:
     budget genuinely failed, and a `wrong_answer` ran to completion, so the
     defect in it is real regardless of what was cut off afterwards.
     """
-    if not truncated or result.failure_mode not in _TRUNCATION_EXCUSES:
+    if not truncated:
         return result
+    if result.passed or result.score == 1.0:
+        return result
+    truncated_failure = (
+        result.failure_mode in _TRUNCATION_EXCUSES
+        or result.method in _TRUNCATION_METHODS
+    )
+    if not truncated_failure:
+        return result
+    prior = result.failure_mode or result.method
     return result.model_copy(update={
         "score": None,
         "passed": False,
         "failure_mode": "truncated",
-        "detail": f"unscored: reply truncated by the token budget ({result.failure_mode})",
+        "detail": f"unscored: reply truncated by the token budget ({prior})",
     })
 
 
