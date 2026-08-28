@@ -27,8 +27,10 @@ def test_build_haystack_depth_places_needle():
     assert early.index(DEFAULT_ANSWER) < late.index(DEFAULT_ANSWER)
 
 
-def test_score_retrieval_is_case_insensitive_containment():
-    assert score_retrieval("The passcode is cerulean-otter-42.", DEFAULT_ANSWER) is True
+def test_score_retrieval_requires_normalized_exact_answer():
+    assert score_retrieval("  CERULEAN-OTTER-42\n", DEFAULT_ANSWER) is True
+    assert score_retrieval("The passcode is cerulean-otter-42.", DEFAULT_ANSWER) is False
+    assert score_retrieval(build_haystack(500, 0.5), DEFAULT_ANSWER) is False
     assert score_retrieval("I don't know.", DEFAULT_ANSWER) is False
 
 
@@ -43,7 +45,9 @@ def test_effective_context_zero_when_never_meets_threshold():
 
 
 def test_run_context_depth_finds_cutoff():
+    import json
     import httpx
+    import re
 
     from gauntlet.batteries.context_depth import run_context_depth
     from gauntlet.client import OpenAIClient
@@ -51,8 +55,10 @@ def test_run_context_depth_finds_cutoff():
     # Simulate degradation: the model returns the needle only when the prompt is
     # short (<= 6000 chars). Longer haystacks "lose" it -> accuracy collapses.
     def handler(request: httpx.Request) -> httpx.Response:
-        body = request.content.decode()
-        text = DEFAULT_ANSWER if len(body) <= 6000 else "I could not find it."
+        body = json.loads(request.content)
+        prompt = body["messages"][0]["content"]
+        answer = re.search(r"passcode for the vault is (GAUNTLET-[0-9a-f]+)", prompt).group(1)
+        text = answer if len(request.content) <= 6000 else "I could not find it."
         return httpx.Response(200, text=sse(text, completion_tokens=5))
     client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
     cd = run_context_depth(client, model="gemma3:1b", advertised=8192,

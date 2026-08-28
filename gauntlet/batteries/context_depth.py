@@ -9,6 +9,8 @@ The core (approx_tokens/build_haystack/score_retrieval/effective_context) is pur
 and unit-tested; `run_context_depth` is the only part that touches the network."""
 from __future__ import annotations
 
+import secrets
+
 from gauntlet import errors
 from gauntlet.models import ContextDepth
 
@@ -46,7 +48,7 @@ def build_haystack(
 
 
 def score_retrieval(output: str, answer: str = DEFAULT_ANSWER) -> bool:
-    return answer.lower() in output.lower()
+    return output.strip().casefold() == answer.strip().casefold()
 
 
 def effective_context(samples: list[tuple[int, float]], threshold: float = 0.9) -> int:
@@ -70,12 +72,14 @@ def run_context_depth(
     for length in lengths:
         hits = 0
         for depth in depths:
-            prompt = build_haystack(length, depth)
+            answer = f"GAUNTLET-{secrets.token_hex(16)}"
+            needle = f"Important: the secret passcode for the vault is {answer}. Remember it."
+            prompt = build_haystack(length, depth, needle=needle)
             try:
                 reply = client.chat(model=model, prompt=prompt, max_tokens=32)
             except errors.GauntletError:
                 continue
-            if score_retrieval(reply.text):
+            if score_retrieval(reply.text, answer):
                 hits += 1
         samples.append((length, hits / len(depths)))
     return ContextDepth(model=model, advertised=advertised,
