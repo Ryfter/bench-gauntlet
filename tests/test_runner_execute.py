@@ -1,5 +1,6 @@
 import httpx
 
+from gauntlet import vram
 from gauntlet.battery import Battery, Case
 from gauntlet.config import Box, GauntletConfig, ModelProfile, Target
 from gauntlet.runner import RunPaths, execute_plan, read_completed
@@ -66,3 +67,14 @@ def test_execute_plan_unreachable_target_continues(tmp_path):
                          client_factory=dead_factory)
     assert len(cells) == 1
     assert cells[0].errors == 1     # errored, but run produced the cell and did not abort
+
+
+def test_execute_plan_all_busy_returns_before_any_vram_operation(tmp_path, monkeypatch):
+    cfg = _cfg()
+    cfg.boxes[0].busy = True
+    for name in ("unload_all_local", "loaded_models", "release_after_run"):
+        monkeypatch.setattr(vram, name, lambda *a, _name=name, **k: (
+            _ for _ in ()).throw(AssertionError(f"VRAM operation {_name} must not run")))
+    cells = execute_plan(cfg, _batteries(tmp_path), RunPaths(tmp_path / "busy"),
+                         base_dir=tmp_path, client_factory=_client_factory("feat: x"))
+    assert cells == []

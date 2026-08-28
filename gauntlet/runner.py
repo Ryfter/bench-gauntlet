@@ -376,6 +376,8 @@ def execute_plan(
     battery_by_cap = {b.capability: b for b in batteries}
 
     total_cells = sum(len(g.cells) for g in plan.groups)
+    if total_cells == 0:
+        return []
     # Count cells finished by an earlier attempt too. A resumed run reporting
     # 0/63 when 23 are on disk understates progress at exactly the moment
     # someone is looking at it to decide whether to wait.
