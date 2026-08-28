@@ -50,6 +50,15 @@ def test_compact_summary_empty():
     assert "no scored" in compact_summary([])
 
 
+def test_compact_summary_tie_is_independent_of_input_order():
+    a = _cell("code-gen", "alpha", 0.80, 0.80)
+    b = _cell("code-gen", "beta", 0.80, 0.80)
+    first = compact_summary([a, b])
+    second = compact_summary([b, a])
+    assert first == second
+    assert "alpha" in first
+
+
 def test_compact_summary_truncates_long_model_names():
     long_name = "a" * 50
     cells = [_cell("code-gen", long_name, 1.00, 1.00)]

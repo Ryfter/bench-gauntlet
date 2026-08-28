@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from gauntlet import __version__
+from gauntlet import __version__, errors
 from gauntlet.models import Cell, RunMeta
 from gauntlet.runner import RunPaths, execute_plan, validate_run_component, write_meta
 
@@ -61,6 +61,8 @@ def orchestrate(
     """
     validate_run_component(run_id)
     target_names = list(dict.fromkeys(m.target for m in config.models))
+    if not target_names:
+        raise errors.GauntletError("config has no runnable models")
     all_cells: list[Cell] = []
 
     with ThreadPoolExecutor(max_workers=len(target_names)) as pool:
@@ -100,7 +102,18 @@ def compact_summary(cells: list[Cell]) -> str:
     rows = [header, sep]
 
     for cap in sorted(by_cap):
-        best = max(by_cap[cap], key=lambda c: (c.quality or 0, c.pass_rate or 0))
+        best = sorted(
+            by_cap[cap],
+            key=lambda c: (
+                -(c.quality or 0),
+                -(c.pass_rate or 0),
+                # Final tie-breaker is lexicographic and independent of
+                # as_completed / input order.
+                c.model,
+                c.box,
+                c.context,
+            ),
+        )[0]
         tps = f"{best.tokens_per_s:.0f}" if best.tokens_per_s else "—"
         model = best.model
         if len(model) > col_model:
