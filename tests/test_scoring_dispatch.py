@@ -69,3 +69,27 @@ def test_dispatch_code_exec_missing_tests_file_raises():
     case = Case(id="c8", scoring="code-exec")  # no tests_file
     with pytest.raises(ValueError):
         score_case(case, "def add(a, b):\n    return a + b\n")
+
+
+def test_code_exec_records_constraint_violations_separately_from_score(tmp_path):
+    tests_src = (
+        "def check(ns):\n"
+        "    f = ns.get('add')\n"
+        "    try:\n"
+        "        return [f(1, 2) == 3]\n"
+        "    except Exception:\n"
+        "        return [False]\n"
+    )
+    (tmp_path / "add_tests.py").write_text(tests_src, encoding="utf-8")
+    case = Case(
+        id="c9", scoring="code-exec", tests_file="add_tests.py",
+        constraints=["no-imports"],
+    )
+    res = score_case(
+        case,
+        "import math\ndef add(a, b):\n    return a + b\n",
+        base_dir=tmp_path,
+    )
+    assert res.score == 1.0
+    assert res.passed is True
+    assert res.constraint_violations == ["no-imports"]

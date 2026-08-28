@@ -27,6 +27,8 @@ class CaseResult(BaseModel):
     # tree, reaching the network, echoing a hidden-test canary). Recorded even
     # when blocked: a blocked attempt is still evidence about the run.
     integrity_violations: list[dict] = Field(default_factory=list)
+    # Surface-form instruction misses, stored separately from functional score.
+    constraint_violations: list[str] = Field(default_factory=list)
 
 
 class Cell(BaseModel):

@@ -38,6 +38,7 @@ class Case(BaseModel):
     commit_type: str | None = None
     required_terms: list[str] = Field(default_factory=list)
     require_breaking: bool = False
+    constraints: list[str] = Field(default_factory=list)
 
 
 class Battery(BaseModel):
@@ -51,7 +52,6 @@ class Battery(BaseModel):
     # this function" does.
     max_tokens: int = 512
     cases: list[Case] = Field(default_factory=list)
-    weights: dict[str, float] = Field(default_factory=lambda: {"quality": 1.0})
 
     def applies_to(self, context: int) -> bool:
         return context >= self.context_floor

@@ -87,11 +87,16 @@ def score_case(case: Case, output: str, base_dir: Path | str | None = None) -> C
         path = Path(base_dir or ".") / case.tests_file
         timeout_s = case.timeout_s if case.timeout_s is not None else execute.DEFAULT_TIMEOUT_S
         result = execute.code_execution_match(output, path, timeout_s=timeout_s)
+        violations = []
+        if case.constraints:
+            from gauntlet.scoring.constraints import check_constraints
+            violations = check_constraints(execute.extract_code(output), case.constraints)
         return CaseResult(case_id=case.id, method=method, score=result.score,
                           passed=result.passed, detail=result.detail,
                           failure_mode=result.failure_mode,
                           tier=case.tier, dimension=case.dimension,
-                          integrity_violations=result.integrity_violations)
+                          integrity_violations=result.integrity_violations,
+                          constraint_violations=violations)
     if method == "judge":
         return NEEDS_JUDGE
     raise ValueError(f"case {case.id}: unknown scoring method {method!r}")
