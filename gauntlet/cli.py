@@ -385,7 +385,7 @@ def embed(
     import yaml
 
     from gauntlet import __version__
-    from gauntlet.batteries.embed import run_embed_cell
+    from gauntlet.batteries.embed import chance_recall_at_k, run_embed_cell, validate_k
     from gauntlet.client import OpenAIClient
     from gauntlet.config import load_config
     from gauntlet.models import RunMeta, Scorecard
@@ -400,6 +400,7 @@ def embed(
     cfg = load_config(config)
     try:
         tgt, box = cfg.require_runnable_target(target)
+        validate_k(k, len(spec["corpus"]))
     except Exception as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
@@ -414,6 +415,7 @@ def embed(
         client.close()
 
     typer.echo(f"{model}: embed recall@{k} = {cell.quality}")
+    typer.echo(f"chance baseline recall@{k} = {chance_recall_at_k(len(spec['corpus']), k)}")
     if into:
         merge_into_scorecard(into, cells=[cell], share=share)
         typer.echo(f"Merged into {into}")

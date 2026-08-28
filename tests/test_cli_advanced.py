@@ -35,6 +35,22 @@ def test_depth_command_unreachable_writes_unscored_curve(tmp_path, monkeypatch):
     assert data["context_depth"][0]["scored_coverage"] == 0.0
 
 
+def test_embed_command_rejects_k_covering_the_corpus(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    cfg = _config(tmp_path)
+    corpus = tmp_path / "corpus.yaml"
+    corpus.write_text(
+        "corpus: [a, b, c]\nqueries: [q]\nrelevant: [0]\n",
+        encoding="utf-8",
+    )
+    result = runner.invoke(app, [
+        "embed", "--config", str(cfg), "--target", "box-b",
+        "--model", "nomic-embed", "--corpus", str(corpus), "--k", "3",
+    ])
+    assert result.exit_code != 0
+    assert "k" in result.output.lower()
+
+
 def test_embed_command_missing_corpus_exits_cleanly(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     cfg = _config(tmp_path)
