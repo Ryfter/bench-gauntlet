@@ -263,6 +263,27 @@ def test_sandbox_memory_bomb_does_not_score_as_success(tmp_path):
     assert result.failure_mode in {"timeout", "runtime_exception"}
 
 
+def test_sandbox_runner_arms_parent_death():
+    from gauntlet.scoring.execute import _RUNNER_SRC
+    assert "PR_SET_PDEATHSIG" in _RUNNER_SRC
+    assert "getppid" in _RUNNER_SRC
+
+
+def test_stale_sandbox_directories_are_removed(tmp_path, monkeypatch):
+    import os
+    import tempfile
+
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
+    stale = tmp_path / "gauntlet-codeexec-stale"
+    stale.mkdir()
+    (stale / "leftover.py").write_text("x", encoding="utf-8")
+    os.utime(stale, (0, 0))
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    result = code_execution_match("def add(a, b):\n    return a + b\n", tests_path)
+    assert result.score == 1.0
+    assert not stale.exists()
+
+
 def test_kill_tree_bounds_windows_taskkill(monkeypatch):
     """A wedged taskkill must not hang the parent indefinitely."""
     import subprocess as sp

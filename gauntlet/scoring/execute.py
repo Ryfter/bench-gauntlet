@@ -18,6 +18,7 @@ import ast
 import hashlib
 import json
 import os
+import shutil
 import signal
 import re
 import subprocess
@@ -40,6 +41,7 @@ SANDBOX_MEMORY_BYTES = 256 * 1024 * 1024
 SANDBOX_MAX_OUTPUT_BYTES = 1 * 1024 * 1024
 SANDBOX_MAX_PROCESSES = 8
 SANDBOX_KILL_TIMEOUT_S = 10.0
+_STALE_SANDBOX_AGE_S = 3600.0
 
 _RUNNER_SRC = '''
 import importlib.util
@@ -51,7 +53,36 @@ import traceback
 import _guard
 
 
+def _arm_parent_death():
+    # Best-effort: if the scoring parent dies, this child should not keep
+    # running. Not a security boundary.
+    try:
+        import ctypes
+        import os
+        import signal
+        import sys
+        import threading
+        import time
+        if sys.platform.startswith("linux"):
+            libc = ctypes.CDLL(None, use_errno=True)
+            PR_SET_PDEATHSIG = 1
+            libc.prctl(PR_SET_PDEATHSIG, signal.SIGKILL)
+            if os.getppid() == 1:
+                os.kill(os.getpid(), signal.SIGKILL)
+            return
+        ppid = os.getppid()
+        def watch():
+            while True:
+                if os.getppid() != ppid:
+                    os.kill(os.getpid(), signal.SIGKILL)
+                time.sleep(0.2)
+        threading.Thread(target=watch, daemon=True).start()
+    except Exception:
+        pass
+
+
 def main():
+    _arm_parent_death()
     # Keep the verdict channel in locals captured before candidate code runs.
     # Candidate code shares this interpreter and may replace module globals or
     # builtins such as print, len, sum, and json.dumps.
@@ -638,6 +669,25 @@ def _validated_verdict_counts(verdict: object) -> tuple[int, int] | None:
     return passed, total
 
 
+def _cleanup_stale_sandboxes() -> None:
+    """Remove leftover scratch dirs from a parent that died mid-case."""
+    root = Path(tempfile.gettempdir())
+    now = time.time()
+    try:
+        entries = list(root.glob("gauntlet-codeexec-*"))
+    except OSError:
+        return
+    for path in entries:
+        try:
+            if not path.is_dir():
+                continue
+            if now - path.stat().st_mtime < _STALE_SANDBOX_AGE_S:
+                continue
+            shutil.rmtree(path, ignore_errors=True)
+        except OSError:
+            continue
+
+
 def code_execution_match(output: str, tests_path: str | Path,
                           timeout_s: float = DEFAULT_TIMEOUT_S) -> ExecutionResult:
     tests_path = Path(tests_path)
@@ -674,6 +724,7 @@ def code_execution_match(output: str, tests_path: str | Path,
                                 detail="no code emitted",
                                 failure_mode="no_code_emitted")
 
+    _cleanup_stale_sandboxes()
     with tempfile.TemporaryDirectory(prefix="gauntlet-codeexec-") as tmp:
         tmp_path = Path(tmp)
         (tmp_path / "candidate.py").write_text(candidate_src, encoding="utf-8")
