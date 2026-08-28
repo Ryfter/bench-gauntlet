@@ -16,6 +16,15 @@ def test_load_valid_battery():
     assert bat.cases[0].scoring == "json-schema"
 
 
+def test_battery_weights_are_not_a_scoring_knob():
+    """YAML may still carry weights: for compatibility, but they are not a
+    scoring API until multiple components exist and are wired through."""
+    bat = Battery.model_validate(
+        {"capability": "g", "cases": [], "weights": {"quality": 0.0, "latency": 1.0}}
+    )
+    assert "weights" not in bat.model_dump()
+
+
 def test_applies_to_respects_context_floor():
     bat = Battery(capability="c", context_floor=4096, cases=[])
     assert bat.applies_to(context=8192) is True
