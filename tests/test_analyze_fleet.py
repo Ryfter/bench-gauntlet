@@ -150,6 +150,11 @@ def test_coverage_is_the_fraction_of_cases_that_produced_a_score(tmp_path):
     assert analyze.coverage(cell) == pytest.approx((108 - 24) / 108)
 
 
+def test_explicit_scored_coverage_includes_transport_unscored_cases(tmp_path):
+    cell = _cell("m", cases=10, errors=9, scored_coverage=0.1, failure_modes=None)
+    assert analyze.coverage(cell) == 0.1
+
+
 def test_scored_failures_do_not_reduce_coverage(tmp_path):
     """A wrong answer IS a measurement. Only outcomes that yield no score --
     truncation, integrity blocks, harness faults -- shrink the denominator."""

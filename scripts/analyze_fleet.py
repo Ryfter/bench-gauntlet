@@ -382,6 +382,9 @@ def coverage(cell: Mapping[str, Any]) -> float | None:
     mean over 62% of the battery and a mean over 100% of it are different
     quantities, and nothing else in the row reveals which one you are reading.
     """
+    explicit = as_float_or_none(cell.get("scored_coverage"))
+    if explicit is not None:
+        return min(1.0, max(0.0, explicit))
     total = as_float_or_none(cell.get("cases"))
     if not total:
         return None
