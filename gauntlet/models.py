@@ -70,7 +70,8 @@ class Cell(BaseModel):
 class ContextDepth(BaseModel):
     model: str
     advertised: int
-    effective_90pct: int
+    effective_90pct: int | None
+    scored_coverage: float | None = None
 
 
 class BaselineGap(BaseModel):

@@ -69,8 +69,11 @@ def run_context_depth(
     (accuracy contribution 0) so the run never aborts."""
     depths = depths or [0.1, 0.5, 0.9]
     samples: list[tuple[int, float]] = []
+    total_probes = len(lengths) * len(depths)
+    scored_probes = 0
     for length in lengths:
         hits = 0
+        scored_at_length = 0
         for depth in depths:
             answer = f"GAUNTLET-{secrets.token_hex(16)}"
             needle = f"Important: the secret passcode for the vault is {answer}. Remember it."
@@ -79,8 +82,13 @@ def run_context_depth(
                 reply = client.chat(model=model, prompt=prompt, max_tokens=32)
             except errors.GauntletError:
                 continue
+            scored_probes += 1
+            scored_at_length += 1
             if score_retrieval(reply.text, answer):
                 hits += 1
-        samples.append((length, hits / len(depths)))
+        if scored_at_length == len(depths):
+            samples.append((length, hits / scored_at_length))
     return ContextDepth(model=model, advertised=advertised,
-                        effective_90pct=effective_context(samples))
+                        effective_90pct=(effective_context(samples) if samples else None),
+                        scored_coverage=(scored_probes / total_probes
+                                         if total_probes else None))

@@ -21,7 +21,7 @@ def _config(tmp_path, port=65000):
     return cfg
 
 
-def test_depth_command_unreachable_writes_zero_curve(tmp_path, monkeypatch):
+def test_depth_command_unreachable_writes_unscored_curve(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     cfg = _config(tmp_path)
     out = tmp_path / "depth.json"
@@ -30,8 +30,8 @@ def test_depth_command_unreachable_writes_zero_curve(tmp_path, monkeypatch):
                                  "--out", str(out)])
     assert result.exit_code == 0, result.output
     data = json.loads(out.read_text(encoding="utf-8"))
-    # unreachable -> no retrieval -> effective_90pct 0, but the command still emits.
-    assert data["context_depth"][0]["effective_90pct"] == 0
+    assert data["context_depth"][0]["effective_90pct"] is None
+    assert data["context_depth"][0]["scored_coverage"] == 0.0
 
 
 def test_embed_command_missing_corpus_exits_cleanly(tmp_path, monkeypatch):
