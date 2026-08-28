@@ -232,3 +232,64 @@ def test_working_code_reports_no_failure_mode(tmp_path):
     result = code_execution_match("def solve(x):\n    return x\n", _tests_file(tmp_path))
     assert result.failure_mode == "none"
     assert result.score == 1.0
+
+
+def test_sandbox_output_flood_does_not_score_as_success(tmp_path):
+    """Unbounded stdout must not let a print bomb look like a perfect solution.
+
+    Host stability, not a security boundary: once the pipe cap fills, the child
+    blocks and the wall-clock timeout reaps it.
+    """
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = "print('x' * 5_000_000)\ndef add(a, b):\n    return a + b\n"
+    result = code_execution_match(code, tests_path, timeout_s=2.0)
+    assert result.passed is False
+    assert result.score != 1.0
+    assert result.failure_mode in {"timeout", "runtime_exception"}
+
+
+def test_sandbox_memory_bomb_does_not_score_as_success(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = (
+        "x = bytearray(300 * 1024 * 1024)\n"
+        "import time\n"
+        "time.sleep(0.5)\n"
+        "def add(a, b):\n"
+        "    return a + b\n"
+    )
+    result = code_execution_match(code, tests_path, timeout_s=3.0)
+    assert result.passed is False
+    assert result.score != 1.0
+    assert result.failure_mode in {"timeout", "runtime_exception"}
+
+
+def test_kill_tree_bounds_windows_taskkill(monkeypatch):
+    """A wedged taskkill must not hang the parent indefinitely."""
+    import subprocess as sp
+
+    import gauntlet.scoring.execute as ex
+
+    seen = {}
+
+    def fake_run(*args, **kwargs):
+        seen["args"] = args
+        seen["kwargs"] = kwargs
+        return sp.CompletedProcess(args[0] if args else [], 0)
+
+    monkeypatch.setattr(ex.os, "name", "nt")
+    monkeypatch.setattr(ex.subprocess, "run", fake_run)
+
+    class FakeProc:
+        pid = 4242
+        stdout = None
+        stderr = None
+
+        def kill(self):
+            return None
+
+        def wait(self, timeout=None):
+            return 0
+
+    ex._kill_tree(FakeProc())
+    assert seen["kwargs"].get("timeout") is not None
+    assert seen["kwargs"]["timeout"] > 0

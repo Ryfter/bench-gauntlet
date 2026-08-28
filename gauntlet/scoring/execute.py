@@ -23,6 +23,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -31,6 +33,13 @@ from gauntlet.scoring import _strip_fences
 from gauntlet.scoring._guard import GUARD_SRC
 
 DEFAULT_TIMEOUT_S = 5.0
+# Best-effort host-stability caps. These are not a security boundary: ctypes,
+# raw syscalls, and other in-process escapes remain reachable. See
+# docs/2026-07-25-benchmark-integrity-threat-model.md.
+SANDBOX_MEMORY_BYTES = 256 * 1024 * 1024
+SANDBOX_MAX_OUTPUT_BYTES = 1 * 1024 * 1024
+SANDBOX_MAX_PROCESSES = 8
+SANDBOX_KILL_TIMEOUT_S = 10.0
 
 _RUNNER_SRC = '''
 import importlib.util
@@ -230,20 +239,344 @@ def _spawn_kwargs() -> dict[str, object]:
     return {"start_new_session": True}
 
 
-def _kill_tree(proc: subprocess.Popen) -> None:
+def _user_process_count() -> int:
+    """How many processes this user already has, for a relative nproc cap.
+
+    RLIMIT_NPROC is checked against the user's live count when the *child*
+    forks, so the cap must sit a few above the current total. The parent
+    keeps its own higher limit.
+    """
+    if sys.platform.startswith("linux"):
+        uid = os.getuid()
+        n = 0
+        try:
+            for name in os.listdir("/proc"):
+                if not name.isdigit():
+                    continue
+                try:
+                    if os.stat("/proc/" + name).st_uid == uid:
+                        n += 1
+                except OSError:
+                    continue
+        except OSError:
+            return 1
+        return max(n, 1)
+    if sys.platform == "darwin":
+        try:
+            out = subprocess.check_output(
+                ["ps", "-u", str(os.getuid()), "-o", "pid="],
+                text=True, timeout=2,
+            )
+            n = len([line for line in out.splitlines() if line.strip()])
+            return max(n, 1)
+        except (OSError, subprocess.SubprocessError):
+            return 1
+    return 1
+
+
+def _rlimit_pairs(timeout_s: float) -> list[tuple[str, int]]:
+    return [
+        ("RLIMIT_AS", SANDBOX_MEMORY_BYTES),
+        ("RLIMIT_DATA", SANDBOX_MEMORY_BYTES),
+        ("RLIMIT_RSS", SANDBOX_MEMORY_BYTES),
+        ("RLIMIT_CPU", max(1, int(timeout_s))),
+        ("RLIMIT_CORE", 0),
+        ("RLIMIT_NPROC", _user_process_count() + SANDBOX_MAX_PROCESSES),
+    ]
+
+
+def _has_prlimit() -> bool:
+    try:
+        import resource
+    except ImportError:
+        return False
+    return hasattr(resource, "prlimit")
+
+
+def _posix_preexec(timeout_s: float):
+    """Return a preexec_fn that applies best-effort rlimits in the child."""
+    pairs = _rlimit_pairs(timeout_s)
+
+    def _apply() -> None:
+        try:
+            import resource
+        except ImportError:
+            return
+        for name, value in pairs:
+            which = getattr(resource, name, None)
+            if which is None:
+                continue
+            try:
+                _cur, hard = resource.getrlimit(which)
+                if hard != resource.RLIM_INFINITY and value > hard:
+                    value = hard
+                resource.setrlimit(which, (value, hard))
+            except (ValueError, OSError):
+                continue
+
+    return _apply
+
+
+def _prlimit_pid(pid: int, timeout_s: float) -> None:
+    try:
+        import resource
+    except ImportError:
+        return
+    for name, value in _rlimit_pairs(timeout_s):
+        which = getattr(resource, name, None)
+        if which is None:
+            continue
+        try:
+            resource.prlimit(pid, which, (value, value))
+        except (ValueError, OSError):
+            continue
+
+
+def _rss_bytes(pid: int) -> int | None:
+    """Resident set size of ``pid``, or None when unreadable.
+
+    Parent-side sampling is the portable memory cap: macOS rejects RLIMIT_AS
+    from this Python, and Windows rlimits do not exist. This is still
+    best-effort host stability, not a security boundary.
+    """
+    if sys.platform.startswith("linux"):
+        try:
+            with open(f"/proc/{pid}/statm", encoding="ascii") as fh:
+                parts = fh.read().split()
+            return int(parts[1]) * os.sysconf("SC_PAGE_SIZE")
+        except (OSError, IndexError, ValueError):
+            return None
+    if sys.platform == "darwin":
+        try:
+            out = subprocess.check_output(
+                ["ps", "-o", "rss=", "-p", str(pid)],
+                text=True, timeout=1,
+            )
+            kb = int(out.strip().split()[0])
+            return kb * 1024
+        except (OSError, subprocess.SubprocessError, IndexError, ValueError):
+            return None
+    if os.name == "nt":
+        try:
+            import ctypes
+            from ctypes import wintypes
+            class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+                _fields_ = [
+                    ("cb", wintypes.DWORD),
+                    ("PageFaultCount", wintypes.DWORD),
+                    ("PeakWorkingSetSize", ctypes.c_size_t),
+                    ("WorkingSetSize", ctypes.c_size_t),
+                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                    ("PagefileUsage", ctypes.c_size_t),
+                    ("PeakPagefileUsage", ctypes.c_size_t),
+                ]
+            psapi = ctypes.WinDLL("psapi", use_last_error=True)
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if not handle:
+                return None
+            try:
+                counters = PROCESS_MEMORY_COUNTERS()
+                counters.cb = ctypes.sizeof(counters)
+                if not psapi.GetProcessMemoryInfo(handle, ctypes.byref(counters), counters.cb):
+                    return None
+                return int(counters.WorkingSetSize)
+            finally:
+                kernel32.CloseHandle(handle)
+        except (OSError, ValueError, TypeError):
+            return None
+    return None
+
+
+def _windows_job(proc: subprocess.Popen, timeout_s: float):
+    """Assign the child to a Job Object with memory/CPU/process caps.
+
+    Best-effort: assignment can fail when the parent is already in a job that
+    forbids breakaway. Callers must keep the returned handle until reaping so
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE can reap descendants if the parent dies.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    JobObjectExtendedLimitInformation = 9
+    JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 0x00000008
+    JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100
+    JOB_OBJECT_LIMIT_PROCESS_TIME = 0x00000002
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+
+    class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("PerProcessUserTimeLimit", ctypes.c_int64),
+            ("PerJobUserTimeLimit", ctypes.c_int64),
+            ("LimitFlags", wintypes.DWORD),
+            ("MinimumWorkingSetSize", ctypes.c_size_t),
+            ("MaximumWorkingSetSize", ctypes.c_size_t),
+            ("ActiveProcessLimit", wintypes.DWORD),
+            ("Affinity", ctypes.c_size_t),
+            ("PriorityClass", wintypes.DWORD),
+            ("SchedulingClass", wintypes.DWORD),
+        ]
+
+    class IO_COUNTERS(ctypes.Structure):
+        _fields_ = [
+            ("ReadOperationCount", ctypes.c_uint64),
+            ("WriteOperationCount", ctypes.c_uint64),
+            ("OtherOperationCount", ctypes.c_uint64),
+            ("ReadTransferCount", ctypes.c_uint64),
+            ("WriteTransferCount", ctypes.c_uint64),
+            ("OtherTransferCount", ctypes.c_uint64),
+        ]
+
+    class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+            ("IoInfo", IO_COUNTERS),
+            ("ProcessMemoryLimit", ctypes.c_size_t),
+            ("JobMemoryLimit", ctypes.c_size_t),
+            ("PeakProcessMemoryUsed", ctypes.c_size_t),
+            ("PeakJobMemoryUsed", ctypes.c_size_t),
+        ]
+
+    kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+    kernel32.CreateJobObjectW.argtypes = [wintypes.LPVOID, wintypes.LPCWSTR]
+    kernel32.SetInformationJobObject.argtypes = [
+        wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID, wintypes.DWORD,
+    ]
+    kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+
+    job = kernel32.CreateJobObjectW(None, None)
+    if not job:
+        return None
+    info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+    info.BasicLimitInformation.LimitFlags = (
+        JOB_OBJECT_LIMIT_ACTIVE_PROCESS
+        | JOB_OBJECT_LIMIT_PROCESS_MEMORY
+        | JOB_OBJECT_LIMIT_PROCESS_TIME
+        | JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    )
+    info.BasicLimitInformation.ActiveProcessLimit = SANDBOX_MAX_PROCESSES
+    info.BasicLimitInformation.PerProcessUserTimeLimit = int(max(1.0, timeout_s) * 10_000_000)
+    info.ProcessMemoryLimit = SANDBOX_MEMORY_BYTES
+    if not kernel32.SetInformationJobObject(
+        job, JobObjectExtendedLimitInformation, ctypes.byref(info), ctypes.sizeof(info),
+    ):
+        kernel32.CloseHandle(job)
+        return None
+    handle = getattr(proc, "_handle", None)
+    if handle is None:
+        kernel32.CloseHandle(job)
+        return None
+    if not kernel32.AssignProcessToJobObject(job, int(handle)):
+        kernel32.CloseHandle(job)
+        return None
+    return job
+
+
+def _close_windows_job(job) -> None:
+    if not job:
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle(job)
+    except (OSError, ValueError, TypeError):
+        pass
+
+
+def _communicate_capped(
+    proc: subprocess.Popen,
+    timeout_s: float,
+    max_bytes: int,
+    *,
+    memory_bytes: int,
+    job=None,
+) -> tuple[bytes, bytes]:
+    """Read stdout/stderr up to ``max_bytes`` each, then stop.
+
+    Stopping the read lets the kernel pipe fill so a print bomb blocks instead
+    of growing without bound in the parent. A side thread samples RSS and
+    kills the tree if it exceeds ``memory_bytes``. Wall-clock timeout still
+    reaps a wedged child. Best-effort host stability, not a security boundary.
+    """
+    buckets = {
+        "stdout": {"chunks": [], "n": 0},
+        "stderr": {"chunks": [], "n": 0},
+    }
+
+    def _reader(stream, bucket: dict) -> None:
+        if stream is None:
+            return
+        try:
+            while True:
+                if bucket["n"] >= max_bytes:
+                    break
+                chunk = stream.read(min(65536, max_bytes - bucket["n"] + 1))
+                if not chunk:
+                    break
+                remain = max_bytes - bucket["n"]
+                if remain <= 0:
+                    break
+                bucket["chunks"].append(chunk[:remain])
+                bucket["n"] += min(len(chunk), remain)
+                if len(chunk) > remain:
+                    break
+        except OSError:
+            pass
+
+    def _watch_rss() -> None:
+        while proc.poll() is None:
+            rss = _rss_bytes(proc.pid)
+            if rss is not None and rss > memory_bytes:
+                _kill_tree(proc, job)
+                return
+            time.sleep(0.02)
+
+    threads = [
+        threading.Thread(target=_reader, args=(proc.stdout, buckets["stdout"]), daemon=True),
+        threading.Thread(target=_reader, args=(proc.stderr, buckets["stderr"]), daemon=True),
+        threading.Thread(target=_watch_rss, daemon=True),
+    ]
+    for thread in threads:
+        thread.start()
+    try:
+        proc.wait(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        for thread in threads:
+            thread.join(timeout=0.2)
+        raise
+    for thread in threads:
+        thread.join(timeout=1.0)
+    return b"".join(buckets["stdout"]["chunks"]), b"".join(buckets["stderr"]["chunks"])
+
+
+def _kill_tree(proc: subprocess.Popen, job=None) -> None:
     """Kill the sandbox process *and any children it spawned*, then reap it.
 
     Must not raise: it runs on the timeout path, and it must leave no live
     handle on the scratch dir or TemporaryDirectory cleanup fails (on Windows
     an open handle makes rmdir raise PermissionError/WinError 32).
+
+    Best-effort containment only — not a security boundary.
     """
     try:
         if os.name == "nt":
             # No killpg on Windows; taskkill /T walks the child tree.
-            subprocess.run(
-                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                capture_output=True, check=False,
-            )
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                    capture_output=True, check=False,
+                    timeout=SANDBOX_KILL_TIMEOUT_S,
+                )
+            except (OSError, subprocess.SubprocessError):
+                pass
         else:
             os.killpg(proc.pid, signal.SIGKILL)
     except (OSError, ProcessLookupError):
@@ -253,7 +586,7 @@ def _kill_tree(proc: subprocess.Popen) -> None:
     except OSError:
         pass
     try:
-        proc.wait(timeout=10)
+        proc.wait(timeout=SANDBOX_KILL_TIMEOUT_S)
     except (subprocess.TimeoutExpired, OSError):
         pass
     # Release our own pipe handles; on Windows these also pin the temp dir.
@@ -348,24 +681,46 @@ def code_execution_match(output: str, tests_path: str | Path,
         (tmp_path / "runner.py").write_text(_RUNNER_SRC, encoding="utf-8")
         (tmp_path / "_guard.py").write_text(GUARD_SRC, encoding="utf-8")
 
+        spawn_kwargs = dict(_spawn_kwargs())
+        # Linux can apply rlimits after spawn via prlimit (thread-safe).
+        # macOS has no prlimit, so the child applies them in preexec_fn.
+        apply_after_spawn = os.name != "nt" and _has_prlimit()
+        if os.name != "nt" and not apply_after_spawn:
+            spawn_kwargs["preexec_fn"] = _posix_preexec(timeout_s)
         proc = subprocess.Popen(
             [sys.executable, "runner.py", json.dumps(_deny_roots(tests_path))],
             cwd=tmp_path,
             env=_sandbox_env(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True,
-            **_spawn_kwargs(),  # own group -> a timeout can kill children too
+            **spawn_kwargs,  # own group -> a timeout can kill children too
         )
+        job = _windows_job(proc, timeout_s) if os.name == "nt" else None
+        if apply_after_spawn:
+            _prlimit_pid(proc.pid, timeout_s)
         try:
-            stdout, stderr = proc.communicate(timeout=timeout_s)
-        except subprocess.TimeoutExpired:
-            # Must fully reap before leaving the `with`, or TemporaryDirectory
-            # cleanup fails on a still-open handle (WinError 32).
-            _kill_tree(proc)
-            return ExecutionResult(score=0.0, passed=False,
-                                    detail=f"timeout after {timeout_s}s",
-                                    failure_mode="timeout")
+            try:
+                stdout_b, stderr_b = _communicate_capped(
+                    proc, timeout_s, SANDBOX_MAX_OUTPUT_BYTES,
+                    memory_bytes=SANDBOX_MEMORY_BYTES, job=job,
+                )
+            except subprocess.TimeoutExpired:
+                # Must fully reap before leaving the `with`, or TemporaryDirectory
+                # cleanup fails on a still-open handle (WinError 32).
+                _kill_tree(proc)
+                return ExecutionResult(score=0.0, passed=False,
+                                        detail=f"timeout after {timeout_s}s",
+                                        failure_mode="timeout")
+            stdout = stdout_b.decode("utf-8", errors="replace")
+            stderr = stderr_b.decode("utf-8", errors="replace")
+        finally:
+            _close_windows_job(job)
+            for stream in (proc.stdout, proc.stderr):
+                try:
+                    if stream is not None:
+                        stream.close()
+                except OSError:
+                    pass
 
     if proc.returncode != 0 and not stdout.strip():
         # Sandbox process died before emitting its JSON verdict (killed by a
