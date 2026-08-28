@@ -319,9 +319,19 @@ def run_cell(
                                           passed=False, detail="unscored: no eligible judge"))
                 continue
             judge_used = judge
-            results.append(score_with_judge(client, judge_model=judge,
-                                             rubric=case.rubric or "", output=scored_text,
-                                             case_id=case.id))
+            try:
+                judged = score_with_judge(client, judge_model=judge,
+                                          rubric=case.rubric or "", output=scored_text,
+                                          case_id=case.id)
+            except errors.GauntletError:
+                error_count += 1
+                judged = CaseResult(
+                    case_id=case.id, method="judge", score=None, passed=False,
+                    detail="unscored: judge transport or load failure",
+                    failure_mode="transport_error", tier=case.tier,
+                    dimension=case.dimension,
+                )
+            results.append(judged)
         else:
             result.case_id = case.id
             results.append(attribute_truncation(result, truncated=reply.truncated))

@@ -125,6 +125,23 @@ def test_run_cell_judge_uses_eligible_pool(tmp_path):
     assert cell.judge == "dolphin3:8b"
 
 
+def test_run_cell_judge_transport_failure_is_unscored_not_raised(tmp_path):
+    (tmp_path / "p.txt").write_text("summarize", encoding="utf-8")
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "strict grader" in request.content.decode():
+            raise httpx.ConnectError("judge unavailable", request=request)
+        return httpx.Response(200, text=sse("summary"))
+    client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
+    battery = Battery(capability="summarize", cases=[
+        Case(id="c1", scoring="judge", rubric="grade", prompt_file="p.txt")])
+    cell = run_cell(client, model="subject", target="t", box="b", context=4096,
+                    battery=battery, base_dir=tmp_path,
+                    judge_pool=[("judge:1", "judge")])
+    assert cell.quality is None
+    assert cell.scored_coverage == 0.0
+    assert cell.errors == 1
+
+
 def test_run_cell_no_eligible_judge_marks_unscored(tmp_path):
     (tmp_path / "p.txt").write_text("summarize", encoding="utf-8")
     battery = Battery(capability="summarize",
