@@ -1,3 +1,5 @@
+import pytest
+
 from gauntlet.batteries.embed import cosine, rank_indices, recall_at_k
 
 
@@ -21,6 +23,18 @@ def test_recall_at_k_counts_relevant_in_top_k():
     relevant = [2, 1]                   # query 0 -> doc 2 (rank 0 hit); query 1 -> doc 1 (rank 2 miss@1)
     assert recall_at_k(rankings, relevant, k=1) == 0.5
     assert recall_at_k(rankings, relevant, k=3) == 1.0
+
+
+def test_cosine_rejects_dimension_mismatch_and_non_finite():
+    with pytest.raises(ValueError):
+        cosine([1.0, 0.0], [1.0])
+    with pytest.raises(ValueError):
+        cosine([1.0, float("nan")], [1.0, 0.0])
+
+
+def test_recall_at_k_rejects_count_mismatch():
+    with pytest.raises(ValueError):
+        recall_at_k([[0]], [0, 1], 1)
 
 
 def test_run_embed_cell_scores_recall():
@@ -53,3 +67,45 @@ def test_run_embed_cell_scores_recall():
     assert cell.capability == "embed"
     assert cell.quality == 1.0            # both queries retrieve the right doc @k=1
     assert cell.cases == 2
+
+
+def test_run_embed_cell_rejects_constant_vectors():
+    import httpx
+
+    from gauntlet.batteries.embed import run_embed_cell
+    from gauntlet.client import OpenAIClient
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = __import__("json").loads(request.content.decode())
+        data = [{"embedding": [1.0, 1.0, 1.0]} for _ in payload["input"]]
+        return httpx.Response(200, json={"data": data})
+
+    client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
+    cell = run_embed_cell(
+        client, model="nomic-embed", target="box-b",
+        box="RTX 2070 Super laptop", context=2048,
+        corpus=["a", "b", "c"], queries=["q1", "q2"], relevant=[0, 2],
+    )
+    assert cell.quality is None
+    assert cell.errors == 1
+
+
+def test_run_embed_cell_rejects_k_covering_the_corpus():
+    import httpx
+
+    from gauntlet import errors
+    from gauntlet.batteries.embed import run_embed_cell
+    from gauntlet.client import OpenAIClient
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = __import__("json").loads(request.content.decode())
+        data = [{"embedding": [float(i), 0.0, 0.0]} for i, _ in enumerate(payload["input"])]
+        return httpx.Response(200, json={"data": data})
+
+    client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
+    with pytest.raises(errors.GauntletError, match="k"):
+        run_embed_cell(
+            client, model="nomic-embed", target="box-b",
+            box="RTX 2070 Super laptop", context=2048,
+            corpus=["a", "b", "c"], queries=["q"], relevant=[0], k=3,
+        )
