@@ -129,6 +129,20 @@ class OpenAIClient:
             return False
         return resp.status_code == 200
 
+    def get_json(self, path: str) -> dict:
+        """Fetch native metadata while keeping all HTTP inside this boundary."""
+        try:
+            resp = self._http.get(path)
+            resp.raise_for_status()
+            payload = resp.json()
+        except httpx.HTTPError as exc:
+            raise errors.Unreachable("target metadata request failed") from exc
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            raise errors.Unreachable("target metadata response was malformed") from exc
+        if not isinstance(payload, dict):
+            raise errors.Unreachable("target metadata response was malformed")
+        return payload
+
     def embeddings(self, model: str, inputs: list[str]) -> list[list[float]]:
         payload = {"model": model, "input": inputs}
         try:

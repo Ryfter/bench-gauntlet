@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import httpx
-
+from gauntlet.client import OpenAIClient
 from gauntlet.enrich import ModelMeta
 
 
@@ -25,9 +24,9 @@ def parse_lmstudio(payload: dict) -> list[ModelMeta]:
     return out
 
 
-def fetch(base_url: str, transport: httpx.BaseTransport | None = None) -> list[ModelMeta]:
-    url = base_url.rstrip("/") + "/api/v1/models"
-    with httpx.Client(timeout=10.0, transport=transport) as c:
-        resp = c.get(url)
-        resp.raise_for_status()
-        return parse_lmstudio(resp.json())
+def fetch(base_url: str, transport=None) -> list[ModelMeta]:
+    client = OpenAIClient(base_url, timeout=10.0, transport=transport)
+    try:
+        return parse_lmstudio(client.get_json("/api/v1/models"))
+    finally:
+        client.close()

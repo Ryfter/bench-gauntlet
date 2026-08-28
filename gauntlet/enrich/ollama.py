@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import httpx
-
+from gauntlet.client import OpenAIClient
 from gauntlet.enrich import ModelMeta
 
 
@@ -24,9 +23,9 @@ def parse_ollama(payload: dict) -> list[ModelMeta]:
     return out
 
 
-def fetch(base_url: str, transport: httpx.BaseTransport | None = None) -> list[ModelMeta]:
-    url = base_url.rstrip("/") + "/api/tags"
-    with httpx.Client(timeout=10.0, transport=transport) as c:
-        resp = c.get(url)
-        resp.raise_for_status()
-        return parse_ollama(resp.json())
+def fetch(base_url: str, transport=None) -> list[ModelMeta]:
+    client = OpenAIClient(base_url, timeout=10.0, transport=transport)
+    try:
+        return parse_ollama(client.get_json("/api/tags"))
+    finally:
+        client.close()
