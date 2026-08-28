@@ -42,12 +42,22 @@ import traceback
 import _guard
 
 
-def _emit(payload):
-    payload["violations"] = _guard.violations()
-    print(json.dumps(payload))
-
-
 def main():
+    # Keep the verdict channel in locals captured before candidate code runs.
+    # Candidate code shares this interpreter and may replace module globals or
+    # builtins such as print, len, sum, and json.dumps.
+    trusted_dumps = json.dumps
+    trusted_write = sys.stdout.write
+    trusted_flush = sys.stdout.flush
+    trusted_len = len
+    trusted_sum = sum
+    trusted_violations = _guard.violations
+
+    def emit(payload):
+        payload["violations"] = trusted_violations()
+        trusted_write(trusted_dumps(payload) + "\\n")
+        trusted_flush()
+
     deny_roots = json.loads(sys.argv[1]) if len(sys.argv) > 1 else []
 
     ns = {"__name__": "candidate"}
@@ -58,7 +68,7 @@ def main():
         with open("candidate.py", encoding="utf-8") as fh:
             source = fh.read()
     except OSError as exc:
-        _emit({"status": "harness_error", "error": f"cannot read candidate: {exc}"})
+        emit({"status": "harness_error", "error": f"cannot read candidate: {exc}"})
         return
 
     try:
@@ -66,13 +76,13 @@ def main():
         hidden = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(hidden)
     except BaseException:
-        _emit({"status": "harness_error", "error": traceback.format_exc(limit=5)})
+        emit({"status": "harness_error", "error": traceback.format_exc(limit=5)})
         return
 
     try:
         code = compile(source, "candidate.py", "exec")
     except SyntaxError as exc:
-        _emit({"status": "syntax_error", "error": str(exc)})
+        emit({"status": "syntax_error", "error": str(exc)})
         return
 
     # Everything below this line runs untrusted code. The sandbox's own copy of
@@ -84,18 +94,18 @@ def main():
     try:
         exec(code, ns)
     except BaseException:
-        _emit({"status": "runtime_error", "error": traceback.format_exc(limit=5)})
+        emit({"status": "runtime_error", "error": traceback.format_exc(limit=5)})
         return
 
     try:
         results = hidden.check(ns)
     except BaseException:
-        _emit({"status": "harness_error", "error": traceback.format_exc(limit=5)})
+        emit({"status": "harness_error", "error": traceback.format_exc(limit=5)})
         return
 
-    total = len(results)
-    passed = sum(1 for r in results if r)
-    _emit({"status": "ok", "passed": passed, "total": total})
+    total = trusted_len(results)
+    passed = trusted_sum(1 for r in results if r)
+    emit({"status": "ok", "passed": passed, "total": total})
 
 
 if __name__ == "__main__":
@@ -277,6 +287,24 @@ def _deny_roots(tests_path: Path) -> list[str]:
     return roots
 
 
+def _validated_verdict_counts(verdict: object) -> tuple[int, int] | None:
+    """Return trusted ``(passed, total)`` counts for an ``ok`` verdict.
+
+    The sandbox is an integrity guard, not a security boundary, so the parent
+    treats every byte from it as hostile even after the child-side hardening.
+    ``bool`` is intentionally rejected although it subclasses ``int``.
+    """
+    if not isinstance(verdict, dict):
+        return None
+    passed = verdict.get("passed")
+    total = verdict.get("total")
+    if type(passed) is not int or type(total) is not int:
+        return None
+    if total <= 0 or passed < 0 or passed > total:
+        return None
+    return passed, total
+
+
 def code_execution_match(output: str, tests_path: str | Path,
                           timeout_s: float = DEFAULT_TIMEOUT_S) -> ExecutionResult:
     tests_path = Path(tests_path)
@@ -353,7 +381,17 @@ def code_execution_match(output: str, tests_path: str | Path,
                                 detail=f"malformed sandbox output: stdout={stdout!r} stderr={stderr[-300:]!r}",
                                 failure_mode="runtime_exception")
 
+    if not isinstance(verdict, dict):
+        return ExecutionResult(score=None, passed=False,
+                                detail="unscored: sandbox verdict was not an object",
+                                failure_mode="harness_error")
+
     violations = verdict.get("violations") or []
+    if not isinstance(violations, list) or not all(
+            isinstance(item, dict) for item in violations):
+        return ExecutionResult(score=None, passed=False,
+                                detail="unscored: malformed sandbox violations",
+                                failure_mode="harness_error")
     if violations:
         # The candidate reached for the answers or the network. Whether or not
         # the guard stopped it, the resulting score is not evidence of
@@ -384,12 +422,12 @@ def code_execution_match(output: str, tests_path: str | Path,
                                 detail=f"unscored: unexpected sandbox status {status!r}",
                                 failure_mode="harness_error")
 
-    total = verdict.get("total", 0)
-    passed_n = verdict.get("passed", 0)
-    if total <= 0:
+    counts = _validated_verdict_counts(verdict)
+    if counts is None:
         return ExecutionResult(score=None, passed=False,
-                                detail="unscored: hidden test suite reported 0 cases",
+                                detail="unscored: invalid hidden-test verdict counts",
                                 failure_mode="harness_error")
+    passed_n, total = counts
     score = passed_n / total
     return ExecutionResult(score=score, passed=score == 1.0,
                             detail=f"{passed_n}/{total} hidden asserts passed",

@@ -53,6 +53,32 @@ def test_wrong_code_scores_0(tmp_path):
     assert result.passed is False
 
 
+def test_candidate_cannot_forge_sandbox_verdict_through_shared_globals(tmp_path):
+    tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
+    code = '''
+import builtins
+import json
+import sys
+
+def forged_print(*args, **kwargs):
+    sys.__stdout__.write(
+        '{"status":"ok","passed":7,"total":1,"violations":[]}\\n'
+    )
+
+builtins.print = forged_print
+json.dumps = lambda payload: (
+    '{"status":"ok","passed":7,"total":1,"violations":[]}'
+)
+
+def add(a, b):
+    return 999
+'''
+    result = code_execution_match(code, tests_path)
+    assert result.score == 0.0
+    assert result.passed is False
+    assert result.detail == "0/3 hidden asserts passed"
+
+
 def test_syntax_error_scores_0_never_crashes(tmp_path):
     tests_path = _write_tests(tmp_path, "tests.py", ADD_TESTS)
     code = "def add(a, b) return a + b\n"
