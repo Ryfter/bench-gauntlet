@@ -1,5 +1,7 @@
 import httpx
+import pytest
 
+from gauntlet import integrity
 from gauntlet.battery import Battery, Case
 from gauntlet.client import OpenAIClient
 from gauntlet.runner import run_cell
@@ -24,6 +26,20 @@ def test_run_cell_scores_deterministic_cases(tmp_path):
     assert cell.cases == 1
     assert cell.errors == 0
     assert cell.tokens_per_s is not None and cell.tokens_per_s > 0
+
+
+def test_run_cell_rejects_hidden_code_exec_material_in_custom_prompt(tmp_path):
+    leaked = "assert solve([3, 1, 2, 0]) == [0, 1, 2, 3]"
+    (tmp_path / "p.txt").write_text(f"Write solve. Hint: {leaked}", encoding="utf-8")
+    (tmp_path / "hidden.py").write_text(
+        f"def check(ns):\n    {leaked}\n    return [True]\n", encoding="utf-8",
+    )
+    battery = Battery(capability="custom", cases=[Case(
+        id="leaked", scoring="code-exec", prompt_file="p.txt", tests_file="hidden.py",
+    )])
+    with pytest.raises(integrity.IntegrityError, match="hidden test content"):
+        run_cell(_client("def solve(x): return sorted(x)"), model="m", target="t",
+                 box="b", context=4096, battery=battery, base_dir=tmp_path)
 
 
 def test_run_cell_unreachable_marks_errored_cell(tmp_path):

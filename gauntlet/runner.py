@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
-from gauntlet import errors, vram
+from gauntlet import errors, integrity, vram
 from gauntlet.models import CaseResult, Cell, RunMeta, Scorecard
 from gauntlet.runstatus import RunStatus, clear_status, now_iso, write_status
 from gauntlet.scorecard import aggregate_cell
@@ -268,6 +268,17 @@ def run_cell(
         if on_case is not None:
             on_case(index, total_cases)
         prompt = load_prompt(case, base_dir)
+        if case.scoring == "code-exec" and case.tests_file:
+            hidden_path = Path(base_dir) / case.tests_file
+            try:
+                hidden_material = hidden_path.read_text(encoding="utf-8")
+            except OSError:
+                hidden_material = None
+            if hidden_material is not None:
+                integrity.assert_no_prompt_leak(
+                    prompt, hidden_material, case_id=case.id,
+                    dimension=case.dimension,
+                )
         try:
             reply = client.chat(model=model, prompt=prompt,
                                 max_tokens=battery.max_tokens)
