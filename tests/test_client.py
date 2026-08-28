@@ -97,3 +97,16 @@ def test_embeddings_parses_vectors():
 
     vecs = _client(handler).embeddings(model="e1", inputs=["x"])
     assert vecs == [[0.1, 0.2, 0.3]]
+
+
+@pytest.mark.parametrize("response", [
+    httpx.Response(500),
+    httpx.Response(200, text="not-json"),
+    httpx.Response(200, json={"unexpected": []}),
+    httpx.Response(200, json={"data": [{}]}),
+])
+def test_embeddings_translate_status_and_protocol_failures(response):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return response
+    with pytest.raises(errors.Unreachable):
+        _client(handler).embeddings(model="e1", inputs=["x"])

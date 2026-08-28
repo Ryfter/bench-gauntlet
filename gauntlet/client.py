@@ -159,9 +159,18 @@ class OpenAIClient:
         try:
             resp = self._http.post("/v1/embeddings", json=payload)
             resp.raise_for_status()
-        except httpx.ConnectError as exc:
-            raise errors.Unreachable("target connection failed") from exc
-        return [row["embedding"] for row in resp.json()["data"]]
+            body = resp.json()
+            rows = body["data"]
+            if not isinstance(rows, list):
+                raise TypeError("data must be a list")
+            vectors = [row["embedding"] for row in rows]
+            if not all(isinstance(vector, list) for vector in vectors):
+                raise TypeError("embedding must be a list")
+            return vectors
+        except httpx.HTTPError as exc:
+            raise errors.Unreachable("target embedding request failed") from exc
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+            raise errors.Unreachable("target embedding response was malformed") from exc
 
     def close(self) -> None:
         self._http.close()
