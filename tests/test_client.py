@@ -110,3 +110,29 @@ def test_embeddings_translate_status_and_protocol_failures(response):
         return response
     with pytest.raises(errors.Unreachable):
         _client(handler).embeddings(model="e1", inputs=["x"])
+
+
+def test_frontier_client_requires_a_nonblank_key():
+    from gauntlet.cli import _frontier_client
+
+    with pytest.raises(errors.GauntletError, match="key"):
+        _frontier_client("http://203.0.113.10/v1", api_key=None)
+    with pytest.raises(errors.GauntletError, match="key"):
+        _frontier_client("http://203.0.113.10/v1", api_key="   ")
+
+
+def test_openai_client_require_key_propagates_stripped_value():
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["authorization"] = request.headers.get("authorization")
+        return httpx.Response(200, text=sse("ok"))
+
+    client = OpenAIClient(
+        base_url="http://box:1234",
+        api_key="  sk-test  ",
+        require_key=True,
+        transport=httpx.MockTransport(handler),
+    )
+    client.chat(model="m", prompt="hi")
+    assert seen["authorization"] == "Bearer sk-test"

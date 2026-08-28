@@ -494,8 +494,11 @@ def orchestrate(
 
 def _frontier_client(base_url: str, api_key: str | None = None):
     """Frontier endpoint client. Separated so tests can patch it with a MockTransport."""
+    from gauntlet import errors
     from gauntlet.client import OpenAIClient
-    return OpenAIClient(base_url=base_url, api_key=api_key)
+    if not isinstance(api_key, str) or not api_key.strip():
+        raise errors.GauntletError("a nonblank frontier API key is required")
+    return OpenAIClient(base_url=base_url, api_key=api_key, require_key=True)
 
 
 @app.command()
@@ -525,7 +528,7 @@ def baseline(
     from gauntlet.scorecard import write_json
 
     key = os.environ.get("GAUNTLET_FRONTIER_API_KEY")
-    if not key:
+    if not key or not str(key).strip():
         typer.echo("Frontier baseline is opt-in and costs money. Set GAUNTLET_FRONTIER_API_KEY "
                    "to enable it. Skipped.")
         raise typer.Exit(code=0)

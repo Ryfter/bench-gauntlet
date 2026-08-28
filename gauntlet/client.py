@@ -39,9 +39,13 @@ class OpenAIClient:
         # slow model.
         timeout: float = 600.0,
         transport: httpx.BaseTransport | None = None,
+        require_key: bool = False,
     ) -> None:
         self.base_url = base_url.rstrip("/")
-        headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+        key = api_key.strip() if isinstance(api_key, str) else api_key
+        if require_key and not key:
+            raise errors.GauntletError("a nonblank API key is required")
+        headers = {"Authorization": f"Bearer {key}"} if key else {}
         self._http = httpx.Client(
             base_url=self.base_url, headers=headers, timeout=timeout, transport=transport
         )
