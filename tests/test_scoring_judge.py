@@ -43,6 +43,27 @@ def test_parse_verdict_bad_json_raises():
         parse_verdict("not a verdict")
 
 
+def test_parse_verdict_rejects_non_finite_score():
+    with pytest.raises(ValueError):
+        parse_verdict('{"score": "NaN"}')
+    with pytest.raises(ValueError):
+        parse_verdict('{"score": Infinity}')
+
+
+def test_parse_verdict_rejects_string_passed_and_coercive_types():
+    with pytest.raises(ValueError):
+        parse_verdict('{"score": 0, "passed": "false"}')
+    with pytest.raises(ValueError):
+        parse_verdict('{"score": true}')
+
+
+def test_parse_verdict_rejects_contradictory_pass_flag():
+    with pytest.raises(ValueError):
+        parse_verdict('{"score": 0, "passed": true}')
+    with pytest.raises(ValueError):
+        parse_verdict('{"score": 1, "passed": false}')
+
+
 def test_select_judge_avoids_same_family():
     candidates = [("gemma3:12b", "gemma3"), ("dolphin3:8b", "llama")]
     assert select_judge(candidates, target_family="gemma3") == "dolphin3:8b"

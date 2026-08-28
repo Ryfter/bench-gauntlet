@@ -4,6 +4,7 @@ that cannot be parsed is recorded as unscored — never silently 0 (design G.5).
 from __future__ import annotations
 
 import json
+import math
 import re
 
 from gauntlet.client import OpenAIClient
@@ -30,9 +31,24 @@ def parse_verdict(text: str) -> tuple[float, bool]:
         raise ValueError(f"unparseable judge verdict: {text!r}") from exc
     if not isinstance(data, dict) or "score" not in data:
         raise ValueError(f"verdict missing 'score': {data!r}")
-    score = max(0.0, min(1.0, float(data["score"])))
-    passed = bool(data["passed"]) if "passed" in data else score >= _PASS_THRESHOLD
-    return score, passed
+    raw_score = data["score"]
+    if isinstance(raw_score, bool) or not isinstance(raw_score, (int, float)):
+        raise ValueError(f"verdict score must be a JSON number: {raw_score!r}")
+    score = float(raw_score)
+    if not math.isfinite(score):
+        raise ValueError(f"verdict score must be finite: {raw_score!r}")
+    score = max(0.0, min(1.0, score))
+    derived = score >= _PASS_THRESHOLD
+    if "passed" in data:
+        raw_passed = data["passed"]
+        if type(raw_passed) is not bool:
+            raise ValueError(f"verdict passed must be a JSON boolean: {raw_passed!r}")
+        if raw_passed is not derived:
+            raise ValueError(
+                f"verdict passed={raw_passed!r} contradicts score={score}"
+            )
+        return score, raw_passed
+    return score, derived
 
 
 def select_judge(candidates: list[tuple[str, str]], target_family: str) -> str | None:
