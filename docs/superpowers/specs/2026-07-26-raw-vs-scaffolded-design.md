@@ -458,7 +458,7 @@ scorecards/rvs-<YYYYMMDD>-<short-label>/
   cases.jsonl
 ```
 
-Example: `rvs-20260726-firefly-4model`. Do not append multi-arm cells into an
+Example: `rvs-20260726-box-b-4model`. Do not append multi-arm cells into an
 existing raw fleet run (`fleet-0726b` etc.) — mixing arms in a directory that
 consumers treat as single-arm raw would silently double-count models in old
 analyzers that ignore the `arm` field. A dedicated run id makes the experiment
@@ -676,7 +676,7 @@ completion. Generation time only (ignoring TTFT and prompt eval):
 | 4096 completion tokens @ 50 tok/s | ~82 s | full budget |
 | 4096 @ 40 tok/s | ~102 s | full budget, slow end of band |
 
-Add ~1–3 s TTFT and prompt processing per call (observed TTFT on firefly
+Add ~1–3 s TTFT and prompt processing per call (observed TTFT on box-b
 code-gen cells ~2 s for a 1B model; larger models higher).
 
 **Per model, all three arms**, mid planning (30 s generation + 3 s overhead ≈
@@ -741,7 +741,7 @@ as the rest of Gauntlet.
 
 Do not build a fake LLM to prove scaffolding helps. Harness tests use fixed
 strings as model replies. Whether scaffolding helps is an empirical question
-answered on firefly/wraith2, not in CI.
+answered on box-b/box-c, not in CI.
 
 ### Live tests (opt-in)
 

@@ -18,7 +18,7 @@ the `Cell`/`Scorecard` schema, how a delta or a pipeline-cost gets represented) 
 doesn't exist yet — hence item 2 (the full spec) gates all three. Within 3–5 there's
 no further ordering dependency on each other, but all three need live local
 inference to produce real numbers, so none of them can proceed until the inference
-boxes (firefly/wraith2) are available and not busy.
+boxes (box-b/box-c) are available and not busy.
 
 ## 1. Code-gen execution scorer — DO FIRST
 
@@ -73,7 +73,7 @@ capability vs. where it's wasted).
   aggregate "scaffolded score went up" number would hide exactly the failure
   mode Kevin needs to see.
 - **Needs local inference:** yes — every case re-runs against real models.
-- **Runs where:** local inference boxes only (firefly/wraith2, non-busy).
+- **Runs where:** local inference boxes only (box-b/box-c, non-busy).
 
 ## 4. Pipeline economics
 
@@ -107,7 +107,7 @@ useful to someone else on their own rig, not just a fixed two-box setup.
   though the placement algorithm itself is pure and can be unit-tested without
   inference; only the end-to-end validation needs boxes).
 - **Runs where:** placement algorithm is cloud-safe to build and unit-test;
-  validation needs the local boxes (firefly/wraith2).
+  validation needs the local boxes (box-b/box-c).
 
 ## Open questions carried into item 2
 

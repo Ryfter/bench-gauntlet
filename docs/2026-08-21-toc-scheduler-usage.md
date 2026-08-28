@@ -34,7 +34,7 @@ Inputs: `TocBox` (`id`, `vram_gb`, `usage_class`, `busy`), `TocCell` (`model`, `
 
 - Existing: `tests/test_toc_scheduler.py` (pure placement)
 - Add: adapter round-trip + `execute_plan` smoke with two mock boxes (busy deferral, tight co-pack)
-- Validate on firefly (5090 broad) + wraith2 (2070 tight) — never un-busy both `firefly-lms` and `firefly-oll`
+- Validate on box-b (5090 broad) + box-c (2070 tight) — never un-busy both `box-b-lms` and `box-b-oll`
 
 ## Related
 

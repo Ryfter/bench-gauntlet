@@ -16,7 +16,7 @@ Branch **`feat/codegen-execution-scorer`**, open as **draft PR #1**, 16 commits
 ahead of master and **not merged** — it is awaiting review. Do not branch new work
 off master without accounting for it.
 
-The **first real fleet run** is underway on firefly (9 LM Studio models × 7
+The **first real fleet run** is underway on box-b (9 LM Studio models × 7
 batteries = 63 cells) into `scorecards/fleet-0726/`. Analyse a finished run with
 `scripts/analyze_fleet.py <run_dir>`.
 

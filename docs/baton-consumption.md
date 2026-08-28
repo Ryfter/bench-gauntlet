@@ -44,7 +44,7 @@ There is **no** `base_url` or IP field by design.
 - Apply quality floor + `tokens_per_s` floor; prefer models with graceful tier profiles over erratic cliffs.
 - For code-gen, read `failure_modes`: `wrong_answer`-dominant → scaffold candidate; `no_code_emitted` / `syntax_error` → do not scaffold.
 - Never paste `target` hostnames into cloud prompts; use `box` + `model` + metrics only.
-- **5090 constraint:** only one inference stack unbusy at a time (`firefly-lms` XOR `firefly-oll`).
+- **5090 constraint:** only one inference stack unbusy at a time (`box-b-lms` XOR `box-b-oll`).
 
 ## Share / export
 

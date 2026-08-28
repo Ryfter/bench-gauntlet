@@ -6,7 +6,7 @@
 
 ## Why now: the triggering observations
 
-The first real Firefly run (`2026-06-30-firefly-expanded`, 9 models × 7 caps) exposed
+The first real box-b run (`2026-06-30-box-b-expanded`, 9 models × 7 caps) exposed
 three measurement weaknesses:
 
 1. **code-gen is non-discriminative.** Scorer (`scoring/schema.py::compilable_code_match`)
@@ -53,7 +53,7 @@ Let anyone benchmark local models on their own rigs to optimize cost. Personal, 
 - Example intuition: "maybe my RTX 2080 rig does git-commits *good enough*, freeing the
   RTX 5090 for heavier work with stronger models."
 - **Parallelism = efficiency.** Two processes in parallel usually beats one. Gauntlet
-  already splits boxes (`firefly-lms`/`firefly-oll`, `busy:` flag) — v2 should make the
+  already splits boxes (`box-b-lms`/`box-b-oll`, `busy:` flag) — v2 should make the
   scheduler **Theory-of-Constraints aware**:
   - Identify the bottleneck resource and key blockers.
   - Critical-path cells: start early; place where they finish soonest.

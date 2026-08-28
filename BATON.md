@@ -12,8 +12,8 @@ Baton *consumes* scorecards; Gauntlet stays standalone (no Grimdex/Grimlore writ
 - Green Mac pytest (telemetry Darwin fix)
 - Item **#2** multi-axis contract spec
 - Item **#5** pure ToC placement + tests
-- Resume `fleet-0726b` on firefly (5090) for incomplete models
-- Never un-busy **both** `firefly-lms` and `firefly-oll` at once
+- Resume `fleet-0726b` on box-b (5090) for incomplete models
+- Never un-busy **both** `box-b-lms` and `box-b-oll` at once
 
 ## Privacy
 No IPs/hostnames in the public tree. Scorecards stay local/gitignored.

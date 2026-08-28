@@ -1,7 +1,7 @@
 # Decision: Expand test batteries to improve discriminative power
 
 **Date:** 2026-06-30  
-**Context:** First full Firefly battery run (63 cells) revealed weak model performance on commit-msg (multiple models 0.00) and summarize-short (all models ≤0.45 quality).
+**Context:** First full box-b battery run (63 cells) revealed weak model performance on commit-msg (multiple models 0.00) and summarize-short (all models ≤0.45 quality).
 
 **Problem:** Were weak scores due to bad test design (too narrow/hard cases) or genuine model gaps? Original batteries had only 5 commit-msg cases and 4 summarize-short cases.
 

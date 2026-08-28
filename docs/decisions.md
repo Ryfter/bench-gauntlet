@@ -119,7 +119,7 @@ history so no merged-PR ref retains the old commits.
 
 **Why:** The standing privacy rule is that personal network info must be
 *physically incapable* of entering the public tree, not merely gitignored. Even
-though the IP is a non-routable tailnet (CGNAT `100.64.0.0/10`) address in a private
+though the IP was a non-routable tailnet address in private CGNAT space in a private
 repo — so real exposure was negligible — the repo is intended to go public, and the
 clean-slate fix is cheap on a young repo with no stars/forks.
 
@@ -226,8 +226,8 @@ inputs), one stateful (a class holding state across calls), and one
 multi-function ask — deliberately not memorized classics.
 
 **Why:** `compilable-code` only checks that output parses via `compile(...,
-"exec")` — garbage that compiles scores 1.0. The first real Firefly run
-(`2026-06-30-firefly-expanded`) showed this made code-gen non-discriminative:
+"exec")` — garbage that compiles scores 1.0. The first real box-b run
+(`2026-06-30-box-b-expanded`) showed this made code-gen non-discriminative:
 nearly every model scored 1.0, including on toy cases (fizzbuzz/palindrome/
 binary-search) memorized even by 1B models. See
 `docs/2026-06-30-discriminative-scoring-v2-seed.md` (item 1, sequenced first

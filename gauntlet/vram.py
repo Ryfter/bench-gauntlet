@@ -34,9 +34,10 @@ _SKIP_PREFIXES = ("IDENTIFIER", "---", "===")
 # Column names we expect in a header-aware `lms ps` table.
 _HEADER_COLS = ("IDENTIFIER", "MODEL", "STATUS", "SIZE", "CONTEXT",
                 "PARALLEL", "DEVICE", "TTL")
-# Soft default when GAUNTLET_LMS_DEVICE is unset: Kevin's 5090 LMS instance name
-# plus the legacy bare token from older `lms ps` output.
-_LOCAL_DEVICE_DEFAULTS = frozenset({"Local", "Firefly"})
+# The only safe implicit device identity is LM Studio's generic local token.
+# Linked-instance hostnames are private configuration and must be supplied at
+# runtime via GAUNTLET_LMS_DEVICE, never committed as source defaults.
+_LOCAL_DEVICE_DEFAULTS = frozenset({"Local"})
 
 
 def lms_available() -> bool:
@@ -46,12 +47,9 @@ def lms_available() -> bool:
 def is_local_device(device: str) -> bool:
     """Whether *device* is this bench box's GPU for unload purposes.
 
-    ITSCM-* hostnames are always treated as remote (Kevin's work PC). When
-    ``GAUNTLET_LMS_DEVICE`` is set, only that exact name matches; otherwise
-    ``Local`` and ``Firefly`` (the 5090 LMS name) are accepted.
+    When ``GAUNTLET_LMS_DEVICE`` is set, only that exact private device name
+    matches; otherwise only LM Studio's generic ``Local`` token is accepted.
     """
-    if device.startswith("ITSCM"):
-        return False
     target = os.environ.get("GAUNTLET_LMS_DEVICE")
     if target:
         return device == target
@@ -116,7 +114,7 @@ def local_loaded_models() -> list[str] | None:
     """Models resident on *this* machine's GPU, or None if we cannot tell.
 
     Filters by ``GAUNTLET_LMS_DEVICE`` when set; otherwise keeps rows whose
-    device is ``Local`` or ``Firefly``. Never includes ITSCM-* remote hosts.
+    device is the generic ``Local`` token.
     """
     output = _lms_ps_output()
     if output is None:

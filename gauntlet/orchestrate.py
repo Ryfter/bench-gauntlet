@@ -6,12 +6,11 @@ from __future__ import annotations
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from gauntlet import __version__
 from gauntlet.models import Cell, RunMeta
-from gauntlet.runner import RunPaths, execute_plan, write_meta
+from gauntlet.runner import RunPaths, execute_plan, private_run_root, write_meta
 
 if TYPE_CHECKING:
     from gauntlet.battery import Battery
@@ -32,7 +31,7 @@ def _run_target(
     target_cfg = config.model_copy(update={
         "models": [m for m in config.models if m.target == target_name]
     })
-    paths = RunPaths(Path("scorecards") / run_id / target_name)
+    paths = RunPaths(private_run_root() / run_id / target_name)
 
     def factory(base_url: str) -> OpenAIClient:
         return OpenAIClient(base_url=base_url, api_key=api_key)

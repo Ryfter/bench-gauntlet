@@ -701,7 +701,7 @@ def test_assert_no_leak_rejects_ip():
 
 def test_assert_no_leak_rejects_bare_ipv4():
     with pytest.raises(errors.GauntletError):
-        assert_no_leak('{"host": "192.168.1.50"}')
+        assert_no_leak('{"host": "203.0.113.50"}')
 
 
 def test_assert_no_leak_allows_clean_scorecard():

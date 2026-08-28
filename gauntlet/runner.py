@@ -9,6 +9,7 @@ import json
 import os
 import re
 import statistics
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
@@ -27,6 +28,25 @@ if TYPE_CHECKING:
     from gauntlet.config import GauntletConfig
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+
+
+def private_run_root() -> Path:
+    """OS-private home for raw target-bearing run ledgers.
+
+    ``scorecards/`` remains an intentional export location, not a checkpoint
+    store. Tests and managed deployments may override this root explicitly.
+    """
+    configured = os.environ.get("GAUNTLET_PRIVATE_RUN_ROOT")
+    if configured:
+        return Path(configured).expanduser()
+    if os.name == "nt":
+        base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+    return base / "bench-gauntlet" / "runs"
 
 
 class RunPaths:
@@ -37,6 +57,15 @@ class RunPaths:
         self.meta = self.root / "meta.json"
 
     def ensure(self) -> None:
+        resolved = self.root.expanduser().resolve()
+        if resolved == _REPOSITORY_ROOT or resolved.is_relative_to(_REPOSITORY_ROOT):
+            raise errors.GauntletError(
+                "refusing to store private run data inside the tracked repository"
+            )
+        self.root = resolved
+        self.cells = self.root / "cells.jsonl"
+        self.cases = self.root / "cases.jsonl"
+        self.meta = self.root / "meta.json"
         self.root.mkdir(parents=True, exist_ok=True)
 
 

@@ -37,6 +37,8 @@ def _write_battery(tmp_path):
 
 def test_run_unreachable_target_writes_scorecard_and_does_not_crash(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
+    private_root = tmp_path / "private-runs"
+    monkeypatch.setenv("GAUNTLET_PRIVATE_RUN_ROOT", str(private_root))
     cfg = _write_config(tmp_path)
     bdir = _write_battery(tmp_path)
     out = tmp_path / "card.json"
@@ -51,3 +53,5 @@ def test_run_unreachable_target_writes_scorecard_and_does_not_crash(tmp_path, mo
     assert data["run"]["id"] == "test-run"
     assert len(data["cells"]) == 1
     assert data["cells"][0]["errors"] == 1
+    assert (private_root / "test-run" / "cells.jsonl").exists()
+    assert not (tmp_path / "scorecards" / "test-run").exists()

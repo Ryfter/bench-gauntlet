@@ -1,3 +1,8 @@
+from pathlib import Path
+
+import pytest
+
+from gauntlet import errors
 from gauntlet.models import Cell, RunMeta
 from gauntlet.runner import RunPaths, append_cell, cell_key, read_completed, write_meta
 
@@ -34,3 +39,9 @@ def test_write_meta_writes_json(tmp_path):
     write_meta(paths, RunMeta(id="run-2", date="2026-06-13", gauntlet_version="0.1.0"))
     assert paths.meta.exists()
     assert "run-2" in paths.meta.read_text(encoding="utf-8")
+
+
+def test_run_paths_refuse_private_ledgers_inside_tracked_tree():
+    paths = RunPaths(Path(__file__).resolve().parents[1] / "scorecards" / "leak")
+    with pytest.raises(errors.GauntletError, match="private run data"):
+        paths.ensure()
