@@ -1,10 +1,21 @@
 import json
 
+import pytest
 from typer.testing import CliRunner
 
+from gauntlet import vram
 from gauntlet.cli import app
 
 runner = CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def _no_real_vram(monkeypatch):
+    monkeypatch.setattr(vram, "unload_all_local", lambda: [])
+    monkeypatch.setattr(vram, "loaded_models", lambda: [])
+    monkeypatch.setattr(vram, "load", lambda *a, **k: True)
+    monkeypatch.setattr(vram, "unload", lambda *a, **k: True)
+    monkeypatch.setattr(vram, "release_after_run", lambda *a, **k: [])
 
 
 def _write_config(tmp_path):
@@ -46,6 +57,7 @@ def test_run_unreachable_target_writes_scorecard_and_does_not_crash(tmp_path, mo
     result = runner.invoke(app, [
         "run", "--config", str(cfg), "--batteries", str(bdir),
         "--prompts", str(tmp_path), "--out", str(out), "--run-id", "test-run",
+        "--no-overlay",
     ])
     assert result.exit_code == 0, result.output
     assert out.exists()
