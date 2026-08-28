@@ -74,7 +74,11 @@ def score_case(case: Case, output: str, base_dir: Path | str | None = None) -> C
         schema_dict = _json.loads(path.read_text(encoding="utf-8"))
         return _result(case, method, schema.json_schema_match(output, schema_dict))
     if method == "conventional-commit":
-        return _result(case, method, schema.conventional_commit_match(output))
+        return _result(case, method, schema.conventional_commit_match(
+            output, commit_type=case.commit_type,
+            required_terms=case.required_terms,
+            require_breaking=case.require_breaking,
+        ))
     if method == "compilable-code":
         return _result(case, method, schema.compilable_code_match(output))
     if method == "code-exec":

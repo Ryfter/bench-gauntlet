@@ -4,25 +4,42 @@ cases:
   - id: diff-01
     prompt_file: cases/commit-msg/diff-01.txt
     scoring: conventional-commit
+    commit_type: fix
+    required_terms: [token, missing]
   - id: diff-02-feat
     prompt_file: cases/commit-msg/diff-02-feat.txt
     scoring: conventional-commit
+    commit_type: feat
+    required_terms: [cache]
   - id: diff-03-fix
     prompt_file: cases/commit-msg/diff-03-fix.txt
     scoring: conventional-commit
+    commit_type: fix
+    required_terms: [json]
   - id: diff-04-breaking
     prompt_file: cases/commit-msg/diff-04-breaking.txt
     scoring: conventional-commit
+    commit_type: feat
+    required_terms: [connect]
+    require_breaking: true
   - id: diff-05-refactor
     prompt_file: cases/commit-msg/diff-05-refactor.txt
     scoring: conventional-commit
+    commit_type: refactor
+    required_terms: [user, repository]
   - id: docs-01
     prompt_file: cases/commit-msg/docs-01.txt
     scoring: conventional-commit
+    commit_type: docs
+    required_terms: [error]
   - id: revert-01
     prompt_file: cases/commit-msg/revert-01.txt
     scoring: conventional-commit
+    commit_type: revert
+    required_terms: [feat(api), 3f8c2d9a]
   - id: perf-01
     prompt_file: cases/commit-msg/perf-01.txt
     scoring: conventional-commit
+    commit_type: perf
+    required_terms: [profile, 800ms, 150ms]
 weights: { quality: 1.0 }

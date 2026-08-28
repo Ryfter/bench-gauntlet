@@ -92,6 +92,14 @@ def test_extract_json_cases_accept_sources_and_reject_degenerate_constants():
         assert not bad.passed, case.id
 
 
+def test_commit_message_cases_reject_one_generic_constant():
+    from gauntlet.scoring import score_case
+    battery = next(b for b in load_batteries(ROOT / "batteries")
+                   if b.capability == "commit-msg")
+    assert all(not score_case(case, "feat: x", base_dir=ROOT).passed
+               for case in battery.cases)
+
+
 def test_embed_corpus_is_well_formed():
     spec = yaml.safe_load((ROOT / "cases/embed/corpus.yaml").read_text(encoding="utf-8"))
     assert len(spec["queries"]) == len(spec["relevant"])

@@ -35,6 +35,9 @@ class Case(BaseModel):
     pattern: str | None = None    # regex scoring: the pattern to find
     tests_file: str | None = None   # code-exec scoring: hidden asserts (see scoring/execute.py)
     timeout_s: float | None = None  # code-exec scoring: sandbox wall-clock timeout (default 5.0)
+    commit_type: str | None = None
+    required_terms: list[str] = Field(default_factory=list)
+    require_breaking: bool = False
 
 
 class Battery(BaseModel):
