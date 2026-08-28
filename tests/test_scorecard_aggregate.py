@@ -26,7 +26,8 @@ def test_aggregate_excludes_unscored_from_quality_but_counts_case():
     )
     assert cell.cases == 2
     assert cell.quality == 1.0          # only the scored case counts toward quality
-    assert cell.pass_rate == 0.5        # passed / total cases
+    assert cell.pass_rate == 1.0        # passed / scored cases
+    assert cell.scored_coverage == 0.5
 
 
 def test_aggregate_all_unscored_yields_none_quality():
@@ -34,3 +35,5 @@ def test_aggregate_all_unscored_yields_none_quality():
     cell = aggregate_cell(model="m", target="t", box="b", context=1, capability="c",
                           results=results)
     assert cell.quality is None
+    assert cell.pass_rate is None
+    assert cell.scored_coverage == 0.0

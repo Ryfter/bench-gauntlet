@@ -37,12 +37,16 @@ def aggregate_cell(
     completion_tokens: int | None = None,
     errors: int = 0,
 ) -> Cell:
-    scored = [r.score for r in results if r.score is not None]
+    scored_results = [r for r in results if r.score is not None]
+    scored = [r.score for r in scored_results]
     quality = sum(scored) / len(scored) if scored else None
-    pass_rate = (sum(1 for r in results if r.passed) / len(results)) if results else None
+    pass_rate = (sum(1 for r in scored_results if r.passed) / len(scored_results)
+                 if scored_results else None)
+    scored_coverage = len(scored_results) / len(results) if results else None
     return Cell(
         model=model, target=target, box=box, context=context, capability=capability,
-        quality=quality, pass_rate=pass_rate, latency_p50_s=latency_p50_s,
+        quality=quality, pass_rate=pass_rate, scored_coverage=scored_coverage,
+        latency_p50_s=latency_p50_s,
         tokens_per_s=tokens_per_s, ttft_p50_s=ttft_p50_s,
         prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
         cases=len(results), errors=errors,

@@ -133,5 +133,6 @@ def test_run_cell_no_eligible_judge_marks_unscored(tmp_path):
                     context=4096, battery=battery, base_dir=tmp_path,
                     judge_pool=[("gemma3:27b", "gemma3")])  # same family only
     assert cell.quality is None          # unscored, never silently 0
-    assert cell.pass_rate == 0.0
+    assert cell.pass_rate is None
+    assert cell.scored_coverage == 0.0
     assert cell.cases == 1

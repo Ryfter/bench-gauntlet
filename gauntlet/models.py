@@ -37,6 +37,7 @@ class Cell(BaseModel):
     capability: str
     quality: float | None
     pass_rate: float | None
+    scored_coverage: float | None = None  # scored cases / all attempted cases
     latency_p50_s: float | None = None
     tokens_per_s: float | None = None
     ttft_p50_s: float | None = None        # median time-to-first-token (streaming)
