@@ -282,6 +282,15 @@ def run_cell(
         try:
             reply = client.chat(model=model, prompt=prompt,
                                 max_tokens=battery.max_tokens)
+        except integrity.IntegrityError:
+            results.append(CaseResult(
+                case_id=case.id, method=case.scoring, score=None, passed=False,
+                detail="unscored: response used server-side tools",
+                failure_mode="integrity_violation", tier=case.tier,
+                dimension=case.dimension,
+                integrity_violations=[{"kind": "tool_use", "detail": "response"}],
+            ))
+            continue
         except errors.GauntletError as exc:
             # Transport/load failure: count the error AND record the case as an
             # unscored failure so it still counts toward `cases` (never silently 0).

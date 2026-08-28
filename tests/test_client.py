@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from gauntlet import errors
+from gauntlet import errors, integrity
 from gauntlet.client import ChatResult, OpenAIClient
 from tests.helpers import sse
 
@@ -58,6 +58,16 @@ def test_chat_no_content_chunks_yields_empty_text_no_ttft():
     assert res.text == ""
     assert res.ttft_s is None
     assert res.completion_tokens == 0
+
+
+def test_chat_rejects_server_injected_tool_use():
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = ('data: {"choices":[{"delta":{"content":"answer",'
+                '"tool_calls":[{"id":"1"}]},"finish_reason":"tool_calls"}]}\n'
+                'data: [DONE]\n')
+        return httpx.Response(200, text=body)
+    with pytest.raises(integrity.IntegrityError, match="tool use"):
+        _client(handler).chat(model="m1", prompt="hi")
 
 
 def test_unreachable_raises_typed_error():

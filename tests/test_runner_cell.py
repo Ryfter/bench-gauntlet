@@ -56,6 +56,21 @@ def test_run_cell_unreachable_marks_errored_cell(tmp_path):
     assert cell.cases == 1
 
 
+def test_run_cell_records_tool_tainted_response_as_unscored(tmp_path):
+    (tmp_path / "p.txt").write_text("answer", encoding="utf-8")
+    def handler(request):
+        body = ('data: {"choices":[{"delta":{"content":"x",'
+                '"tool_calls":[{"id":"1"}]},"finish_reason":"tool_calls"}]}\n')
+        return httpx.Response(200, text=body)
+    client = OpenAIClient(base_url="http://w:1", transport=httpx.MockTransport(handler))
+    battery = Battery(capability="classify", cases=[
+        Case(id="c1", scoring="exact", expect="x", prompt_file="p.txt")])
+    cell = run_cell(client, model="m", target="t", box="b", context=4096,
+                    battery=battery, base_dir=tmp_path)
+    assert cell.quality is None
+    assert cell.integrity == {"tool_use": 1}
+
+
 def test_run_cell_strips_think_tags_before_deterministic_scoring(tmp_path):
     (tmp_path / "p.txt").write_text("write a commit message", encoding="utf-8")
     battery = Battery(capability="commit-msg",

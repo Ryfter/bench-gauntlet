@@ -83,9 +83,14 @@ class OpenAIClient:
                     choices = obj.get("choices") or []
                     if not choices:
                         continue
-                    if choices[0].get("finish_reason"):
-                        finish_reason = choices[0]["finish_reason"]
-                    delta = choices[0].get("delta") or {}
+                    choice = choices[0]
+                    if integrity.response_used_tools(choice):
+                        raise integrity.IntegrityError(
+                            "response integrity violation: server-injected tool use"
+                        )
+                    if choice.get("finish_reason"):
+                        finish_reason = choice["finish_reason"]
+                    delta = choice.get("delta") or {}
                     content = delta.get("content")
                     if content:
                         if ttft_s is None:
