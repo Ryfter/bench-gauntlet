@@ -67,6 +67,12 @@ def _defer(cell: TocCell, reason: str) -> TocCell:
     return cell.model_copy(update={"deferred": True, "defer_reason": reason})
 
 
+def _fits(box: TocBox, cell: TocCell) -> bool:
+    if cell.vram_gb is None:
+        return True
+    return cell.vram_gb <= box.vram_gb
+
+
 def _place_exclusive(plan: TocPlacementPlan, box: TocBox, cell: TocCell) -> None:
     plan.batches.append(TocBatch(box_id=box.id, exclusive=True, cells=[cell]))
 
@@ -135,6 +141,11 @@ def plan_placement(boxes: list[TocBox], cells: list[TocCell]) -> TocPlacementPla
 
         if affinity is not None:
             box = by_id[affinity]
+            if not _fits(box, cell):
+                plan.deferred.append(_defer(
+                    cell, f"footprint {cell.vram_gb} GiB exceeds box {box.id} VRAM {box.vram_gb}",
+                ))
+                continue
             if box.usage_class == "broad" or cell.vram_gb is None:
                 _place_exclusive(plan, box, cell)
             else:
@@ -143,18 +154,40 @@ def plan_placement(boxes: list[TocBox], cells: list[TocCell]) -> TocPlacementPla
 
         if cell.critical:
             assert strongest is not None
+            if not _fits(strongest, cell):
+                plan.deferred.append(_defer(
+                    cell, f"footprint {cell.vram_gb} GiB exceeds every available box",
+                ))
+                continue
             _place_exclusive(plan, strongest, cell)
             continue
 
         if cell_cost(cell) >= _CHEAP_COST_CEILING:
             assert strongest_broad is not None
+            if not _fits(strongest_broad, cell):
+                plan.deferred.append(_defer(
+                    cell, f"footprint {cell.vram_gb} GiB exceeds every available box",
+                ))
+                continue
             _place_exclusive(plan, strongest_broad, cell)
             continue
 
         if tight_available:
-            _place_tight(plan, tight_available[0], cell, open_tight)
+            box = tight_available[0]
+            if not _fits(box, cell):
+                plan.deferred.append(_defer(
+                    cell, f"footprint {cell.vram_gb} GiB exceeds box {box.id} VRAM {box.vram_gb}",
+                ))
+                continue
+            _place_tight(plan, box, cell, open_tight)
         else:
             # No tight box — fall back to weakest available box exclusively.
-            _place_exclusive(plan, available[-1], cell)
+            box = available[-1]
+            if not _fits(box, cell):
+                plan.deferred.append(_defer(
+                    cell, f"footprint {cell.vram_gb} GiB exceeds every available box",
+                ))
+                continue
+            _place_exclusive(plan, box, cell)
 
     return plan

@@ -141,6 +141,27 @@ def test_default_cost_when_weight_and_estimated_cost_absent():
     assert plan.batches[0].cells[0].model == "tiny"
 
 
+def test_cell_larger_than_every_box_is_deferred():
+    boxes = [
+        TocBox(id="tight", vram_gb=8, usage_class="tight"),
+        TocBox(id="broad", vram_gb=16, usage_class="broad"),
+    ]
+    cells = [_cell("too-big", cost=10.0, critical=True, vram_gb=24.0)]
+    plan = plan_placement(boxes, cells)
+    assert plan.batches == []
+    assert len(plan.deferred) == 1
+    assert "footprint" in plan.deferred[0].defer_reason.lower()
+
+
+def test_affinity_box_too_small_defers_instead_of_scheduling():
+    boxes = [TocBox(id="laptop", vram_gb=8, usage_class="tight")]
+    cells = [_cell("huge", cost=1.0, vram_gb=12.0, box_id="laptop")]
+    plan = plan_placement(boxes, cells)
+    assert plan.batches == []
+    assert len(plan.deferred) == 1
+    assert "footprint" in plan.deferred[0].defer_reason.lower()
+
+
 def test_vram_overflow_splits_tight_parallel_batch():
     boxes = [TocBox(id="laptop", vram_gb=10, usage_class="tight")]
     cells = [
