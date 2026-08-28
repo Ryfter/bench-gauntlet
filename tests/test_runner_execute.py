@@ -90,6 +90,41 @@ def test_execute_plan_all_busy_returns_before_any_vram_operation(tmp_path, monke
     assert cells == []
 
 
+def test_execute_plan_resume_after_case_rows_without_cell_does_not_duplicate(
+        tmp_path, monkeypatch):
+    """Crash between case rows and the cell marker must not duplicate evidence."""
+    import json
+
+    import gauntlet.runner as runner_mod
+
+    paths = RunPaths(tmp_path / "run-crash-window")
+
+    def crash_after_cases(p, cell):
+        raise OSError("injected crash after case rows")
+
+    original_append = runner_mod.append_cell
+    monkeypatch.setattr(runner_mod, "append_cell", crash_after_cases)
+    with pytest.raises(OSError, match="injected crash"):
+        execute_plan(_cfg(), _batteries(tmp_path), paths, base_dir=tmp_path,
+                     client_factory=_client_factory("feat: x"))
+
+    assert paths.cases.exists()
+    before = [json.loads(line) for line in paths.cases.read_text(encoding="utf-8").splitlines()
+              if line.strip()]
+    assert before
+    assert not paths.cells.exists() or not paths.cells.read_text(encoding="utf-8").strip()
+
+    monkeypatch.setattr(runner_mod, "append_cell", original_append)
+    cells = execute_plan(_cfg(), _batteries(tmp_path), paths, base_dir=tmp_path,
+                         client_factory=_client_factory("feat: x"), resume=True)
+    assert len(cells) == 1
+    rows = [json.loads(line) for line in paths.cases.read_text(encoding="utf-8").splitlines()
+            if line.strip()]
+    keys = [(r["model"], r["target"], r["context"], r["capability"], r["case_id"]) for r in rows]
+    assert len(keys) == len(set(keys))
+    assert len(keys) == 1
+
+
 def test_execute_plan_load_failure_never_pings_or_infers(tmp_path, monkeypatch):
     monkeypatch.setattr(vram, "unload_all_local", lambda: [])
     monkeypatch.setattr(vram, "loaded_models", lambda: [])

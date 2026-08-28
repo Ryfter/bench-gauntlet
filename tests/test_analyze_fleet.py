@@ -67,6 +67,14 @@ def _report(tmp_path, cells, cases=None, **kw) -> str:
         capability=kw.get("capability"), top_n=kw.get("top_n", 3), run_dir=run_dir)
 
 
+def test_load_jsonl_skips_a_torn_trailing_line(tmp_path):
+    path = tmp_path / "cells.jsonl"
+    path.write_text(json.dumps(_cell("m")) + "\n{\"model\":\"partial\"", encoding="utf-8")
+    rows = analyze.load_jsonl(path)
+    assert len(rows) == 1
+    assert rows[0]["model"] == "m"
+
+
 # --- the null-vs-zero contract -------------------------------------------------
 
 def test_a_null_score_is_excluded_from_the_mean_not_counted_as_zero(tmp_path):

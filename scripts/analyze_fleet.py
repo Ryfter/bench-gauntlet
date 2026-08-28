@@ -51,10 +51,12 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
                 continue
             try:
                 obj = json.loads(text)
-            except json.JSONDecodeError as exc:
-                die(f"{path}: line {lineno}: invalid JSON: {exc}")
+            except json.JSONDecodeError:
+                # A torn final line is the crash window; skip it rather than
+                # aborting analysis of every committed row before it.
+                continue
             if not isinstance(obj, dict):
-                die(f"{path}: line {lineno}: expected a JSON object, got {type(obj).__name__}")
+                continue
             rows.append(obj)
     return rows
 

@@ -67,3 +67,21 @@ def test_write_json_round_trips(tmp_path):
     loaded = json.loads(path.read_text(encoding="utf-8"))
     assert loaded["run"]["id"] == "r1"
     assert loaded["cells"][0]["model"] == "gemma3:1b"
+
+
+def test_write_json_crash_before_commit_keeps_prior_snapshot(tmp_path, monkeypatch):
+    import os
+
+    path = tmp_path / "card.json"
+    write_json(_sc(), path, share=False)
+    original = path.read_text(encoding="utf-8")
+    sc = _sc()
+    sc.run.id = "r2"
+
+    def boom(src, dst, *args, **kwargs):
+        raise OSError("injected crash before commit")
+
+    monkeypatch.setattr(os, "replace", boom)
+    with pytest.raises(OSError, match="injected crash"):
+        write_json(sc, path, share=False)
+    assert path.read_text(encoding="utf-8") == original

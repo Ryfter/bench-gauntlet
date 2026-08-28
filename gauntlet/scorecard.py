@@ -8,7 +8,7 @@ import json
 import re
 from pathlib import Path
 
-from gauntlet import errors
+from gauntlet import errors, persist
 from gauntlet.models import BaselineGap, CaseResult, Cell, ContextDepth, Scorecard
 from gauntlet.pricing import DEFAULT_COMPARE, savings_summary
 
@@ -159,7 +159,7 @@ def assert_no_leak(text: str) -> None:
 def write_json(scorecard: Scorecard, path: str | Path, share: bool = False) -> None:
     payload = json.dumps(to_dict(scorecard, share=share), indent=2)
     assert_no_leak(payload)
-    Path(path).write_text(payload, encoding="utf-8")
+    persist.atomic_write_text(path, payload)
 
 
 def _fmt(value: float | None, places: int = 2) -> str:
@@ -201,7 +201,7 @@ def render_markdown(scorecard: Scorecard, share: bool = False,
 def write_markdown(scorecard: Scorecard, path: str | Path, share: bool = False) -> None:
     text = render_markdown(scorecard, share=share)
     assert_no_leak(text)
-    Path(path).write_text(text, encoding="utf-8")
+    persist.atomic_write_text(path, text)
 
 
 def merge_into_scorecard(

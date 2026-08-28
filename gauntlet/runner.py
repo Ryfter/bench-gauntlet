@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
-from gauntlet import errors, integrity, vram
+from gauntlet import errors, integrity, persist, vram
 from gauntlet.models import CaseResult, Cell, RunMeta, Scorecard
 from gauntlet.runstatus import RunStatus, clear_status, now_iso, write_status
 from gauntlet.scorecard import aggregate_cell
@@ -113,9 +113,17 @@ def cell_key(cell: Cell) -> tuple[str | None, str, int, str]:
     return (cell.target, cell.model, cell.context, cell.capability)
 
 
+def _cell_row_key(row: dict) -> tuple:
+    return (row.get("target"), row.get("model"), row.get("context"), row.get("capability"))
+
+
+def _case_row_key(row: dict) -> tuple:
+    return (row.get("model"), row.get("target"), row.get("context"),
+            row.get("capability"), row.get("case_id"))
+
+
 def append_cell(paths: RunPaths, cell: Cell) -> None:
-    with paths.cells.open("a", encoding="utf-8") as fh:
-        fh.write(cell.model_dump_json() + "\n")
+    persist.upsert_jsonl(paths.cells, [json.loads(cell.model_dump_json())], _cell_row_key)
 
 
 # Failures that a mid-sentence cut is a sufficient explanation for. Anything
@@ -219,30 +227,27 @@ def append_case_rows(
     miss?", "is this dimension too hard?" — costs another whole run. `score`
     stays `None` for unscored cases; it must never reach disk as 0.0.
     """
-    with paths.cases.open("a", encoding="utf-8") as fh:
-        for r in results:
-            fh.write(json.dumps({
-                "model": model, "target": target, "context": context,
-                "capability": capability, "case_id": r.case_id,
-                "tier": r.tier, "dimension": r.dimension,
-                "score": r.score, "passed": r.passed,
-                "failure_mode": r.failure_mode,
-            }) + "\n")
+    persist.upsert_jsonl(paths.cases, [{
+        "model": model, "target": target, "context": context,
+        "capability": capability, "case_id": r.case_id,
+        "tier": r.tier, "dimension": r.dimension,
+        "score": r.score, "passed": r.passed,
+        "failure_mode": r.failure_mode,
+    } for r in results], _case_row_key)
 
 
 def read_completed(paths: RunPaths) -> set[tuple]:
-    if not paths.cells.exists():
-        return set()
     done: set[tuple] = set()
-    for line in paths.cells.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line:
-            done.add(cell_key(Cell.model_validate_json(line)))
+    for row in persist.read_jsonl_objects(paths.cells):
+        try:
+            done.add(cell_key(Cell.model_validate(row)))
+        except (ValueError, TypeError):
+            continue
     return done
 
 
 def write_meta(paths: RunPaths, run: RunMeta) -> None:
-    paths.meta.write_text(run.model_dump_json(indent=2), encoding="utf-8")
+    persist.atomic_write_text(paths.meta, run.model_dump_json(indent=2))
 
 
 def load_prompt(case: "Case", base_dir) -> str:
@@ -348,8 +353,8 @@ def run_cell(
             result.case_id = case.id
             results.append(attribute_truncation(result, truncated=reply.truncated))
 
-    # Checkpoint the raw per-case detail before the summary, so a crash between
-    # the two loses the cell (which resume re-runs) rather than the detail.
+    # Case rows land before the cell marker. Both files are keyed upserts, so a
+    # crash in between is retried on resume without duplicating evidence.
     if case_sink is not None:
         case_sink(results)
 
@@ -520,9 +525,9 @@ def assemble_scorecard(run: RunMeta, paths: RunPaths) -> Scorecard:
     """Build the final Scorecard from the append-only cells.jsonl. context_depth and
     baseline_gaps stay empty until Plan 4 fills them."""
     cells: list[Cell] = []
-    if paths.cells.exists():
-        for line in paths.cells.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line:
-                cells.append(Cell.model_validate_json(line))
+    for row in persist.read_jsonl_objects(paths.cells):
+        try:
+            cells.append(Cell.model_validate(row))
+        except (ValueError, TypeError):
+            continue
     return Scorecard(run=run, cells=cells)
