@@ -100,6 +100,32 @@ def test_commit_message_cases_reject_one_generic_constant():
                for case in battery.cases)
 
 
+def test_code_debug_cases_reject_non_executable_pattern_answers():
+    from gauntlet.scoring import score_case
+    battery = next(b for b in load_batteries(ROOT / "batteries")
+                   if b.capability == "code-debug")
+    degenerate = {
+        "missing-return": "The fix is return result; code omitted.",
+        "wrong-operator": "Use width * height; code omitted.",
+        "index-error": "Use arr[-1]; code omitted.",
+        "logic-inversion": "",
+        "accumulator-aliasing": "Use row.copy(); code omitted.",
+        "none-check": "Check limit is None; code omitted.",
+    }
+    assert all(not score_case(case, degenerate[case.id], base_dir=ROOT).passed
+               for case in battery.cases)
+    references = {
+        "missing-return": "def collect_evens(numbers):\n return [n for n in numbers if n % 2 == 0]",
+        "wrong-operator": "def area_of_rectangle(width, height):\n return width * height",
+        "index-error": "def last_element(arr):\n return arr[-1]",
+        "logic-inversion": "def all_positive(numbers):\n return all(n > 0 for n in numbers)",
+        "accumulator-aliasing": "def multiplication_table(size):\n return [[i*j for j in range(1,size+1)] for i in range(1,size+1)]",
+        "none-check": "def take_items(items, limit=None):\n return list(items) if limit is None else list(items)[:limit]",
+    }
+    assert all(score_case(case, references[case.id], base_dir=ROOT).passed
+               for case in battery.cases)
+
+
 def test_embed_corpus_is_well_formed():
     spec = yaml.safe_load((ROOT / "cases/embed/corpus.yaml").read_text(encoding="utf-8"))
     assert len(spec["queries"]) == len(spec["relevant"])

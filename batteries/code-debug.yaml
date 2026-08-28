@@ -3,25 +3,26 @@ context_floor: 0
 cases:
   - id: missing-return
     prompt_file: cases/code-debug/missing-return.txt
-    scoring: regex
-    pattern: 'return\s+result'
+    scoring: code-exec
+    tests_file: cases/code-debug/behavior_tests.py
   - id: wrong-operator
     prompt_file: cases/code-debug/wrong-operator.txt
-    scoring: regex
-    pattern: 'width\s*\*\s*height|height\s*\*\s*width'
+    scoring: code-exec
+    tests_file: cases/code-debug/behavior_tests.py
   - id: index-error
     prompt_file: cases/code-debug/index-error.txt
-    scoring: regex
-    pattern: 'arr\[-1\]|len\(arr\)\s*-\s*1'
+    scoring: code-exec
+    tests_file: cases/code-debug/behavior_tests.py
   - id: logic-inversion
     prompt_file: cases/code-debug/logic-inversion.txt
-    scoring: compilable-code
+    scoring: code-exec
+    tests_file: cases/code-debug/behavior_tests.py
   - id: accumulator-aliasing
     prompt_file: cases/code-debug/accumulator-aliasing.txt
-    scoring: regex
-    pattern: 'row\.copy\(\)|list\(row\)|row\[:\]'
+    scoring: code-exec
+    tests_file: cases/code-debug/behavior_tests.py
   - id: none-check
     prompt_file: cases/code-debug/none-check.txt
-    scoring: regex
-    pattern: 'limit\s+is\s+None'
+    scoring: code-exec
+    tests_file: cases/code-debug/behavior_tests.py
 weights: { quality: 1.0 }
