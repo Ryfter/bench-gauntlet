@@ -172,6 +172,18 @@ def _unreachable_cell(*, model: str, target: str, box: str, context: int,
                           errors=len(results))
 
 
+def _load_failed_cell(*, model: str, target: str, box: str, context: int,
+                      battery: "Battery") -> Cell:
+    results = [CaseResult(
+        case_id=case.id, method=case.scoring, score=None, passed=False,
+        detail="unscored: requested model profile failed to load",
+        failure_mode="load_error", tier=case.tier, dimension=case.dimension,
+    ) for case in battery.cases]
+    return aggregate_cell(model=model, target=target, box=box, context=context,
+                          capability=battery.capability, results=results,
+                          errors=len(results))
+
+
 def _case_heartbeat(status_path, status: RunStatus | None):
     """A per-case tick for the run indicator, or None when nothing is watching.
 
@@ -416,6 +428,7 @@ def execute_plan(
 
     clients: dict[str, object] = {}
     dead_targets: set[str] = set()
+    failed_profiles: set[tuple[str, str, int]] = set()
     produced: list[Cell] = []
     try:
         for group in plan.groups:
@@ -436,10 +449,20 @@ def execute_plan(
                         # Otherwise LM Studio JIT-loads at its own defaults and
                         # sizes the KV cache for many times the work in hand.
                         if exclusive_vram:
-                            vram.load(model, context=context)
+                            if not vram.load(model, context=context):
+                                failed_profiles.add((target, model, context))
                         if status_path:
                             status.models_ran = list(ran_models)
                             write_status(status_path, status)
+                    if (target, model, context) in failed_profiles:
+                        battery = battery_by_cap[cell_plan.capability]
+                        cell = _load_failed_cell(
+                            model=model, target=target, box=cell_plan.box_hardware,
+                            context=context, battery=battery)
+                        append_cell(paths, cell)
+                        done.add(key)
+                        produced.append(cell)
+                        continue
                     tgt = config.target_by_name(target)
                     client = clients.get(target)
                     if client is None:

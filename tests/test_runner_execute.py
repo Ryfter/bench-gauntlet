@@ -1,10 +1,20 @@
 import httpx
+import pytest
 
 from gauntlet import vram
 from gauntlet.battery import Battery, Case
 from gauntlet.config import Box, GauntletConfig, ModelProfile, Target
 from gauntlet.runner import RunPaths, execute_plan, read_completed
 from tests.helpers import sse
+
+
+@pytest.fixture(autouse=True)
+def _no_real_vram(monkeypatch):
+    monkeypatch.setattr(vram, "unload_all_local", lambda: [])
+    monkeypatch.setattr(vram, "loaded_models", lambda: [])
+    monkeypatch.setattr(vram, "load", lambda *a, **k: True)
+    monkeypatch.setattr(vram, "unload", lambda *a, **k: True)
+    monkeypatch.setattr(vram, "release_after_run", lambda *a, **k: [])
 
 
 def _cfg():
@@ -78,3 +88,19 @@ def test_execute_plan_all_busy_returns_before_any_vram_operation(tmp_path, monke
     cells = execute_plan(cfg, _batteries(tmp_path), RunPaths(tmp_path / "busy"),
                          base_dir=tmp_path, client_factory=_client_factory("feat: x"))
     assert cells == []
+
+
+def test_execute_plan_load_failure_never_pings_or_infers(tmp_path, monkeypatch):
+    monkeypatch.setattr(vram, "unload_all_local", lambda: [])
+    monkeypatch.setattr(vram, "loaded_models", lambda: [])
+    monkeypatch.setattr(vram, "load", lambda *a, **k: False)
+    monkeypatch.setattr(vram, "unload", lambda *a, **k: True)
+    monkeypatch.setattr(vram, "release_after_run", lambda *a, **k: [])
+    def exploding_factory(*args, **kwargs):
+        raise AssertionError("client must not be created after load failure")
+    cells = execute_plan(_cfg(), _batteries(tmp_path), RunPaths(tmp_path / "load-fail"),
+                         base_dir=tmp_path, client_factory=exploding_factory)
+    assert len(cells) == 1
+    assert cells[0].quality is None
+    assert cells[0].errors == 1
+    assert cells[0].failure_modes == {"load_error": 1}
