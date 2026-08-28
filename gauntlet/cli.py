@@ -333,10 +333,11 @@ def depth(
     from gauntlet.scorecard import merge_into_scorecard, write_json
 
     cfg = load_config(config)
-    tgt = cfg.target_by_name(target)
-    if tgt is None:
-        typer.echo(f"No target named {target!r} in config.")
-        raise typer.Exit(code=1)
+    try:
+        tgt, _box = cfg.require_runnable_target(target)
+    except Exception as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
 
     # Geometric-ish sweep up to max_context: 512, 1024, ... <= max_context.
     lengths, n = [], 512
@@ -396,16 +397,16 @@ def embed(
     spec = yaml.safe_load(cpath.read_text(encoding="utf-8"))
 
     cfg = load_config(config)
-    tgt = cfg.target_by_name(target)
-    if tgt is None:
-        typer.echo(f"No target named {target!r} in config.")
-        raise typer.Exit(code=1)
-    box = cfg.box_for_target(target)
+    try:
+        tgt, box = cfg.require_runnable_target(target)
+    except Exception as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
 
     client = OpenAIClient(base_url=tgt.base_url, api_key=os.environ.get("GAUNTLET_API_KEY"))
     try:
         cell = run_embed_cell(client, model=model, target=target,
-                              box=box.hardware if box else "(no box)", context=0,
+                              box=box.hardware, context=0,
                               corpus=spec["corpus"], queries=spec["queries"],
                               relevant=spec["relevant"], k=k)
     finally:

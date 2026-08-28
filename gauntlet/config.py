@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from gauntlet import errors
 
@@ -42,6 +42,18 @@ class GauntletConfig(BaseModel):
     models: list[ModelProfile] = Field(default_factory=list)
     keep_list: list[str] = Field(default_factory=list)
 
+    @model_validator(mode="after")
+    def validate_references(self) -> "GauntletConfig":
+        target_names = {target.name for target in self.targets}
+        box_ids = {box.id for box in self.boxes}
+        for target in self.targets:
+            if target.box is None or target.box not in box_ids:
+                raise ValueError(f"target {target.name!r} has no configured box")
+        for model in self.models:
+            if model.target not in target_names:
+                raise ValueError(f"model {model.id!r} has no configured target")
+        return self
+
     def target_by_name(self, name: str) -> Target | None:
         return next((t for t in self.targets if t.name == name), None)
 
@@ -53,6 +65,17 @@ class GauntletConfig(BaseModel):
         if target is None or target.box is None:
             return None
         return self.box_by_id(target.box)
+
+    def require_runnable_target(self, target_name: str) -> tuple[Target, Box]:
+        target = self.target_by_name(target_name)
+        if target is None:
+            raise errors.GauntletError("configured inference target was not found")
+        box = self.box_for_target(target_name)
+        if box is None:
+            raise errors.GauntletError("configured inference target has no box")
+        if box.busy:
+            raise errors.BoxBusy(f"box {box.id} is busy")
+        return target, box
 
     def is_kept(self, model_id: str) -> bool:
         """True if a keep_list glob matches (case-insensitive)."""

@@ -1,3 +1,7 @@
+import pytest
+from pydantic import ValidationError
+
+from gauntlet import errors
 from gauntlet.config import GauntletConfig
 
 
@@ -41,3 +45,19 @@ def test_defaults_are_safe():
     ).boxes[0]
     assert box.usage_class == "broad"
     assert box.busy is False
+
+
+@pytest.mark.parametrize("data", [
+    {"targets": [{"name": "t", "base_url": "http://localhost", "box": "missing"}]},
+    {"models": [{"target": "missing", "id": "m", "context": 1}]},
+])
+def test_config_rejects_unresolved_target_and_box_references(data):
+    with pytest.raises(ValidationError):
+        GauntletConfig.model_validate(data)
+
+
+def test_require_runnable_target_fails_closed_for_busy_box():
+    cfg = _cfg()
+    cfg.boxes[0].busy = True
+    with pytest.raises(errors.BoxBusy):
+        cfg.require_runnable_target("box-a-lmstudio")
