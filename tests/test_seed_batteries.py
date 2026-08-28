@@ -62,6 +62,36 @@ def test_seeded_json_schemas_are_valid():
                 jsonschema.Draft202012Validator.check_schema(schema)
 
 
+def test_extract_json_cases_accept_sources_and_reject_degenerate_constants():
+    from gauntlet.scoring import score_case
+    battery = next(b for b in load_batteries(ROOT / "batteries")
+                   if b.capability == "extract-json")
+    correct = {
+        "invoice-01": {"invoice_no": "A-1007", "total": 4250.0},
+        "contact-card": {"name": "Sarah Chen", "email": "sarah.chen@nexaflow.io",
+                         "phone": "+1 (415) 882-0034", "company": "Nexaflow Systems"},
+        "event-announce": {"title": "Mountain West Developer Summit",
+                           "date": "August 14, 2026",
+                           "location": "Salt Lake Convention Center, Hall C",
+                           "price_usd": 149},
+        "product-list": [
+            {"name": "Apex Trail Runner", "price_usd": 129.99},
+            {"name": "Summit Daypack", "price_usd": 84.50},
+            {"name": "HydroCore water filter", "price_usd": 49.00},
+            {"name": "Ridgeline Trekking Poles", "price_usd": 67.95},
+        ],
+    }
+    for case in battery.cases:
+        good = score_case(case, json.dumps(correct[case.id]), base_dir=ROOT)
+        bad_value = [] if case.id == "product-list" else {
+            key: (0 if key in {"total", "price_usd"} else "")
+            for key in correct[case.id]
+        }
+        bad = score_case(case, json.dumps(bad_value), base_dir=ROOT)
+        assert good.passed, case.id
+        assert not bad.passed, case.id
+
+
 def test_embed_corpus_is_well_formed():
     spec = yaml.safe_load((ROOT / "cases/embed/corpus.yaml").read_text(encoding="utf-8"))
     assert len(spec["queries"]) == len(spec["relevant"])

@@ -2,7 +2,8 @@
   "type": "object",
   "required": ["invoice_no", "total"],
   "properties": {
-    "invoice_no": { "type": "string" },
-    "total": { "type": "number" }
-  }
+    "invoice_no": { "type": "string", "const": "A-1007" },
+    "total": { "type": "number", "const": 4250.0 }
+  },
+  "additionalProperties": false
 }

@@ -2,10 +2,10 @@
   "type": "object",
   "required": ["name", "email", "phone", "company"],
   "properties": {
-    "name":    { "type": "string" },
-    "email":   { "type": ["string", "null"] },
-    "phone":   { "type": ["string", "null"] },
-    "company": { "type": ["string", "null"] }
+    "name":    { "type": "string", "const": "Sarah Chen" },
+    "email":   { "type": "string", "const": "sarah.chen@nexaflow.io" },
+    "phone":   { "type": "string", "const": "+1 (415) 882-0034" },
+    "company": { "type": "string", "const": "Nexaflow Systems" }
   },
   "additionalProperties": false
 }
