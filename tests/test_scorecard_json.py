@@ -38,6 +38,25 @@ def test_assert_no_leak_rejects_bare_ipv4():
         assert_no_leak('{"host": "203.0.113.50"}')
 
 
+@pytest.mark.parametrize("secret", ["fd00::1", "workstation:11434"])
+def test_assert_no_leak_rejects_ipv6_and_host_port_without_echoing(secret):
+    with pytest.raises(errors.GauntletError) as caught:
+        assert_no_leak(json.dumps({"host": secret}))
+    assert secret not in str(caught.value)
+
+
+def test_share_mode_redacts_hostname_like_identifiers_in_all_sections():
+    sc = _sc().model_copy(deep=True)
+    sc.run.id = "workstation"
+    sc.cells[0].model = "workstation:11434"
+    sc.cells[0].box = "workstation"
+    sc.cells[0].judge = "fd00::1"
+    data = to_dict(sc, share=True)
+    payload = json.dumps(data)
+    for secret in ("workstation", "workstation:11434", "fd00::1"):
+        assert secret not in payload
+
+
 def test_assert_no_leak_allows_clean_scorecard():
     assert_no_leak(json.dumps(to_dict(_sc(), share=True)))  # no raise
 

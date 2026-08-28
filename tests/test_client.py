@@ -64,8 +64,10 @@ def test_unreachable_raises_typed_error():
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("refused", request=request)
 
-    with pytest.raises(errors.Unreachable):
+    with pytest.raises(errors.Unreachable) as caught:
         _client(handler).chat(model="m1", prompt="hi")
+    assert "http://box:1234" not in str(caught.value)
+    assert "refused" not in str(caught.value)
 
 
 def test_embeddings_parses_vectors():

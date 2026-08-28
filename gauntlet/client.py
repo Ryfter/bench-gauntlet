@@ -92,7 +92,7 @@ class OpenAIClient:
                             ttft_s = time.monotonic() - start
                         chunks.append(content)
         except httpx.ConnectError as exc:
-            raise errors.Unreachable(f"{self.base_url}: {exc}") from exc
+            raise errors.Unreachable("target connection failed") from exc
         except httpx.HTTPStatusError as exc:
             raise errors.ModelLoadFailed(f"{model}: HTTP {exc.response.status_code}") from exc
         except (httpx.RemoteProtocolError, httpx.ReadError, httpx.WriteError,
@@ -102,7 +102,7 @@ class OpenAIClient:
             # a transport failure is a *cell outcome*, not a reason to abandon
             # hours of completed work -- the runner records it and carries on.
             raise errors.Unreachable(
-                f"{self.base_url}: stream interrupted ({type(exc).__name__}: {exc})") from exc
+                f"target stream interrupted ({type(exc).__name__})") from exc
         latency = time.monotonic() - start
         return ChatResult(
             text="".join(chunks),
@@ -135,7 +135,7 @@ class OpenAIClient:
             resp = self._http.post("/v1/embeddings", json=payload)
             resp.raise_for_status()
         except httpx.ConnectError as exc:
-            raise errors.Unreachable(f"{self.base_url}: {exc}") from exc
+            raise errors.Unreachable("target connection failed") from exc
         return [row["embedding"] for row in resp.json()["data"]]
 
     def close(self) -> None:

@@ -19,7 +19,7 @@ def _sc() -> Scorecard:
 def test_markdown_has_run_header_and_rows():
     md = render_markdown(_sc(), share=True)
     assert "# Gauntlet scorecard" in md
-    assert "r1" in md and "2026-06-13" in md
+    assert "**run:** <redacted>" in md and "2026-06-13" in md
     assert "gemma3:1b" in md
     assert "RTX 2070 Super laptop" in md
     # share mode must not print the hostname label

@@ -29,3 +29,4 @@ def test_targets_lists_models(tmp_path, monkeypatch):
     assert "box-b-ollama" in result.stdout
     assert "gemma3:1b" in result.stdout
     assert "RTX 2070 Super laptop" in result.stdout
+    assert "http://h:11434" not in result.stdout

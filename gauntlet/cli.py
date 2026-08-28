@@ -36,7 +36,7 @@ def targets(config: str = typer.Option(None, "--config", "-c", help="Path to tar
     for t in cfg.targets:
         box = cfg.box_for_target(t.name)
         label = box.hardware if box else "(no box)"
-        typer.echo(f"\n{t.name}  [{label}]  {t.base_url}")
+        typer.echo(f"\n{t.name}  [{label}]")
         fetch = enrich.REGISTRY.get(t.enrich or "")
         if fetch is None:
             typer.echo("  (no enrichment adapter; OpenAI /v1/models only)")
@@ -46,8 +46,8 @@ def targets(config: str = typer.Option(None, "--config", "-c", help="Path to tar
                 ctx = f"ctx={m.max_context}" if m.max_context else "ctx=?"
                 size = f"{m.size_bytes / 1e9:.1f}GB" if m.size_bytes else "?GB"
                 typer.echo(f"  - {m.id:40s} {m.quant or '?':8s} {size:8s} {ctx}")
-        except Exception as exc:  # unreachable target must not crash the listing
-            typer.echo(f"  ! unreachable: {exc}")
+        except Exception:  # unreachable target must not crash or disclose its endpoint
+            typer.echo("  ! unreachable (details suppressed)")
 
 
 @app.command()

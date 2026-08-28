@@ -12,8 +12,15 @@ from gauntlet import errors
 from gauntlet.models import BaselineGap, CaseResult, Cell, ContextDepth, Scorecard
 from gauntlet.pricing import DEFAULT_COMPARE, savings_summary
 
-# IPv4 (with optional :port) or any URL scheme — a scorecard must contain neither.
-_LEAK_RE = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b|[a-zA-Z][a-zA-Z0-9+.-]*://")
+# Endpoint forms that must never cross a public/reporting boundary.
+_LEAK_RE = re.compile(
+    r"\b\d{1,3}(?:\.\d{1,3}){3}\b|"
+    r"[a-zA-Z][a-zA-Z0-9+.-]*://|"
+    r"(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f]{0,4}(?![0-9A-Fa-f:])|"
+    r"\b(?:[A-Za-z0-9-]+\.)*[A-Za-z0-9-]+:\d{2,5}\b"
+)
+_IDENTIFIER_FIELDS = frozenset({"id", "model", "judge", "box", "target"})
+_BARE_HOST_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9.-]*\Z")
 
 
 def aggregate_cell(
@@ -120,7 +127,20 @@ def to_dict(scorecard: Scorecard, share: bool = False) -> dict:
     if share:
         for cell in data["cells"]:
             cell.pop("target", None)
+        data = _sanitize_shared(data)
     return data
+
+
+def _sanitize_shared(value, *, key: str | None = None):
+    if isinstance(value, dict):
+        return {k: _sanitize_shared(v, key=k) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_shared(v, key=key) for v in value]
+    if isinstance(value, str):
+        identifier = key in _IDENTIFIER_FIELDS or (key or "").endswith("_model")
+        if _LEAK_RE.search(value) or (identifier and _BARE_HOST_RE.fullmatch(value)):
+            return "<redacted>"
+    return value
 
 
 def assert_no_leak(text: str) -> None:
@@ -128,7 +148,7 @@ def assert_no_leak(text: str) -> None:
     match = _LEAK_RE.search(text)
     if match:
         raise errors.GauntletError(
-            f"refusing to write scorecard: looks like a leaked endpoint ({match.group()!r})"
+            "refusing to write scorecard: a private endpoint pattern was detected"
         )
 
 
@@ -144,11 +164,12 @@ def _fmt(value: float | None, places: int = 2) -> str:
 
 def render_markdown(scorecard: Scorecard, share: bool = False,
                     compare: list[str] | None = None) -> str:
-    run = scorecard.run
+    safe = to_dict(scorecard, share=share) if share else scorecard.model_dump()
+    run = safe["run"]
     lines = [
         "# Gauntlet scorecard",
         "",
-        f"- **run:** {run.id}  **date:** {run.date}  **gauntlet:** {run.gauntlet_version}",
+        f"- **run:** {run['id']}  **date:** {run['date']}  **gauntlet:** {run['gauntlet_version']}",
         "",
     ]
     header = ["model", "box", "ctx", "capability", "quality", "pass", "tok/s", "ttft", "cases", "err"]
@@ -156,13 +177,13 @@ def render_markdown(scorecard: Scorecard, share: bool = False,
         header.insert(2, "target")
     lines.append("| " + " | ".join(header) + " |")
     lines.append("|" + "|".join(["---"] * len(header)) + "|")
-    for c in scorecard.cells:
-        row = [c.model, c.box]
+    for c in safe["cells"]:
+        row = [c["model"], c["box"]]
         if not share:
-            row.append(c.target or "—")
+            row.append(c.get("target") or "—")
         row += [
-            str(c.context), c.capability, _fmt(c.quality), _fmt(c.pass_rate),
-            _fmt(c.tokens_per_s, 0), _fmt(c.ttft_p50_s, 2), str(c.cases), str(c.errors),
+            str(c["context"]), c["capability"], _fmt(c["quality"]), _fmt(c["pass_rate"]),
+            _fmt(c["tokens_per_s"], 0), _fmt(c["ttft_p50_s"], 2), str(c["cases"]), str(c["errors"]),
         ]
         lines.append("| " + " | ".join(row) + " |")
 
