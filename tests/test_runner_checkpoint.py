@@ -45,3 +45,37 @@ def test_run_paths_refuse_private_ledgers_inside_tracked_tree():
     paths = RunPaths(Path(__file__).resolve().parents[1] / "scorecards" / "leak")
     with pytest.raises(errors.GauntletError, match="private run data"):
         paths.ensure()
+
+
+@pytest.mark.parametrize("run_id", [
+    "", ".", "..", "../public", "nested/run", r"nested\run", "/absolute",
+])
+def test_private_run_paths_reject_unsafe_run_id_components(tmp_path, run_id):
+    with pytest.raises(errors.GauntletError, match="safe run id"):
+        RunPaths.for_run_id(run_id, private_root=tmp_path)
+
+
+def test_private_run_paths_confine_every_ledger_beneath_private_root(tmp_path):
+    private_root = tmp_path / "private"
+    paths = RunPaths.for_run_id("run-1", private_root=private_root)
+    paths.ensure()
+    resolved_root = private_root.resolve()
+    assert paths.root.parent == resolved_root
+    assert all(path.resolve().is_relative_to(resolved_root)
+               for path in (paths.cells, paths.cases, paths.meta))
+
+
+def test_private_run_paths_reject_symlink_escape(tmp_path):
+    private_root = tmp_path / "private"
+    outside = tmp_path / "outside"
+    private_root.mkdir()
+    outside.mkdir()
+    (private_root / "run-1").symlink_to(outside, target_is_directory=True)
+    paths = RunPaths.for_run_id("run-1", private_root=private_root)
+    with pytest.raises(errors.GauntletError, match="private run root"):
+        paths.ensure()
+
+
+def test_private_run_paths_reject_unsafe_namespace(tmp_path):
+    with pytest.raises(errors.GauntletError, match="safe run id"):
+        RunPaths.for_run_id("run-1", namespace="../target", private_root=tmp_path)

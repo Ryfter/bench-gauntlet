@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from gauntlet import __version__
 from gauntlet.models import Cell, RunMeta
-from gauntlet.runner import RunPaths, execute_plan, private_run_root, write_meta
+from gauntlet.runner import RunPaths, execute_plan, validate_run_component, write_meta
 
 if TYPE_CHECKING:
     from gauntlet.battery import Battery
@@ -31,7 +31,7 @@ def _run_target(
     target_cfg = config.model_copy(update={
         "models": [m for m in config.models if m.target == target_name]
     })
-    paths = RunPaths(private_run_root() / run_id / target_name)
+    paths = RunPaths.for_run_id(run_id, namespace=target_name)
 
     def factory(base_url: str) -> OpenAIClient:
         return OpenAIClient(base_url=base_url, api_key=api_key)
@@ -59,6 +59,7 @@ def orchestrate(
 
     progress_cb(target_name, n_cells, error) is called as each target finishes.
     """
+    validate_run_component(run_id)
     target_names = list(dict.fromkeys(m.target for m in config.models))
     all_cells: list[Cell] = []
 

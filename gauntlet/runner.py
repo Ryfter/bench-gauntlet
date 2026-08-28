@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+_SAFE_RUN_COMPONENT_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 
 
 def private_run_root() -> Path:
@@ -49,12 +50,39 @@ def private_run_root() -> Path:
     return base / "bench-gauntlet" / "runs"
 
 
+def validate_run_component(value: str) -> str:
+    """Accept one portable, non-traversing run-path component."""
+    if not isinstance(value, str) or not _SAFE_RUN_COMPONENT_RE.fullmatch(value):
+        raise errors.GauntletError(
+            "run identifiers must be a safe run id using only ASCII letters, "
+            "digits, dot, underscore, or hyphen"
+        )
+    return value
+
+
 class RunPaths:
-    def __init__(self, root: str | Path) -> None:
+    def __init__(self, root: str | Path, *, confinement_root: str | Path | None = None) -> None:
         self.root = Path(root)
+        self._confinement_root = (Path(confinement_root)
+                                  if confinement_root is not None else None)
         self.cells = self.root / "cells.jsonl"
         self.cases = self.root / "cases.jsonl"
         self.meta = self.root / "meta.json"
+
+    @classmethod
+    def for_run_id(
+        cls,
+        run_id: str,
+        *,
+        namespace: str | None = None,
+        private_root: str | Path | None = None,
+    ) -> "RunPaths":
+        base = (Path(private_root) if private_root is not None
+                else globals()["private_run_root"]())
+        root = base / validate_run_component(run_id)
+        if namespace is not None:
+            root = root / validate_run_component(namespace)
+        return cls(root, confinement_root=base)
 
     def ensure(self) -> None:
         resolved = self.root.expanduser().resolve()
@@ -62,10 +90,22 @@ class RunPaths:
             raise errors.GauntletError(
                 "refusing to store private run data inside the tracked repository"
             )
+        if self._confinement_root is not None:
+            boundary = self._confinement_root.expanduser().resolve()
+            if resolved == boundary or not resolved.is_relative_to(boundary):
+                raise errors.GauntletError(
+                    "refusing a ledger path outside the dedicated private run root"
+                )
         self.root = resolved
         self.cells = self.root / "cells.jsonl"
         self.cases = self.root / "cases.jsonl"
         self.meta = self.root / "meta.json"
+        if self._confinement_root is not None:
+            for ledger in (self.cells, self.cases, self.meta):
+                if not ledger.resolve().is_relative_to(boundary):
+                    raise errors.GauntletError(
+                        "refusing a ledger path outside the dedicated private run root"
+                    )
         self.root.mkdir(parents=True, exist_ok=True)
 
 

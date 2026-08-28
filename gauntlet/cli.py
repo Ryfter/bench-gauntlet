@@ -259,9 +259,7 @@ def run(
     from gauntlet.client import OpenAIClient
     from gauntlet.config import load_config
     from gauntlet.models import RunMeta
-    from gauntlet.runner import (
-        RunPaths, assemble_scorecard, execute_plan, private_run_root, write_meta,
-    )
+    from gauntlet.runner import RunPaths, assemble_scorecard, execute_plan, write_meta
     from gauntlet.runstatus import DEFAULT_STATUS_PATH
     from gauntlet.scorecard import render_markdown, write_json
 
@@ -272,7 +270,7 @@ def run(
         raise typer.Exit(code=0)
 
     rid = resume_id or run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    paths = RunPaths(private_run_root() / rid)
+    paths = RunPaths.for_run_id(rid)
 
     def factory(base_url: str, api_key=None) -> OpenAIClient:
         import os
