@@ -68,6 +68,7 @@ class OpenAIClient:
                 chunks: list[str] = []
                 usage: dict = {}
                 finish_reason: str | None = None
+                saw_valid_choice = False
                 for line in resp.iter_lines():
                     if not line.startswith("data: "):
                         continue
@@ -84,6 +85,9 @@ class OpenAIClient:
                     if not choices:
                         continue
                     choice = choices[0]
+                    if not isinstance(choice, dict):
+                        continue
+                    saw_valid_choice = True
                     if integrity.response_used_tools(choice):
                         raise integrity.IntegrityError(
                             "response integrity violation: server-injected tool use"
@@ -96,6 +100,8 @@ class OpenAIClient:
                         if ttft_s is None:
                             ttft_s = time.monotonic() - start
                         chunks.append(content)
+                if not saw_valid_choice:
+                    raise errors.Unreachable("target returned a malformed chat stream")
         except httpx.ConnectError as exc:
             raise errors.Unreachable("target connection failed") from exc
         except httpx.HTTPStatusError as exc:

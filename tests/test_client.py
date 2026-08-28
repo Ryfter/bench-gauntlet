@@ -70,6 +70,17 @@ def test_chat_rejects_server_injected_tool_use():
         _client(handler).chat(model="m1", prompt="hi")
 
 
+@pytest.mark.parametrize("body", [
+    '{"choices":[{"message":{"content":"hello"}}]}',
+    'data: not-json\ndata: [DONE]\n',
+])
+def test_chat_rejects_non_sse_or_malformed_200(body):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=body)
+    with pytest.raises(errors.Unreachable, match="malformed chat stream"):
+        _client(handler).chat(model="m1", prompt="hi")
+
+
 def test_unreachable_raises_typed_error():
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("refused", request=request)
